@@ -2,7 +2,7 @@ import { AbsoluteFill } from "remotion";
 import { ease, Finish, Grade, Snow, Subtitle, Svg, useT } from "../components/fx";
 import { DIMA, Hero, LERA, onGround } from "../components/Hero";
 import { Foreground, Landscape } from "../components/landscape";
-import { Sfx, speaking, timeline, Voices } from "../components/audio";
+import { lip, Sfx, speaking, timeline, Voices } from "../components/audio";
 
 const TL = timeline(0, [
   { clip: "l1", text: "Я пошла, только чтобы потом вас опознать.", gap: 0.3 },
@@ -18,14 +18,14 @@ export const Scene04 = () => {
   const wave = t > TL.at.d4.from - 0.1 && t < TL.at.d4.to + 0.6;
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
-      <Sfx name="sfx/wind_light" vol={0.4} loop />
+      <Sfx name="sfx/wind_light" vol={0.4} loop duck={TL} />
       <Voices tl={TL} />
       <Grade>
         <AbsoluteFill style={{ transformOrigin: "32% 38%", transform: `scale(${z})` }}>
           <Landscape t={t} cam={-40} wind={0.2} fog={0.08} camp />
           <Svg>
-            <Hero cfg={LERA} x={330} y={onGround(LERA, 1560, 0.4)} s={0.4} t={t} emotion="skeptic" talk={speaking(TL, "l1", t)} look={t < TL.at.d4.from ? [18, 2] : [4, 0]} lid={0.4} blinks={[3.6, 7.4]} frost={0.2} full wind={0.2} />
-            <Hero cfg={DIMA} x={790} y={onGround(DIMA, 1590, 0.4)} s={0.4} flip={-1} t={t + 1} emotion={wave ? "smile" : "calm"} talk={speaking(TL, "d4", t)} look={[16, 0]} arm={wave ? 150 + Math.sin(t * 8) * 15 : undefined} blinks={[1.6, 6.6]} frost={0.2} lightLeft={false} full wind={0.2} />
+            <Hero cfg={LERA} x={330} y={onGround(LERA, 1560, 0.4)} s={0.4} t={t} emotion="skeptic" mouth={lip(TL, ["l1"], t)} look={t < TL.at.d4.from ? [18, 2] : [4, 0]} lid={0.4} blinks={[3.6, 7.4]} frost={0.2} full wind={0.2} />
+            <Hero cfg={DIMA} x={790} y={onGround(DIMA, 1590, 0.4)} s={0.4} flip={-1} t={t + 1} emotion={wave ? "smile" : "calm"} mouth={lip(TL, ["d4"], t)} look={[16, 0]} arm={wave ? 150 + Math.sin(t * 8) * 15 : undefined} blinks={[1.6, 6.6]} frost={0.2} lightLeft={false} full wind={0.2} />
           </Svg>
           <Foreground cam={-50} />
           <Snow t={t} n={16} opacity={0.45} speed={0.5} wind={0.2} />

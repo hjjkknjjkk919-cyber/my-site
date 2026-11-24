@@ -3,7 +3,7 @@ import { ease, Finish, Grade, INK, shake, Snow, Subtitle, Svg, useT } from "../c
 import { DIMA, GENA, Hero, LERA, onGround, STAS } from "../components/Hero";
 import { Landscape } from "../components/landscape";
 import { Shack } from "../components/props";
-import { Sfx, speaking, timeline, Voices } from "../components/audio";
+import { lip, Sfx, speaking, timeline, Voices } from "../components/audio";
 
 const TL = timeline(0, [
   { clip: "l4", text: "Всё, дальше не пройдём. Ставим палатки.", gap: 0.3 },
@@ -29,10 +29,10 @@ export const Scene10 = () => {
   const glow = 0.75 + 0.15 * Math.sin(t * 29) + 0.1 * Math.sin(t * 83);
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
-      <Sfx name="sfx/wind_strong" vol={0.5} loop />
+      <Sfx name="sfx/wind_strong" vol={0.5} loop duck={TL} />
       <Sfx name="sfx/tent" vol={0.5} dur={POINT + 3} />
-      <Sfx at={POINT + 2} name="sfx/blizzard" vol={0.3} />
-      <Sfx at={POINT} name="music/drone" vol={0.35} />
+      <Sfx at={POINT + 2} name="sfx/blizzard" vol={0.3} duck={TL} />
+      <Sfx at={POINT} name="music/drone" vol={0.35} duck={TL} />
       <Voices tl={TL} />
       <AbsoluteFill style={{ transformOrigin: `${(WIN.x / 1080) * 100}% ${(WIN.y / 1920) * 100}%`, transform: `translate(${dx}px,${dy}px) scale(${z})` }}>
         <Grade>
@@ -48,7 +48,7 @@ export const Scene10 = () => {
             <Hero cfg={DIMA} x={420} y={onGround(DIMA, 1560, 0.3)} s={0.3} t={t} emotion="calm" arm={150 + Math.sin(t * 6) * 10} look={[16, -6]} lid={0.35} blinks={[5.4]} frost={0.6} full wind={wind} />
             <Hero cfg={GENA} x={720} y={onGround(GENA, 1560, 0.31)} s={0.31} flip={-1} t={t + 1} emotion="calm" arm={160} look={[14, -4]} lid={0.35} blinks={[2.8]} frost={0.6} lightLeft={false} full wind={wind} />
             <Hero cfg={STAS} x={940} y={onGround(STAS, 1700, 0.34)} s={0.34} flip={-1} t={t + 0.5} emotion={t > POINT + 1 ? "fear" : "calm"} look={[-6, -16]} blinks={[]} frost={0.6} lightLeft={false} full wind={wind} />
-            <Hero cfg={LERA} x={200} y={onGround(LERA, 1760, 0.38)} s={0.38} t={t + 2} emotion="calm" talk={speaking(TL, "l4", t)} arm={point} look={t > POINT ? [22, -14] : [16, 0]} blinks={[2.2, 6.8]} frost={0.6} full wind={wind} />
+            <Hero cfg={LERA} x={200} y={onGround(LERA, 1760, 0.38)} s={0.38} t={t + 2} emotion="calm" mouth={lip(TL, ["l4"], t)} arm={point} look={t > POINT ? [22, -14] : [16, 0]} blinks={[2.2, 6.8]} frost={0.6} full wind={wind} />
           </Svg>
           <Snow t={t} n={70} opacity={0.75} speed={1.4} wind={wind} />
           <Finish vig={0.5} tint="#6f8496" tintOpacity={0.14} grain={1} />

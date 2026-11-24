@@ -3,7 +3,7 @@ import { ease, Finish, Grade, shake, Snow, Subtitle, Svg, useT } from "../compon
 import { DIMA, GENA, Hero, LERA, onGround, STAS } from "../components/Hero";
 import { Landscape } from "../components/landscape";
 import { Comment, Live, Stove, StoveFlame } from "../components/props";
-import { Sfx, speaking, timeline, Voices } from "../components/audio";
+import { lip, Sfx, speaking, timeline, Voices } from "../components/audio";
 
 const TL = timeline(0, [
   { clip: "g2", text: "Шеф Гена. Блюдо дня — лапша.", gap: 0.4 },
@@ -40,9 +40,9 @@ export const Scene07 = () => {
       <Landscape t={t} wind={0.15} fog={0.3} camp />
       <Svg>
         <rect width={1080} height={1920} fill="#0c1520" opacity="0.5" />
-        <Hero cfg={GENA} x={250} y={onGround(GENA, 1520, 0.3)} s={0.3} t={t} emotion={laugh ? "laugh" : "smile"} talk={speaking(TL, "g2", t)} arm={gArm} look={[10, 14]} blinks={[5.2, 13.1]} frost={0.25} full wind={0.1} />
-        <Hero cfg={DIMA} x={520} y={onGround(DIMA, 1560, 0.31)} s={0.31} t={t + 1} emotion={laugh ? "laugh" : "smile"} talk={speaking(TL, "d7", t)} arm={-35} look={live ? [0, 0] : [14, 0]} blinks={[3.1, 14.2]} frost={0.25} full wind={0.1} />
-        <Hero cfg={LERA} x={760} y={onGround(LERA, 1550, 0.29)} s={0.29} flip={-1} t={t + 2} emotion={laugh ? "laugh" : "skeptic"} talk={speaking(TL, "l2", t)} look={[16, 4]} blinks={[2.4, 8.8]} frost={0.25} lightLeft={false} full wind={0.1} />
+        <Hero cfg={GENA} x={250} y={onGround(GENA, 1520, 0.3)} s={0.3} t={t} emotion={laugh ? "laugh" : "smile"} mouth={lip(TL, ["g2"], t)} arm={gArm} look={[10, 14]} blinks={[5.2, 13.1]} frost={0.25} full wind={0.1} />
+        <Hero cfg={DIMA} x={520} y={onGround(DIMA, 1560, 0.31)} s={0.31} t={t + 1} emotion={laugh ? "laugh" : "smile"} mouth={lip(TL, ["d7"], t)} arm={-35} look={live ? [0, 0] : [14, 0]} blinks={[3.1, 14.2]} frost={0.25} full wind={0.1} />
+        <Hero cfg={LERA} x={760} y={onGround(LERA, 1550, 0.29)} s={0.29} flip={-1} t={t + 2} emotion={laugh ? "laugh" : "skeptic"} mouth={lip(TL, ["l2"], t)} look={[16, 4]} blinks={[2.4, 8.8]} frost={0.25} lightLeft={false} full wind={0.1} />
         <Hero cfg={STAS} x={1000} y={onGround(STAS, 1500, 0.28)} s={0.28} flip={-1} t={t + 0.5} look={[-22, -6]} lid={0.25} blinks={[6.6, 12.4]} frost={0.25} lightLeft={false} full wind={0.1} />
         <Stove x={420} y={1650} s={0.6} />
       </Svg>
@@ -52,10 +52,11 @@ export const Scene07 = () => {
   );
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
-      <Sfx name="sfx/primus" vol={0.45} loop />
-      <Sfx name="sfx/wind_light" vol={0.25} loop />
+      <Sfx name="sfx/primus" vol={0.45} loop duck={TL} />
+      <Sfx name="sfx/wind_light" vol={0.25} loop duck={TL} />
       <Sfx at={TL.at.l2.to} name="sfx/laugh" vol={0.5} />
-      <Sfx at={TL.at.n09.from - 0.5} name="music/drone" vol={0.25} />
+      <Sfx at={TL.at.n09.from - 0.5} name="music/drone" vol={0.25} duck={TL} />
+      <Sfx at={LIVE_FROM} name="sfx/beep" vol={0.45} />
       <Voices tl={TL} />
       <AbsoluteFill style={{ transformOrigin: "93% 52%", transform: `translate(${dx}px,${dy}px) scale(${z})` }}>
         {scene}

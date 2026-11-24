@@ -54,8 +54,9 @@ export const Svg = ({ children, style }: { children: React.ReactNode; style?: Re
 );
 
 /** Верхний слой: виньетка + холодный оттенок + зерно. */
-export const Finish = ({ vig = 1, tint = "#2a5a85", tintOpacity = 0.12, grain = 1 }) => (
+export const Finish = ({ vig = 1, tint = "#2a5a85", tintOpacity = 0.12, grain = 1, bigSnow = true }) => (
   <Svg>
+    {bigSnow && <BigSnow />}
     {/* мрачнее: виньетка всегда плотнее заданной */}
     <rect width={W} height={H} fill="url(#vig)" opacity={Math.min(1, vig * 1.4 + 0.2)} />
     <rect width={W} height={H} fill={tint} opacity={tintOpacity} />
@@ -190,6 +191,45 @@ export const Glitch = ({ amount = 1 }: { amount?: number }) => {
             opacity={0.65}
           />
         ))}
+      </svg>
+    </AbsoluteFill>
+  );
+};
+
+
+/** Крупные размытые снежинки прямо перед камерой — глубина кадра. */
+const BigSnow = () => {
+  const t = useCurrentFrame() / 30;
+  return (
+    <g>
+      <filter id="flakeBlur" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="6" />
+      </filter>
+      <g fill="#e8eef2" filter="url(#flakeBlur)">
+        {Array.from({ length: 7 }, (_, i) => {
+          const x = ((((random(`bx${i}`) * W + t * (60 + random(`bvx${i}`) * 90)) % (W + 200)) + W + 200) % (W + 200)) - 100;
+          const y = (random(`by${i}`) * H + t * (120 + random(`bvy${i}`) * 120)) % H;
+          return <circle key={i} cx={x} cy={y} r={12 + random(`br${i}`) * 16} opacity={0.35 + random(`bo${i}`) * 0.3} />;
+        })}
+      </g>
+    </g>
+  );
+};
+
+/** Переход: порыв снега закрывает кадр на склейке (локальные кадры 0..dur). */
+export const Gust = ({ dur }: { dur: number }) => {
+  const f = useCurrentFrame();
+  const p = clamp(f / dur);
+  const a = Math.sin(p * Math.PI);
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <AbsoluteFill style={{ background: "radial-gradient(80% 60% at 50% 50%,#eef3f6 0%,#c9d3da 70%,#9aa7b1 100%)", opacity: a * 0.9 }} />
+      <svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} style={{ position: "absolute", inset: 0 }}>
+        {Array.from({ length: 26 }, (_, i) => {
+          const y = random(`gy${i}`) * H;
+          const x = -300 + (W + 600) * ((p * (1.2 + random(`gs${i}`)) + random(`gx${i}`)) % 1);
+          return <line key={i} x1={x} y1={y} x2={x + 220} y2={y + 30} stroke="#ffffff" strokeWidth={4 + random(`gw${i}`) * 8} strokeLinecap="round" opacity={a * 0.8} />;
+        })}
       </svg>
     </AbsoluteFill>
   );

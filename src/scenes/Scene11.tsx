@@ -3,7 +3,7 @@ import { ease, Finish, Grade, shake, Snow, Subtitle, Svg, useT } from "../compon
 import { DIMA, Hero, LERA, onGround } from "../components/Hero";
 import { Landscape } from "../components/landscape";
 import { Figure, Shack } from "../components/props";
-import { Sfx, speaking, timeline, Voices } from "../components/audio";
+import { lip, Sfx, speaking, timeline, Voices } from "../components/audio";
 
 const TL = timeline(0, [
   { clip: "d9", text: "О, местный! Здорова!", gap: 0.9 },
@@ -29,7 +29,7 @@ export const Scene11 = () => {
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
       {/* на «Я помахал» всё глохнет */}
       <Sfx name="sfx/blizzard" vol={(f) => (f / 30 > MUTE ? 0.08 : 0.5)} loop />
-      <Sfx at={MUTE} name="music/drone" vol={0.45} />
+      <Sfx at={MUTE} name="music/drone" vol={0.45} duck={TL} />
       <Voices tl={TL} />
       <AbsoluteFill style={{ transformOrigin: "60% 50%", transform: `translate(${dx}px,${dy}px) scale(${z})` }}>
         <Grade>
@@ -37,8 +37,8 @@ export const Scene11 = () => {
           <Svg>
             <Shack x={SH.x} y={SH.y} s={SH.s} lit={1} />
             <Figure x={SH.x + 170} y={SH.y + 10} s={0.62} t={t} />
-            <Hero cfg={LERA} x={170} y={onGround(LERA, 1800, 0.4)} s={0.4} t={t + 2} emotion="fear" talk={speaking(TL, "l5", t)} look={[22, -12]} blinks={[]} frost={0.7} full wind={wind} />
-            <Hero cfg={DIMA} x={420} y={onGround(DIMA, 1850, 0.42)} s={0.42} t={t} emotion={t < TL.at.d9.to ? "smile" : "calm"} talk={speaking(TL, "d9", t)} arm={dimaWave} look={[20, -12]} blinks={[4.4]} frost={0.7} full wind={wind} />
+            <Hero cfg={LERA} x={170} y={onGround(LERA, 1800, 0.4)} s={0.4} t={t + 2} emotion="fear" mouth={lip(TL, ["l5"], t)} look={[22, -12]} blinks={[]} frost={0.7} full wind={wind} />
+            <Hero cfg={DIMA} x={420} y={onGround(DIMA, 1850, 0.42)} s={0.42} t={t} emotion={t < TL.at.d9.to ? "smile" : "calm"} mouth={lip(TL, ["d9"], t)} arm={dimaWave} look={[20, -12]} blinks={[4.4]} frost={0.7} full wind={wind} />
           </Svg>
           <Snow t={t} n={muffled ? 40 : 80} opacity={0.8} speed={muffled ? 0.4 : 1.5} wind={muffled ? 0.2 : wind} />
           <Finish vig={0.6} tint="#6f8496" tintOpacity={0.16} grain={1} />

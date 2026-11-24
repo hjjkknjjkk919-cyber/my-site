@@ -19,8 +19,11 @@ export const Scene12 = () => {
   const faceScale = interpolate(t, [2.2, DUR], [0.55, 1.08], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.bezier(0.3, 0, 0.3, 1) });
   return (
     <AbsoluteFill style={{ background: "#e9edf0", overflow: "hidden" }}>
-      <Sfx name="sfx/zoom" vol={0.7} dur={3.2} />
-      <Sfx name="sfx/blizzard" vol={(f) => (f / 30 > 2.4 ? 0.04 : 0.2)} loop />
+      {/* гул лезет вверх и обрывается в мёртвую тишину, когда проступает лицо */}
+      <Sfx name="sfx/zoom" vol={0.6} dur={2.4} />
+      <Sfx name="sfx/riser" vol={0.9} dur={2.4} />
+      <Sfx name="sfx/blizzard" vol={0.2} dur={2.4} loop />
+      <Sfx at={2.4} name="sfx/boom" vol={0.6} />
       <AbsoluteFill style={{ transformOrigin: `${HEAD.x}px ${HEAD.y}px`, transform: `scale(${z})`, filter: `blur(${1 + reveal * 4}px)`, opacity: 1 - reveal }}>
         <Grade>
           <Landscape t={t} cam={-100} wind={0.8} fog={0.75} />

@@ -82,6 +82,8 @@ type Props = {
   t: number;
   emotion?: Emotion;
   talk?: boolean;
+  /** рот по громкости голоса 0..1 (важнее talk) */
+  mouth?: number;
   /** смещение зрачков, px в координатах хука (±22 по x, ±18 по y) */
   look?: [number, number];
   /** опущенное верхнее веко 0..1 */
@@ -98,6 +100,8 @@ type Props = {
   full?: boolean;
   /** сила ветра 0..1: мех, хвост */
   wind?: number;
+  /** идёт: фаза шага в секундах (ноги и руки качаются); не задано — стоит */
+  walk?: number;
   /** доп. поворот головы, градусы (качание «нет») */
   headTurn?: number;
 };
@@ -111,6 +115,7 @@ export const Hero = ({
   t,
   emotion = "calm",
   talk = false,
+  mouth,
   look = [0, 0],
   lid,
   blinks = [],
@@ -121,6 +126,7 @@ export const Hero = ({
   full = false,
   wind = 0.3,
   headTurn = 0,
+  walk,
 }: Props) => {
   const id = cfg.id;
   const FACE = cfg.rough ? FACE_SQUARE : FACE_ROUND;
@@ -137,7 +143,7 @@ export const Hero = ({
   const lBob = laughing ? -ha * 12 : 0;
   const lTilt = laughing ? -3 - ha * 2 : 0;
   // брови живут, когда герой говорит
-  const browY = talk && !laughing ? -Math.abs(Math.sin(t * 3.1)) * 10 : 0;
+  const browY = (talk || (mouth ?? 0) > 0.08) && !laughing ? -Math.abs(Math.sin(t * 3.1)) * 10 : 0;
   const rx = fear ? 64 : 58;
   const ry = fear ? 54 : 46;
   const lidA = lid ?? (fear ? 0 : emotion === "skeptic" ? 0.35 : 0.14);
@@ -147,7 +153,11 @@ export const Hero = ({
   // рот: говорит — нерегулярно открывается; страх — тяжёлое дыхание как в хуке
   const P = 1.9;
   const ph = (t % P) / P;
-  const open = talk
+  const open = mouth !== undefined && !fear
+    ? mouth > 0.08
+      ? 0.2 + 0.8 * mouth
+      : 0
+    : talk
     ? 0.25 + 0.75 * Math.abs(Math.sin(t * 7) * Math.sin(t * 2.9 + 1))
     : fear
       ? 0.8 + 0.35 * (0.5 - 0.5 * Math.cos(ph * 6.2832))
@@ -158,8 +168,10 @@ export const Hero = ({
   const sway = Math.sin(t * 2.4) * 7 + Math.sin(t * 9) * 6 * wind + 10 * wind;
   const bottom = full ? 1740 : 1960;
   const pants = cfg.pants ?? "#2a333c";
-  const sleeve = (x1: number, x2: number) => (
-    <g>
+  // шаг: ноги в противофазе, руки навстречу ногам
+  const stride = walk === undefined ? 0 : Math.sin(walk * 7) * 16;
+  const sleeve = (x1: number, x2: number, swing = 0) => (
+    <g transform={`rotate(${swing} ${x1} 1120)`}>
       <path d={`M${x1} 1120 L${x2} 1640`} stroke={INK} strokeWidth="190" />
       <path d={`M${x1} 1120 L${x2} 1640`} stroke={cfg.jacket} strokeWidth="168" />
       <path d={`M${x1} 1120 L${x2} 1640`} stroke={cfg.shade} strokeWidth="60" opacity="0.35" transform={`translate(${lightLeft ? 40 : -40} 0)`} />
@@ -199,13 +211,20 @@ export const Hero = ({
       {/* ноги и ботинки; legs растягивает их от бёдер (y=1700) */}
       {full && (
         <g filter="url(#rough)" transform={`translate(0 1700) scale(1 ${cfg.legs ?? 1}) translate(0 -1700)`}>
-          <path d="M150 1700 L170 2300 H500 L520 1750 Z" fill={pants} stroke={INK} strokeWidth="10" />
-          <path d="M560 1750 L580 2300 H910 L930 1700 Z" fill={pants} stroke={INK} strokeWidth="10" />
-          <path d={lightLeft ? "M760 1740 L780 2300 H910 L930 1700 Z" : "M150 1700 L170 2300 H300 L320 1740 Z"} fill="#000" opacity="0.3" />
-          <path d="M180 2000 C260 2020 420 2020 505 2000 M575 2000 C660 2020 820 2020 905 2000" fill="none" stroke={INK} strokeWidth="6" opacity="0.7" />
-          <path d="M150 2290 H515 V2380 C515 2420 495 2440 455 2440 H120 C95 2440 88 2410 108 2380 Z" fill="#1d2126" stroke={INK} strokeWidth="9" />
-          <path d="M565 2290 H930 V2380 C950 2410 948 2440 925 2440 H605 C580 2440 565 2420 565 2380 Z" fill="#1d2126" stroke={INK} strokeWidth="9" />
-          <path d="M130 2400 H500 M580 2400 H930" stroke="#55606a" strokeWidth="8" opacity="0.7" />
+          <g transform={`rotate(${stride} 335 1720)`}>
+            <path d="M150 1700 L170 2300 H500 L520 1750 Z" fill={pants} stroke={INK} strokeWidth="10" />
+            {!lightLeft && <path d="M150 1700 L170 2300 H300 L320 1740 Z" fill="#000" opacity="0.3" />}
+            <path d="M180 2000 C260 2020 420 2020 505 2000" fill="none" stroke={INK} strokeWidth="6" opacity="0.7" />
+            <path d="M150 2290 H515 V2380 C515 2420 495 2440 455 2440 H120 C95 2440 88 2410 108 2380 Z" fill="#1d2126" stroke={INK} strokeWidth="9" />
+            <path d="M130 2400 H500" stroke="#55606a" strokeWidth="8" opacity="0.7" />
+          </g>
+          <g transform={`rotate(${-stride} 745 1720)`}>
+            <path d="M560 1750 L580 2300 H910 L930 1700 Z" fill={pants} stroke={INK} strokeWidth="10" />
+            {lightLeft && <path d="M760 1740 L780 2300 H910 L930 1700 Z" fill="#000" opacity="0.3" />}
+            <path d="M575 2000 C660 2020 820 2020 905 2000" fill="none" stroke={INK} strokeWidth="6" opacity="0.7" />
+            <path d="M565 2290 H930 V2380 C950 2410 948 2440 925 2440 H605 C580 2440 565 2420 565 2380 Z" fill="#1d2126" stroke={INK} strokeWidth="9" />
+            <path d="M580 2400 H930" stroke="#55606a" strokeWidth="8" opacity="0.7" />
+          </g>
         </g>
       )}
       {/* туловище */}
@@ -246,8 +265,8 @@ export const Hero = ({
         {!hood && <ellipse cx="540" cy="1000" rx="340" ry="95" fill={cfg.jacket} stroke={INK} strokeWidth="9" />}
       </g>
       {/* опущенные руки в полный рост */}
-      {full && sleeve(150, 70)}
-      {full && arm === undefined && sleeve(930, 1010)}
+      {full && sleeve(150, 70, -stride * 0.8)}
+      {full && arm === undefined && sleeve(930, 1010, stride * 0.8)}
 
       {/* голова: качание и покачивание как в хуке */}
       <g transform={`translate(0 ${bob + lBob}) rotate(${ang + headTurn + lTilt} 540 900)`}>

@@ -10,11 +10,22 @@ export const Say = ({ at, clip, vol = 1 }: { at: number; clip: string; vol?: num
 );
 
 /** Звук из public/audio/sfx; dur обрезает, loop зацикливает. */
-export const Sfx = ({ at = 0, name, vol = 0.6, dur, loop }: { at?: number; name: string; vol?: number | ((frame: number) => number); dur?: number; loop?: boolean }) => (
-  <Sequence from={Math.round(at * 30)} durationInFrames={dur ? Math.round(dur * 30) : undefined} layout="none">
-    <Audio src={staticFile(`audio/${name}.mp3`)} volume={vol} loop={loop} />
-  </Sequence>
-);
+export const Sfx = ({ at = 0, name, vol = 0.6, dur, loop, duck }: { at?: number; name: string; vol?: number | ((frame: number) => number); dur?: number; loop?: boolean; duck?: Timeline }) => {
+  const start = Math.round(at * 30);
+  // duck: фон сам притихает, пока кто-то говорит (кадры звука локальные от начала звука)
+  const volume = (f: number) => {
+    const base = typeof vol === "function" ? vol(f) : vol;
+    if (!duck) return base;
+    const t = (f + start) / 30;
+    const talking = Object.values(duck.at).some((v) => t > v.from - 0.1 && t < v.to + 0.1);
+    return talking ? base * 0.35 : base;
+  };
+  return (
+    <Sequence from={start} durationInFrames={dur ? Math.round(dur * 30) : undefined} layout="none">
+      <Audio src={staticFile(`audio/${name}.mp3`)} volume={volume} loop={loop} />
+    </Sequence>
+  );
+};
 
 /**
  * Субтитры под реплику: режет текст на куски по 2–4 слова (по знакам препинания)
@@ -79,3 +90,17 @@ export const Voices = ({ tl }: { tl: Timeline }) => (
 
 /** Говорит ли сейчас этот клип. */
 export const speaking = (tl: Timeline, clip: string, t: number) => t > tl.at[clip].from && t < tl.at[clip].to;
+
+import envelopes from "../envelopes.json";
+
+/** Насколько открыт рот (0..1) по громкости реальной записи; 0 — молчит. */
+export const lip = (tl: Timeline, clipsList: string[], t: number) => {
+  let v = 0;
+  clipsList.forEach((c) => {
+    const at = tl.at[c];
+    if (!at || t < at.from || t >= at.to) return;
+    const env = (envelopes as Record<string, number[]>)[c];
+    v = Math.max(v, env[Math.min(env.length - 1, Math.floor((t - at.from) * 30))] ?? 0);
+  });
+  return v;
+};

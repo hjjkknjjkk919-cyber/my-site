@@ -50,7 +50,7 @@ export const Scene01 = () => {
 
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
-      <Sfx name="sfx/wind_light" vol={0.45} />
+      <Sfx name="sfx/wind_light" vol={0.45} duck={TL} />
       <Sfx name="sfx/breath" vol={0.5} dur={4.3} />
       <Sfx at={4.3} name="sfx/camfall" vol={0.9} />
       <Voices tl={TL} />

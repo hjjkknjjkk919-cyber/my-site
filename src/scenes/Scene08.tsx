@@ -61,9 +61,10 @@ export const Scene08 = () => {
   const rot = -3 + Math.sin(t * 0.8) * 0.6;
   return (
     <AbsoluteFill style={{ background: "#050709", overflow: "hidden" }}>
-      <Sfx name="sfx/wind_light" vol={0.2} loop />
-      <Sfx name="music/drone" vol={0.35} />
+      <Sfx name="sfx/wind_light" vol={0.2} loop duck={TL} />
+      <Sfx name="music/drone" vol={0.35} duck={TL} />
       <Sfx at={TL.at.n10.to - 1} name="sfx/heartbeat" vol={0.55} />
+      <Sfx at={0.2} name="sfx/rustle" vol={0.6} />
       <Voices tl={TL} />
       <AbsoluteFill style={{ transformOrigin: `${WIN.x}px ${WIN.y}px`, transform: `scale(${z})` }}>
         {/* под ногами тёмный снег в пятне фонаря */}

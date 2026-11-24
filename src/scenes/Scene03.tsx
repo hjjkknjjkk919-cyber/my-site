@@ -2,7 +2,7 @@ import { AbsoluteFill } from "remotion";
 import { ease, Finish, Grade, Snow, Subtitle, Svg, useT } from "../components/fx";
 import { DIMA, Hero, onGround, STAS } from "../components/Hero";
 import { Foreground, Landscape } from "../components/landscape";
-import { Sfx, speaking, timeline, Voices } from "../components/audio";
+import { lip, Sfx, speaking, timeline, Voices } from "../components/audio";
 
 const TL = timeline(0, [
   { clip: "n04", text: "Идею подал Стас. Тихий такой. В кафе соль попросить стесняется.", gap: 0.3 },
@@ -22,8 +22,8 @@ export const Scene03 = () => {
   const step = t > IN && t < TL.at.d3.from ? -Math.abs(Math.sin(t * 12)) * 14 : 0;
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
-      <Sfx name="sfx/wind_light" vol={0.4} loop />
-      <Sfx at={IN} name="sfx/steps" vol={0.6} dur={1.3} />
+      <Sfx name="sfx/wind_light" vol={0.4} loop duck={TL} />
+      <Sfx at={IN} name="sfx/steps" vol={0.6} dur={1.3} duck={TL} />
       <Voices tl={TL} />
       <Grade>
         <AbsoluteFill style={{ transformOrigin: "40% 40%", transform: `scale(${z})` }}>
@@ -31,7 +31,7 @@ export const Scene03 = () => {
           <Svg>
             <g transform={`translate(${cam * 0.8} 0)`}>
               <Hero cfg={STAS} x={400} y={onGround(STAS, 1560, 0.36) + hitch} s={0.36} t={t} look={t < IN ? [-20, 6] : [18, 0]} lid={0.3} blinks={[2.2, 8.0]} frost={0.2} full wind={0.18} />
-              <Hero cfg={DIMA} x={dimaX} y={onGround(DIMA, 1590, 0.36) + step} s={0.36} flip={-1} t={t + 2} emotion="smile" talk={speaking(TL, "d3", t)} look={[10, 0]} blinks={[DUR - 0.6]} frost={0.2} lightLeft={false} full wind={0.18} />
+              <Hero cfg={DIMA} x={dimaX} y={onGround(DIMA, 1590, 0.36) + step} s={0.36} flip={-1} t={t + 2} walk={t > IN && t < TL.at.d3.from ? t : undefined} emotion="smile" mouth={lip(TL, ["d3"], t)} look={[10, 0]} blinks={[DUR - 0.6]} frost={0.2} lightLeft={false} full wind={0.18} />
             </g>
           </Svg>
           <Foreground cam={cam * 1.2} />

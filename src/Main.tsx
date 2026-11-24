@@ -1,4 +1,7 @@
 import { AbsoluteFill, Sequence } from "remotion";
+import { Gust } from "./components/fx";
+import { Sfx } from "./components/audio";
+import { DUR as D00, Scene00 } from "./scenes/Scene00";
 import { DUR as D01, Scene01 } from "./scenes/Scene01";
 import { DUR as D02, Scene02 } from "./scenes/Scene02";
 import { DUR as D03, Scene03 } from "./scenes/Scene03";
@@ -12,10 +15,12 @@ import { DUR as D10, Scene10 } from "./scenes/Scene10";
 import { DUR as D11, Scene11 } from "./scenes/Scene11";
 import { DUR as D12, Scene12 } from "./scenes/Scene12";
 import { DUR as D13, Scene13 } from "./scenes/Scene13";
+import { DUR as D14, Scene14 } from "./scenes/Scene14";
 
 const FPS = 30;
 // [секунд, сцена] — каждая сцена сама считает свою длину по записанным репликам и паузам.
 export const SCENES: [number, React.FC][] = [
+  [D00, Scene00],
   [D01, Scene01],
   [D02, Scene02],
   [D03, Scene03],
@@ -29,8 +34,14 @@ export const SCENES: [number, React.FC][] = [
   [D11, Scene11],
   [D12, Scene12],
   [D13, Scene13],
+  [D14, Scene14],
 ];
 export const TOTAL_FRAMES = SCENES.reduce((s, [sec]) => s + Math.round(sec * FPS), 0);
+
+// порыв снега на склейках между обычными сценами (не у вспышки, хука, зума и финала)
+const GUST = 14;
+const starts = SCENES.map((_, i) => SCENES.slice(0, i).reduce((s, [sec]) => s + Math.round(sec * FPS), 0));
+const GUST_AT = starts.slice(3, 12);
 
 export const Main = () => {
   let from = 0;
@@ -46,6 +57,12 @@ export const Main = () => {
           </Sequence>
         );
       })}
+      {GUST_AT.map((f) => (
+        <Sequence key={f} from={f - GUST / 2} durationInFrames={GUST} layout="none">
+          <Gust dur={GUST} />
+          <Sfx name="sfx/gust" vol={0.5} />
+        </Sequence>
+      ))}
     </AbsoluteFill>
   );
 };
