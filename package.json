@@ -1,0 +1,20 @@
+{
+  "name": "everest",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "preview": "remotion render src/index.ts Everest out/preview.mp4 --scale=0.5 --frames=0-3599",
+    "render": "remotion render src/index.ts Everest out/everest_ep1.mp4 --codec h264 --crf 18"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.546",
+    "@remotion/google-fonts": "^4.0.546",
+    "@remotion/media": "4.0.546",
+    "@types/react": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "^4.0.546",
+    "typescript": "^5.9.0"
+  }
+}

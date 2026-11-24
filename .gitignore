@@ -1,0 +1,4 @@
+node_modules/
+out/
+_backup*/
+public/audio/voice/*_raw.mp3
