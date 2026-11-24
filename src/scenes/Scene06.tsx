@@ -1,37 +1,35 @@
 ﻿import { AbsoluteFill } from "remotion";
 import { ease, Finish, Grade, Snow, Subtitle, useT } from "../components/fx";
 import { Camp } from "../components/camp";
-import { line, Say, Sfx } from "../components/audio";
+import { Sfx, speaking, timeline, Voices } from "../components/audio";
 
-const CUES = [
-  ...line(0.2, 3.16, "Дед, ты легенда! Это в видео!"),
-  ...line(3.8, 1.87, "Твой брат тоже *смеялся*.", 0.32),
-  ...line(6.0, 2.95, "Старик всегда был… слишком внимательный."),
-];
+const TL = timeline(0, [
+  { clip: "d6", text: "Дед, ты легенда! Это в видео!", gap: 0.2 },
+  { clip: "s4", text: "Твой брат тоже *смеялся*.", gap: 0.8, step: 0.32 },
+  { clip: "n08", text: "Старик всегда был… слишком внимательный.", gap: 0.9 },
+]);
+export const DUR = TL.end + 0.6;
 
-/** Сцена 6 (9.2 с): все ржут, а шерпа смотрит только на Стаса и шепчет ему. Стас перестаёт смеяться. */
+/** Сцена 6: все ржут, а шерпа смотрит только на Стаса и шепчет ему. Стас перестаёт смеяться. */
 export const Scene06 = () => {
   const t = useT();
-  const laugh = t < 3.6;
-  // камера медленно наезжает на шерпу и Стаса
-  const z = ease(t, 3.2, 9.2, 1.1, 1.5);
+  const whisper = TL.at.s4.from;
+  const z = ease(t, whisper - 0.6, DUR, 1.1, 1.5);
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
       <Sfx name="sfx/laugh" vol={0.45} />
-      <Sfx name="sfx/wind_light" vol={(f) => (f / 30 > 3.6 ? 0.12 : 0.35)} loop />
-      <Sfx at={3.6} name="sfx/heartbeat" vol={0.5} />
+      <Sfx name="sfx/wind_light" vol={(f) => (f / 30 > whisper - 0.2 ? 0.12 : 0.35)} loop />
+      <Sfx at={whisper - 0.2} name="sfx/heartbeat" vol={0.5} />
       <Sfx name="music/drone" vol={0.3} />
-      <Say at={0.2} clip="d6" />
-      <Say at={3.8} clip="s4" />
-      <Say at={6.0} clip="n08" />
+      <Voices tl={TL} />
       <Grade>
         <AbsoluteFill style={{ transformOrigin: "42% 48%", transform: `scale(${z})` }}>
-          <Camp t={t} cam={-30} wind={0.2} dimaTalk={t > 0.2 && t < 3.36} laugh={laugh} stasSmile={t < 4.3} sherpaTalk={t > 3.8 && t < 5.6} sherpaLook={[20, -4]} />
+          <Camp t={t} cam={-30} wind={0.2} dimaTalk={speaking(TL, "d6", t)} laugh={t < whisper - 0.2} stasSmile={t < whisper + 0.5} sherpaTalk={speaking(TL, "s4", t)} sherpaLook={[20, -4]} />
           <Snow t={t} n={30} opacity={0.55} speed={0.4} wind={0.15} />
           <Finish vig={0.55} tint="#6f8496" tintOpacity={0.12} grain={0.9} />
         </AbsoluteFill>
       </Grade>
-      <Subtitle t={t} cues={CUES} />
+      <Subtitle t={t} cues={TL.cues} />
     </AbsoluteFill>
   );
 };

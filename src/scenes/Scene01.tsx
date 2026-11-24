@@ -2,9 +2,14 @@ import { AbsoluteFill } from "remotion";
 import { StasFace } from "../components/Character";
 import { clamp, Cue, Finish, Glitch, ShackLight, shake, Snow, Subtitle, Svg, useT } from "../components/fx";
 import { CameraFrame } from "../components/props";
-import { line, Say, Sfx } from "../components/audio";
+import { Sfx, timeline, Voices } from "../components/audio";
 
-const CUES: Cue[] = [...line(0.2, 1.95, "Четыре дня назад они ржали."), ...line(2.45, 2.05, "Сейчас один из них еле *дышит*.")];
+export const DUR = 5;
+const TL = timeline(0, [
+  { clip: "n01", text: "Четыре дня назад они ржали.", gap: 0.2 },
+  { clip: "n02", text: "Сейчас один из них еле *дышит*.", gap: 0.25 },
+]);
+const CUES: Cue[] = TL.cues;
 
 /** Сцена 1 (0–5 с): хук. Тайминги из исходного HTML. Чёрный 4.75–4.85, затем остаток помех до склейки. */
 export const Scene01 = () => {
@@ -48,8 +53,7 @@ export const Scene01 = () => {
       <Sfx name="sfx/wind_light" vol={0.45} />
       <Sfx name="sfx/breath" vol={0.5} dur={4.3} />
       <Sfx at={4.3} name="sfx/camfall" vol={0.9} />
-      <Say at={0.2} clip="n01" />
-      <Say at={2.45} clip="n02" />
+      <Voices tl={TL} />
       <AbsoluteFill
         style={{
           transformOrigin: "50% 27%",

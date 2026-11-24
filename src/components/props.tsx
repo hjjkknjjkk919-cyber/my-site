@@ -220,6 +220,57 @@ export const Figure = ({ x, y, s = 1, t, wave = 1 }: { x: number; y: number; s?:
   );
 };
 
+/** Комментарий в чате эфира: появляется на секунде at. */
+export type Comment = { at: number; nick: string; text: string };
+
+/**
+ * Экран телефона Димы в прямом эфире (от первого лица): рамка телефона, LIVE, 312 зрителей,
+ * снизу всплывают комментарии, справа летят сердечки. t — секунды от начала эфира.
+ */
+export const Live = ({ t, comments }: { t: number; comments: Comment[] }) => {
+  const shown = comments.filter((c) => t >= c.at).slice(-5);
+  return (
+    <Svg>
+      {/* корпус телефона по краю кадра */}
+      <rect x="10" y="10" width="1060" height="1900" rx="90" fill="none" stroke="#0a0c0e" strokeWidth="60" />
+      <rect x="400" y="40" width="280" height="56" rx="28" fill="#0a0c0e" />
+      {/* верхняя панель эфира */}
+      <rect x="70" y="130" width="150" height="64" rx="12" fill="#e5262b" />
+      <text x="145" y="175" textAnchor="middle" fontFamily="Arial" fontWeight="700" fontSize="38" fill="#fff">LIVE</text>
+      <rect x="236" y="130" width="300" height="64" rx="12" fill="#000" opacity="0.55" />
+      <text x="386" y="175" textAnchor="middle" fontFamily="Arial" fontWeight="700" fontSize="34" fill="#fff">312 зрителей</text>
+      <text x="1000" y="175" textAnchor="end" fontFamily="Arial" fontWeight="700" fontSize="36" fill="#fff" opacity="0.85">dima_on_top</text>
+      {/* комментарии: новые снизу, старые уезжают вверх */}
+      {shown.map((c, i) => {
+        const k = shown.length - 1 - i;
+        const y = 1250 - k * 92;
+        const a = clamp((t - c.at) / 0.25);
+        return (
+          <g key={c.at + c.nick} opacity={a * (1 - k * 0.15)} transform={`translate(${(1 - a) * -30} 0)`}>
+            <rect x="60" y={y - 54} width={Math.min(940, 60 + (c.nick.length + c.text.length) * 21)} height="76" rx="38" fill="#000" opacity="0.5" />
+            <text x="90" y={y - 4} fontFamily="Arial" fontWeight="700" fontSize="34" fill="#9fc8ff">
+              {c.nick}
+              <tspan fill="#fff" fontWeight="400">
+                {"  "}
+                {c.text}
+              </tspan>
+            </text>
+          </g>
+        );
+      })}
+      {/* сердечки */}
+      {Array.from({ length: 6 }, (_, i) => {
+        const p = (t * 0.45 + i / 6) % 1;
+        const x = 960 + Math.sin(t * 2 + i * 1.7) * 30;
+        const y = 1300 - p * 600;
+        return (
+          <path key={i} d={`M${x} ${y + 18} C${x - 40} ${y - 10} ${x - 22} ${y - 40} ${x} ${y - 20} C${x + 22} ${y - 40} ${x + 40} ${y - 10} ${x} ${y + 18} Z`} fill={i % 2 ? "#ff4d6d" : "#e5262b"} opacity={0.9 * (1 - p)} />
+        );
+      })}
+    </Svg>
+  );
+};
+
 /** Рамка камеры REC: мигающая точка, таймкод, плашка. */
 export const CameraFrame = ({ t, label }: { t: number; label?: string }) => (
   <Svg>

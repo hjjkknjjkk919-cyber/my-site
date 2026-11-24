@@ -3,37 +3,37 @@ import { ease, Finish, Grade, INK, shake, Snow, Subtitle, Svg, useT } from "../c
 import { DIMA, GENA, Hero, LERA, onGround, STAS } from "../components/Hero";
 import { Landscape } from "../components/landscape";
 import { Shack } from "../components/props";
-import { line, Say, Sfx } from "../components/audio";
+import { Sfx, speaking, timeline, Voices } from "../components/audio";
 
-const CUES = [
-  ...line(0.3, 3.07, "Всё, дальше не пройдём. Ставим палатки."),
-  ...line(3.7, 3.9, "Лера первой увидела домик. Хотя на такой высоте никто не живёт."),
-  ...line(8.1, 1.65, "Ну… почти никто."),
-];
+const TL = timeline(0, [
+  { clip: "l4", text: "Всё, дальше не пройдём. Ставим палатки.", gap: 0.3 },
+  { clip: "n13", text: "Лера первой увидела домик. Хотя на такой высоте никто не живёт.", gap: 0.8 },
+  { clip: "n14", text: "Ну… почти никто.", gap: 0.8 },
+]);
+export const DUR = TL.end + 0.5;
+const POINT = TL.at.n13.from - 0.3;
 
 // домик и его окно (окно рисуем цветным поверх серой палитры)
 const SH = { x: 900, y: 1010, s: 0.5 };
 const WIN = { x: SH.x - 67 * SH.s, y: SH.y - 74 * SH.s };
 
-/** Ветер бьёт палатку, которую рвёт из рук. Сцена 10 (10 с): ставят палатки, Лера видит домик с жёлтым окном. */
+/** Ветер бьёт палатку, которую рвёт из рук. Сцена 10: ставят палатки, Лера видит домик с жёлтым окном. */
 export const Scene10 = () => {
   const t = useT();
   const wind = 0.7;
   const { dx, dy } = shake(t, 3);
   const flap = Math.sin(t * 14) * 0.08;
-  const point = ease(t, 3.4, 4.0, -20, -118);
+  const point = ease(t, POINT, POINT + 0.6, -20, -118);
   // в конце камера тянется к домику
-  const z = ease(t, 7.6, 10, 1.0, 1.35);
+  const z = ease(t, TL.at.n14.from - 0.6, DUR, 1.0, 1.35);
   const glow = 0.75 + 0.15 * Math.sin(t * 29) + 0.1 * Math.sin(t * 83);
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
       <Sfx name="sfx/wind_strong" vol={0.5} loop />
-      <Sfx name="sfx/tent" vol={0.5} dur={7.5} />
-      <Sfx at={6} name="sfx/blizzard" vol={0.3} />
-      <Sfx at={3.6} name="music/drone" vol={0.35} />
-      <Say at={0.3} clip="l4" />
-      <Say at={3.7} clip="n13" />
-      <Say at={8.1} clip="n14" />
+      <Sfx name="sfx/tent" vol={0.5} dur={POINT + 3} />
+      <Sfx at={POINT + 2} name="sfx/blizzard" vol={0.3} />
+      <Sfx at={POINT} name="music/drone" vol={0.35} />
+      <Voices tl={TL} />
       <AbsoluteFill style={{ transformOrigin: `${(WIN.x / 1080) * 100}% ${(WIN.y / 1920) * 100}%`, transform: `translate(${dx}px,${dy}px) scale(${z})` }}>
         <Grade>
           <Landscape t={t} cam={-80} wind={wind} fog={0.5} />
@@ -47,8 +47,8 @@ export const Scene10 = () => {
             </g>
             <Hero cfg={DIMA} x={420} y={onGround(DIMA, 1560, 0.3)} s={0.3} t={t} emotion="calm" arm={150 + Math.sin(t * 6) * 10} look={[16, -6]} lid={0.35} blinks={[5.4]} frost={0.6} full wind={wind} />
             <Hero cfg={GENA} x={720} y={onGround(GENA, 1560, 0.31)} s={0.31} flip={-1} t={t + 1} emotion="calm" arm={160} look={[14, -4]} lid={0.35} blinks={[2.8]} frost={0.6} lightLeft={false} full wind={wind} />
-            <Hero cfg={STAS} x={940} y={onGround(STAS, 1700, 0.34)} s={0.34} flip={-1} t={t + 0.5} emotion={t > 5 ? "fear" : "calm"} look={[-6, -16]} blinks={[]} frost={0.6} lightLeft={false} full wind={wind} />
-            <Hero cfg={LERA} x={200} y={onGround(LERA, 1760, 0.38)} s={0.38} t={t + 2} emotion="calm" talk={t > 0.3 && t < 3.37} arm={point} look={t > 3.4 ? [22, -14] : [16, 0]} blinks={[2.2, 6.8]} frost={0.6} full wind={wind} />
+            <Hero cfg={STAS} x={940} y={onGround(STAS, 1700, 0.34)} s={0.34} flip={-1} t={t + 0.5} emotion={t > POINT + 1 ? "fear" : "calm"} look={[-6, -16]} blinks={[]} frost={0.6} lightLeft={false} full wind={wind} />
+            <Hero cfg={LERA} x={200} y={onGround(LERA, 1760, 0.38)} s={0.38} t={t + 2} emotion="calm" talk={speaking(TL, "l4", t)} arm={point} look={t > POINT ? [22, -14] : [16, 0]} blinks={[2.2, 6.8]} frost={0.6} full wind={wind} />
           </Svg>
           <Snow t={t} n={70} opacity={0.75} speed={1.4} wind={wind} />
           <Finish vig={0.5} tint="#6f8496" tintOpacity={0.14} grain={1} />
@@ -59,7 +59,7 @@ export const Scene10 = () => {
           <rect x={WIN.x - 16} y={WIN.y - 15} width="33" height="30" fill="#e0b53e" opacity={0.85 * glow} />
         </Svg>
       </AbsoluteFill>
-      <Subtitle t={t} cues={CUES} />
+      <Subtitle t={t} cues={TL.cues} />
     </AbsoluteFill>
   );
 };
