@@ -1,4 +1,6 @@
-import { AbsoluteFill } from "remotion";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { ManiacFace } from "../components/maniac";
+import { Blood } from "./Scene00";
 import { StasFace } from "../components/Character";
 import { clamp, Cue, Finish, Glitch, ShackLight, shake, Snow, Subtitle, Svg, useT } from "../components/fx";
 import { CameraFrame } from "../components/props";
@@ -14,6 +16,9 @@ const CUES: Cue[] = TL.cues;
 /** Сцена 1 (0–5 с): хук. Тайминги из исходного HTML. Чёрный 4.75–4.85, затем остаток помех до склейки. */
 export const Scene01 = () => {
   const t = useT();
+  const f = useCurrentFrame();
+  // при падении: лицо маньяка мелькает на 1–2 кадра сквозь помехи
+  const face = [135, 136, 139].includes(f);
   let sc = 1;
   let amp = 1.5;
   if (t >= 0.3 && t < 2) {
@@ -53,6 +58,8 @@ export const Scene01 = () => {
       <Sfx name="sfx/wind_light" vol={0.45} duck={TL} />
       <Sfx name="sfx/breath" vol={0.5} dur={4.3} />
       <Sfx at={4.3} name="sfx/camfall" vol={0.9} />
+      {/* крик Стаса, пока камера падает; обрывается на чёрном кадре */}
+      <Sfx at={3.9} name="sfx/scream" vol={0.85} dur={0.85} />
       <Voices tl={TL} />
       <AbsoluteFill
         style={{
@@ -100,7 +107,14 @@ export const Scene01 = () => {
           </g>
         </Svg>
       </AbsoluteFill>
-      {glitch && <Glitch />}
+      {face && (
+        <AbsoluteFill style={{ transform: `scale(1.25) translate(${Math.sin(f * 7) * 30}px,0)`, filter: "contrast(1.6) saturate(.4) brightness(.8)" }}>
+          <ManiacFace t={t} />
+        </AbsoluteFill>
+      )}
+      {glitch && <Glitch amount={face ? 0.45 : 1} />}
+      {/* кровь на объективе после удара — на стекле, поверх помех */}
+      {t >= 4.45 && t < 4.75 && <Blood t={(t - 4.45) * 1.6} />}
       {/* 4.75–4.85 чёрный (0.1 с), 4.85–5.0 затухающие помехи до склейки */}
       {t >= 4.75 && t < 4.85 && <AbsoluteFill style={{ background: "#000" }} />}
       {t >= 4.85 && <Glitch amount={clamp((5 - t) / 0.15) * 0.7} />}

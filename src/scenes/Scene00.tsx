@@ -9,7 +9,7 @@ export const DUR = 1.1;
 const FACE_ON = [0, 1, 2, 5, 6, 9, 12, 13, 14, 15, 18, 22, 23, 24, 25, 26, 27, 28];
 
 /** Брызги крови: капли разлетаются от точки и стекают вниз по экрану. */
-const Blood = ({ t }: { t: number }) => {
+export const Blood = ({ t }: { t: number }) => {
   const hit = clamp(t / 0.12);
   return (
     <Svg>
@@ -42,16 +42,14 @@ const Blood = ({ t }: { t: number }) => {
   );
 };
 
-/** Сцена 0 (1.1 с): крик, мелькающее лицо маньяка и брызги крови — чтобы листающий ленту застыл с первой секунды. */
+/** Сцена 0 (1.1 с): удар, мелькающее лицо маньяка и брызги крови — чтобы листающий ленту застыл с первой секунды. */
 export const Scene00 = () => {
   const t = useT();
   const f = useCurrentFrame();
   const face = FACE_ON.includes(f);
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
-      <Sfx name="sfx/scream" vol={1} />
       <Sfx name="sfx/boom" vol={0.7} dur={DUR} />
-      <Sfx at={0.1} name="sfx/camfall" vol={0.5} dur={0.8} />
       {face && (
         <AbsoluteFill style={{ transform: `scale(${1.3 - t * 0.25}) translate(${(random(`fx${f}`) - 0.5) * 40}px,${(random(`fy${f}`) - 0.5) * 30}px)`, filter: "contrast(1.5) saturate(.5) brightness(.85)" }}>
           <ManiacFace t={t} />

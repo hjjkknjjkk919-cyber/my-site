@@ -2,8 +2,8 @@ import { AbsoluteFill } from "remotion";
 import { clamp, ease, Finish, INK, Subtitle, Svg, useT } from "../components/fx";
 import { lip, Sfx, timeline, Voices } from "../components/audio";
 
-// после титров: 2 с черноты, стук по палатке, шёпот «Ди-и-ма… Открой.»
-const KNOCK = 2.0;
+// после титров: 1 с черноты, стук по палатке, шёпот «Ди-и-ма… Открой.»
+const KNOCK = 1.0;
 const TL = timeline(KNOCK + 1.6, [{ clip: "n18", text: "Ди-и-ма… *Открой*.", gap: 0, step: 0.4 }]);
 export const DUR = TL.end + 1.2;
 

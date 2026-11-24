@@ -87,7 +87,7 @@ export const Scene08 = () => {
       <AbsoluteFill style={{ mixBlendMode: "overlay", background: "radial-gradient(45% 30% at 50% 47%,rgba(230,150,70,.55) 0%,rgba(0,0,0,0) 100%)" }} />
       <Snow t={t} n={16} opacity={0.45} speed={0.3} wind={0.1} />
       <Finish vig={1} tint="#1b3350" tintOpacity={0.18} grain={1.1} />
-      <Subtitle t={t} cues={TL.cues} />
+      <Subtitle t={t} cues={TL.cues} top="86%" />
     </AbsoluteFill>
   );
 };

@@ -114,7 +114,7 @@ export const Grade = ({ children }: { children: React.ReactNode }) => (
   <AbsoluteFill style={{ filter: "saturate(.2) contrast(1.15) brightness(.8)" }}>{children}</AbsoluteFill>
 );
 
-export const Subtitle = ({ t, cues }: { t: number; cues: Cue[] }) => {
+export const Subtitle = ({ t, cues, top = "72%" }: { t: number; cues: Cue[]; top?: string }) => {
   const c = cues.find((q) => t >= q.from && t < q.to);
   if (!c) return null;
   const words = c.text.split(" ");
@@ -126,7 +126,7 @@ export const Subtitle = ({ t, cues }: { t: number; cues: Cue[] }) => {
         position: "absolute",
         left: 70,
         right: 70,
-        top: "72%",
+        top,
         transform: "translateY(-50%)",
         textAlign: "center",
         // морозный белый, обводка тёмный сланец, холодное свечение — в тон метели
