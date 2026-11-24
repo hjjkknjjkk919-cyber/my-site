@@ -58,7 +58,9 @@ export const timeline = (start: number, beats: Beat[]) => {
     const d = (clips as Record<string, number>)[b.clip];
     if (d === undefined) throw new Error(`Нет клипа ${b.clip}`);
     at[b.clip] = { from: t, to: t + d };
-    if (b.text) cues.push(...line(t, d, b.text, b.step));
+    // реплики героев в кавычках, рассказчик (клипы n..) — без
+    const quoted = b.text && !b.clip.startsWith("n") && !b.text.includes("«") ? `«${b.text}»` : b.text;
+    if (quoted) cues.push(...line(t, d, quoted, b.step));
     t += d;
   });
   return { at, cues, end: t };

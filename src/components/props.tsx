@@ -1,6 +1,7 @@
 import { loadFont } from "@remotion/google-fonts/Caveat";
 import { clamp, INK, Svg } from "./fx";
 import { Hero, MISHA } from "./Hero";
+import { ManiacGroup } from "./maniac";
 
 const { fontFamily: hand } = loadFont("normal", { weights: ["700"], subsets: ["cyrillic", "latin"] });
 
@@ -137,6 +138,9 @@ export const Plaque = ({ t, text, from = 0.2 }: { t: number; text: string; from?
 export const Photo = ({ x, y, s = 1, rot = 0, t }: { x: number; y: number; s?: number; rot?: number; t: number }) => (
   <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`} {...L}>
     <defs>
+      <clipPath id="winClip">
+        <rect x="55" y="-27" width="36.3" height="33" />
+      </clipPath>
       <clipPath id="photoClip">
         <rect x="-230" y="-290" width="460" height="460" />
       </clipPath>
@@ -152,12 +156,13 @@ export const Photo = ({ x, y, s = 1, rot = 0, t }: { x: number; y: number; s?: n
       <path d="M-240 -40 L-120 -150 L-30 -80 L90 -190 L240 -60 V180 H-240 Z" fill="#a7b8c6" />
       <path d="M-240 40 C-80 0 80 20 240 -10 V180 H-240 Z" fill="#eef2f4" />
       <Shack x={110} y={30} s={0.55} lit={0} />
-      {/* в тёмном окне едва видна улыбка */}
-      <g opacity="0.75">
-        <circle cx="73" cy="-12" r="11" fill="#8a8270" />
-        <circle cx="69" cy="-15" r="1.6" fill="#111" />
-        <circle cx="77" cy="-15" r="1.6" fill="#111" />
-        <path d="M64 -8 Q73 -1 82 -8" fill="none" stroke="#e8e0c8" strokeWidth="2.6" />
+      {/* в окне лачуги — то самое лицо из финала */}
+      <g clipPath="url(#winClip)">
+        <rect x="55" y="-27" width="36.3" height="33" fill="#0b0f12" />
+        <g opacity="0.9" transform="translate(73.15 -9) scale(0.04) translate(-540 -820)">
+          <ManiacGroup t={t} />
+        </g>
+        <rect x="55" y="-27" width="36.3" height="33" fill="#cfd8de" opacity="0.12" />
       </g>
       {/* выцветание старого снимка; красная куртка Миши поверх — остаётся яркой */}
       <rect x="-230" y="-290" width="460" height="460" fill="#9a958c" opacity="0.45" />

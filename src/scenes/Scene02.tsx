@@ -25,6 +25,8 @@ export const Scene02 = () => {
   const tx = -27 + (-486 + 27) * k + 27 * back;
   const ty = -48 + (-276 + 48) * k + 48 * back;
   const genaTalk = speaking(TL, "g1", t);
+  // после «чё ты» все смеются
+  const laugh = t > TL.at.g1.to && t < TL.at.g1.to + 1.6;
   const roll = t > TL.at.d2.to - 1.4 && t < TL.at.d2.to;
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
@@ -38,9 +40,9 @@ export const Scene02 = () => {
           <Landscape t={t} wind={0.15} fog={0.05} camp />
           <Svg>
             <Hero cfg={STAS} x={230} y={onGround(STAS, 1240, 0.25)} s={0.25} t={t + 0.7} look={[-6, 10]} lid={0.32} blinks={[2.6, 8.2]} frost={0.15} wind={0.15} full />
-            <Hero cfg={GENA} x={850} y={onGround(GENA, 1230, 0.28)} s={0.28} flip={-1} t={t + 1.9} emotion="smile" talk={genaTalk} look={genaTalk ? [6, 2] : [14, 4]} arm={genaTalk ? 176 + Math.sin(t * 5) * 10 : undefined} blinks={[1.6, 5.4]} frost={0.15} wind={0.15} lightLeft={false} full />
-            <Hero cfg={LERA} x={420} y={onGround(LERA, 1290, 0.26)} s={0.26} t={t + 1.1} emotion="skeptic" look={roll ? [6, -22] : [16, 2]} lid={roll ? 0.42 : 0.2} blinks={[2.1, 9.9]} frost={0.15} wind={0.15} full />
-            <Hero cfg={DIMA} x={650} y={onGround(DIMA, 1400, 0.33)} s={0.33} t={t} emotion="smile" talk={speaking(TL, "d1", t) || speaking(TL, "d2", t)} look={[-2, 0]} blinks={[2.4, 8.4]} frost={0.15} wind={0.15} full />
+            <Hero cfg={GENA} x={850} y={onGround(GENA, 1230, 0.28)} s={0.28} flip={-1} t={t + 1.9} emotion={laugh ? "laugh" : "smile"} talk={genaTalk} look={genaTalk ? [6, 2] : [14, 4]} arm={genaTalk ? 176 + Math.sin(t * 5) * 10 : undefined} blinks={[1.6, 5.4]} frost={0.15} wind={0.15} lightLeft={false} full />
+            <Hero cfg={LERA} x={420} y={onGround(LERA, 1290, 0.26)} s={0.26} t={t + 1.1} emotion={laugh ? "laugh" : "skeptic"} look={roll ? [6, -22] : [16, 2]} lid={roll ? 0.42 : 0.2} blinks={[2.1, 9.9]} frost={0.15} wind={0.15} full />
+            <Hero cfg={DIMA} x={650} y={onGround(DIMA, 1400, 0.33)} s={0.33} t={t} emotion={laugh ? "laugh" : "smile"} talk={speaking(TL, "d1", t) || speaking(TL, "d2", t)} look={[-2, 0]} blinks={[2.4, 8.4]} frost={0.15} wind={0.15} full />
           </Svg>
           <Snow t={t} n={16} opacity={0.4} speed={0.5} wind={0.15} />
           <Finish vig={0.3} tint="#6f8496" tintOpacity={0.08} grain={0.7} />

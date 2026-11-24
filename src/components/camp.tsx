@@ -19,16 +19,15 @@ type Props = {
 
 /** Базовый лагерь: компания разного роста стоит прямо перед шерпой, который сидит у камня. */
 export const Camp = ({ t, cam, wind, dimaTalk, laugh, stasSmile, sherpaTalk, sherpaLook = [0, 0], no = 0 }: Props) => {
-  const shake = (k: number) => (laugh ? Math.sin(t * 9) * 3 * k : 0);
   return (
     <>
       <Landscape t={t} cam={cam} wind={wind} fog={0.15} camp />
       <Svg>
         <g transform={`translate(${cam * 0.75} 0)`}>
-          <Hero cfg={GENA} x={975} y={onGround(GENA, 1330, 0.27)} s={0.27} flip={-1} t={t + 1.9} emotion={laugh ? "smile" : "calm"} talk={laugh} lid={laugh ? 0.4 : undefined} headTurn={shake(1)} look={[18, 2]} full wind={wind} lightLeft={false} blinks={[6.2]} />
-          <Hero cfg={STAS} x={700} y={onGround(STAS, 1320, 0.24)} s={0.24} flip={-1} t={t + 0.7} emotion={stasSmile ? "smile" : "calm"} talk={stasSmile} lid={stasSmile ? 0.4 : 0.3} headTurn={stasSmile ? shake(0.4) : 0} look={stasSmile ? [16, 4] : [22, -2]} full wind={wind} lightLeft={false} blinks={[3.1, 9.4]} />
-          <Hero cfg={LERA} x={845} y={onGround(LERA, 1345, 0.23)} s={0.23} flip={-1} t={t + 1.1} emotion={laugh ? "smile" : "skeptic"} talk={laugh} look={[18, 0]} full wind={wind} lightLeft={false} blinks={[4.8]} />
-          <Hero cfg={DIMA} x={540} y={onGround(DIMA, 1350, 0.25)} s={0.25} flip={-1} t={t} emotion={laugh || dimaTalk ? "smile" : "calm"} talk={dimaTalk} lid={laugh ? 0.45 : undefined} headTurn={shake(1)} look={[18, 2]} full wind={wind} lightLeft={false} blinks={[7.6]} />
+          <Hero cfg={GENA} x={975} y={onGround(GENA, 1330, 0.27)} s={0.27} flip={-1} t={t + 1.9} emotion={laugh ? "laugh" : "calm"} look={[18, 2]} full wind={wind} lightLeft={false} blinks={[6.2]} />
+          <Hero cfg={STAS} x={700} y={onGround(STAS, 1320, 0.24)} s={0.24} flip={-1} t={t + 0.7} emotion={stasSmile ? "laugh" : "calm"} lid={0.3} look={stasSmile ? [16, 4] : [22, -2]} full wind={wind} lightLeft={false} blinks={[3.1, 9.4]} />
+          <Hero cfg={LERA} x={845} y={onGround(LERA, 1345, 0.23)} s={0.23} flip={-1} t={t + 1.1} emotion={laugh ? "laugh" : "skeptic"} look={[18, 0]} full wind={wind} lightLeft={false} blinks={[4.8]} />
+          <Hero cfg={DIMA} x={540} y={onGround(DIMA, 1350, 0.25)} s={0.25} flip={-1} t={t} emotion={laugh ? "laugh" : dimaTalk ? "smile" : "calm"} talk={dimaTalk} look={[18, 2]} full wind={wind} lightLeft={false} blinks={[7.6]} />
         </g>
         <g transform={`translate(${cam * 0.85} 0)`}>
           <Hero cfg={SHERPA} x={270} y={960} s={0.62} t={t} emotion="calm" talk={sherpaTalk} look={sherpaLook} lid={0.3} headTurn={no} blinks={[2.2, 11.4]} frost={0.1} wind={wind} />

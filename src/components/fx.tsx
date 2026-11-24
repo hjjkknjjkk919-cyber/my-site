@@ -56,7 +56,8 @@ export const Svg = ({ children, style }: { children: React.ReactNode; style?: Re
 /** Верхний слой: виньетка + холодный оттенок + зерно. */
 export const Finish = ({ vig = 1, tint = "#2a5a85", tintOpacity = 0.12, grain = 1 }) => (
   <Svg>
-    <rect width={W} height={H} fill="url(#vig)" opacity={vig} />
+    {/* мрачнее: виньетка всегда плотнее заданной */}
+    <rect width={W} height={H} fill="url(#vig)" opacity={Math.min(1, vig * 1.4 + 0.2)} />
     <rect width={W} height={H} fill={tint} opacity={tintOpacity} />
     <rect width={W} height={H} filter="url(#paper)" opacity={grain} />
   </Svg>
@@ -109,7 +110,7 @@ export type Cue = { from: number; to: number; text: string; /** секунд н�
 
 /** Серая метельная палитра: всё блёкнет, цветными остаются только слои поверх Grade. */
 export const Grade = ({ children }: { children: React.ReactNode }) => (
-  <AbsoluteFill style={{ filter: "saturate(.22) contrast(1.08) brightness(.97)" }}>{children}</AbsoluteFill>
+  <AbsoluteFill style={{ filter: "saturate(.2) contrast(1.15) brightness(.8)" }}>{children}</AbsoluteFill>
 );
 
 export const Subtitle = ({ t, cues }: { t: number; cues: Cue[] }) => {

@@ -58,7 +58,7 @@ export const SHERPA: HeroCfg = {
   pompom: false,
 };
 
-export type Emotion = "calm" | "smile" | "fear" | "skeptic";
+export type Emotion = "calm" | "smile" | "fear" | "skeptic" | "laugh";
 
 const FACE_ROUND = "M540 250 C750 250 810 420 800 560 C795 720 700 860 540 870 C380 860 285 720 280 560 C270 420 330 250 540 250 Z";
 const FACE_SQUARE = "M540 250 C750 250 812 420 808 560 C806 700 780 800 700 855 C640 885 440 885 380 855 C300 800 274 700 272 560 C268 420 330 250 540 250 Z";
@@ -69,6 +69,7 @@ const BROWS: Record<Emotion, [string, string]> = {
   calm: ["M345 486 C395 464 450 458 500 466", "M580 466 C630 458 685 464 735 486"],
   smile: ["M345 474 C395 446 450 440 500 450", "M580 450 C630 440 685 446 735 474"],
   skeptic: ["M345 466 C395 432 450 426 500 436", "M580 476 C630 474 690 476 735 484"],
+  laugh: ["M345 456 C395 422 450 416 500 430", "M580 430 C630 416 685 422 735 456"],
 };
 
 type Props = {
@@ -130,6 +131,13 @@ export const Hero = ({
     if (t >= b && t < b + 0.14) bl = 1 - 0.93 * Math.sin(((t - b) / 0.14) * Math.PI);
   });
   const fear = emotion === "fear";
+  const laughing = emotion === "laugh";
+  // смех: голова трясётся «ха-ха» и чуть запрокидывается
+  const ha = Math.abs(Math.sin(t * 13));
+  const lBob = laughing ? -ha * 12 : 0;
+  const lTilt = laughing ? -3 - ha * 2 : 0;
+  // брови живут, когда герой говорит
+  const browY = talk && !laughing ? -Math.abs(Math.sin(t * 3.1)) * 10 : 0;
   const rx = fear ? 64 : 58;
   const ry = fear ? 54 : 46;
   const lidA = lid ?? (fear ? 0 : emotion === "skeptic" ? 0.35 : 0.14);
@@ -242,7 +250,7 @@ export const Hero = ({
       {full && arm === undefined && sleeve(930, 1010)}
 
       {/* голова: качание и покачивание как в хуке */}
-      <g transform={`translate(0 ${bob}) rotate(${ang + headTurn} 540 900)`}>
+      <g transform={`translate(0 ${bob + lBob}) rotate(${ang + headTurn + lTilt} 540 900)`}>
         <g filter="url(#rough)">
           {hood && (
             <>
@@ -313,7 +321,7 @@ export const Hero = ({
           {/* мешки, брови, нос */}
           <path d="M370 628 C410 650 455 650 492 628 M588 628 C625 650 670 650 710 628" fill="none" stroke="#3b4b57" strokeWidth="6" opacity="0.6" />
           {BROWS[emotion].map((d) => (
-            <g key={d}>
+            <g key={d} transform={`translate(0 ${browY})`}>
               <path d={d} fill="none" stroke="#1c232a" strokeWidth={cfg.rough ? 34 : 24} />
               <path d={d} fill="none" stroke="#eef5fa" strokeWidth="6" strokeDasharray="10 18" opacity={frost} />
             </g>
@@ -330,8 +338,19 @@ export const Hero = ({
           </g>
         </g>
 
+        {/* глаза: при смехе — зажмуренные дуги и приподнятые щёки */}
+        {laughing && (
+          <g fill="none" stroke={INK} strokeLinecap="round">
+            {[430, 650].map((cx) => (
+              <g key={cx}>
+                <path d={`M${cx - 54} 588 Q${cx} 526 ${cx + 54} 588`} strokeWidth="13" />
+                <path d={`M${cx - 44} 628 Q${cx} 606 ${cx + 44} 628`} strokeWidth="6" opacity="0.6" />
+              </g>
+            ))}
+          </g>
+        )}
         {/* глаза: моргание, взгляд, веко */}
-        <g transform={`translate(0 570) scale(1 ${bl}) translate(0 -570)`}>
+        <g transform={`translate(0 570) scale(1 ${bl}) translate(0 -570)`} opacity={laughing ? 0 : 1}>
           {[430, 650].map((cx) => (
             <g key={cx}>
               <ellipse cx={cx} cy="570" rx={rx} ry={ry} fill="#e6edf2" stroke={INK} strokeWidth="8" />
@@ -353,7 +372,13 @@ export const Hero = ({
         </g>
 
         {/* рот */}
-        {open > 0 ? (
+        {laughing ? (
+          <g transform={`translate(540 785) scale(1.05 ${0.75 + 0.25 * ha}) translate(-540 -785)`}>
+            <path d="M468 784 C478 886 602 886 612 784 C580 800 500 800 468 784 Z" fill="#120a0d" stroke="#2b3944" strokeWidth="7" />
+            <path d="M482 789 C510 801 570 801 598 789 L594 810 C565 820 515 820 486 810 Z" fill="#dfe8ee" />
+            <path d="M503 852 C523 832 557 832 577 852 C562 870 518 870 503 852 Z" fill="#8c3a42" />
+          </g>
+        ) : open > 0 ? (
           <g transform={`translate(540 790) scale(${emotion === "smile" ? 1.15 : 1} ${open}) translate(-540 -790)`}>
             <path d="M490 800 C505 770 575 770 590 800 C585 850 495 850 490 800 Z" fill="#120a0d" stroke="#2b3944" strokeWidth="7" />
             <path d="M505 786 C520 778 560 778 575 786 L572 800 C555 794 525 794 508 800 Z" fill="#dfe8ee" />

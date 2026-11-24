@@ -8,7 +8,7 @@ const FACE = "M540 420 C770 420 830 620 820 860 C810 1120 700 1330 540 1340 C380
 const TOOTH = ["#d8c98c", "#c9b06a", "#b39a52", "#8d7a43", "#6e5a2e", "#2a1a12"];
 
 /** Лицо маньяка крупно: сальные волосы, щетина, не моргает, улыбка во все 32 гнилых зуба. */
-export const ManiacFace = ({ t }: { t: number }) => {
+export const ManiacGroup = ({ t }: { t: number }) => {
   const twitch = Math.sin(t * 31) * 1.5;
   const teeth = (row: "up" | "down") =>
     Array.from({ length: 16 }, (_, i) => {
@@ -21,7 +21,7 @@ export const ManiacFace = ({ t }: { t: number }) => {
       return <rect key={`${row}${i}`} x={x - 10} y={y} width="21" height={h} rx="5" fill={c} stroke="#3a2a18" strokeWidth="3" transform={`rotate(${(random(`r${row}${i}`) - 0.5) * 14} ${x} ${y + h / 2})`} />;
     });
   return (
-    <Svg>
+    <g>
       <g filter="url(#rough)" {...L}>
         {/* тёмный капюшон с грязным мехом */}
         <path d="M60 1920 C40 1300 80 520 300 330 C440 220 640 220 780 330 C1000 520 1040 1300 1020 1920 Z" fill="#1b1e21" stroke={INK} strokeWidth="12" />
@@ -66,6 +66,12 @@ export const ManiacFace = ({ t }: { t: number }) => {
           </g>
         ))}
       </g>
-    </Svg>
+    </g>
   );
 };
+
+export const ManiacFace = ({ t }: { t: number }) => (
+  <Svg>
+    <ManiacGroup t={t} />
+  </Svg>
+);
