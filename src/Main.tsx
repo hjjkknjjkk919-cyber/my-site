@@ -1,7 +1,6 @@
 import { AbsoluteFill, Sequence } from "remotion";
 import { Gust } from "./components/fx";
 import { Sfx } from "./components/audio";
-import { DUR as D00, Scene00 } from "./scenes/Scene00";
 import { DUR as D01, Scene01 } from "./scenes/Scene01";
 import { DUR as D02, Scene02 } from "./scenes/Scene02";
 import { DUR as D03, Scene03 } from "./scenes/Scene03";
@@ -20,7 +19,6 @@ import { DUR as D14, Scene14 } from "./scenes/Scene14";
 const FPS = 30;
 // [секунд, сцена] — каждая сцена сама считает свою длину по записанным репликам и паузам.
 export const SCENES: [number, React.FC][] = [
-  [D00, Scene00],
   [D01, Scene01],
   [D02, Scene02],
   [D03, Scene03],
