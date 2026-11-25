@@ -250,18 +250,44 @@ const Bottle = ({ water, x, y }: { water: number; x: number; y: number }) => (
 );
 
 
-/** Вертолёт. */
-const Heli = ({ t, x, y, s = 1 }: { t: number; x: number; y: number; s?: number }) => (
-  <g transform={`translate(${x} ${y}) scale(${s})`} {...L}>
-    <path d="M-60 -10 L-330 -30 L-330 10 L-60 30 Z" fill="#c8352e" stroke={INK} strokeWidth="8" />
-    <path d="M-330 -60 L-300 -60 L-300 30 L-330 30 Z" fill="#c8352e" stroke={INK} strokeWidth="6" />
-    <ellipse cx="40" cy="0" rx="150" ry="90" fill="#e2453b" stroke={INK} strokeWidth="9" />
-    <path d="M60 -60 C130 -60 175 -20 180 10 L60 10 Z" fill="#bfe3f7" stroke={INK} strokeWidth="6" />
-    <path d="M-60 120 H170 M-20 90 V120 M120 90 V120" stroke={INK} strokeWidth="10" />
-    <rect x="25" y="-112" width="30" height="24" fill={INK} />
-    <ellipse cx="40" cy="-116" rx={260 * Math.abs(Math.sin(t * 30))} ry="10" fill={INK} opacity="0.75" />
-  </g>
-);
+/** Спасательный вертолёт: белый с красной полосой, большое окно, прозрачный винт, маячок. tilt — наклон носа. */
+const Heli = ({ t, x, y, s = 1, tilt = 0 }: { t: number; x: number; y: number; s?: number; tilt?: number }) => {
+  const beacon = Math.floor(t * 2.5) % 2 === 0;
+  const tr = t * 40;
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${tilt}) scale(${-s} ${s})`} {...L}>
+      {/* хвостовая балка */}
+      <path d="M-70 -20 C-180 -30 -280 -40 -360 -60 L-370 -30 C-280 -10 -180 10 -70 30 Z" fill="#f4f6f8" stroke={INK} strokeWidth="8" />
+      <path d="M-300 -44 L-360 -54 L-364 -38 L-300 -30 Z" fill="#e0453b" />
+      <path d="M-360 -60 L-395 -125 L-370 -125 L-340 -58 Z" fill="#e0453b" stroke={INK} strokeWidth="6" />
+      {/* хвостовой винт — размытый круг */}
+      <circle cx="-372" cy="-48" r="48" fill="#cfd8e0" opacity="0.35" stroke={INK} strokeWidth="3" />
+      <path d={`M${-372 + Math.cos(tr) * 44} ${-48 + Math.sin(tr) * 44} L${-372 - Math.cos(tr) * 44} ${-48 - Math.sin(tr) * 44}`} stroke={INK} strokeWidth="6" opacity="0.6" />
+      {/* корпус */}
+      <path d="M-110 -70 C-60 -125 120 -130 190 -70 C240 -30 240 50 180 80 C90 115 -60 110 -110 70 C-150 40 -150 -40 -110 -70 Z" fill="#f7f9fb" stroke={INK} strokeWidth="9" />
+      <path d="M-140 10 C-60 30 120 32 225 10 L222 40 C120 62 -60 60 -138 40 Z" fill="#e0453b" />
+      {/* большое окно кабины с бликом */}
+      <path d="M70 -95 C150 -95 215 -50 222 0 L110 0 C95 -40 85 -70 70 -95 Z" fill="#8fd0f5" stroke={INK} strokeWidth="7" />
+      <path d="M95 -82 C140 -78 175 -55 192 -28" fill="none" stroke="#fff" strokeWidth="9" opacity="0.8" />
+      <rect x="-60" y="-60" width="95" height="60" rx="14" fill="#8fd0f5" stroke={INK} strokeWidth="6" />
+      {/* надпись */}
+      <text x="-40" y="95" transform="scale(-1 1)" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="34" fill="#e0453b">СПАСАТЕЛИ</text>
+      <g transform="translate(-95 -10)">
+        <rect x="-16" y="-6" width="32" height="12" fill="#e0453b" />
+        <rect x="-6" y="-16" width="12" height="32" fill="#e0453b" />
+      </g>
+      {/* полозья */}
+      <path d="M-80 105 L-70 150 M140 105 L130 150 M-130 150 H200 C220 150 230 140 236 128" fill="none" stroke={INK} strokeWidth="11" />
+      {/* мачта и прозрачный размытый винт */}
+      <rect x="20" y="-160" width="34" height="40" rx="8" fill="#d6dde3" stroke={INK} strokeWidth="6" />
+      <ellipse cx="37" cy="-165" rx="330" ry="26" fill="#cfd8e0" opacity="0.3" />
+      <ellipse cx="37" cy="-165" rx={330 * Math.abs(Math.cos(t * 26))} ry="7" fill={INK} opacity="0.5" />
+      {/* маячок */}
+      <circle cx="37" cy="-130" r="12" fill={beacon ? "#ff3b3b" : "#7a1d1d"} />
+      {beacon && <circle cx="37" cy="-130" r="40" fill="#ff3b3b" opacity="0.25" />}
+    </g>
+  );
+};
 
 
 // ── руки «из глаз» ─────────────────────────────────────────────────────
@@ -311,11 +337,51 @@ const Sub = ({ t, text, from, dur }: { t: number; text: string; from: number; du
 type P = { t: number; d: number; v: number };
 const fy = (g: number, s: number) => onGround(DIMA, g, s);
 
-const Bust = ({ t, emotion = "calm", lid, frost = 0.8, look = [0, 0] as [number, number], trem = 0 }: { t: number; emotion?: "calm" | "fear" | "smile"; lid?: number; frost?: number; look?: [number, number]; trem?: number }) => (
-  <g transform={`translate(${Math.sin(t * 60) * trem} 0)`}>
-    <Hero cfg={DIMA} x={540} y={820} s={0.62} t={t} emotion={emotion} lid={lid} frost={frost} look={look} blinks={[]} wind={0.2} />
-  </g>
-);
+// ── «живость»: резкие взгляды с перелётом, плавное дыхание и перенос веса ──
+/** Перелёт пружины: быстро доходит, чуть проскакивает и мягко садится. */
+const backOut = (p: number) => {
+  const c = 1.9;
+  return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2);
+};
+/** Ступенчатое значение: в моменты keys резко (за dur) переходит к новой цели с перелётом. */
+const snapTo = (t: number, keys: [number, number][], dur = 0.14) => {
+  let v = keys[0][1];
+  for (let i = 1; i < keys.length; i++) {
+    const [kt, kv] = keys[i];
+    if (t < kt) break;
+    v = v + (kv - v) * backOut(clamp((t - kt) / dur));
+  }
+  return v;
+};
+/** Случайные моменты взглядов: чем больше energy, тем чаще и резче. */
+const glances = (seed: string, energy: number, range: number): [number, number][] => {
+  const out: [number, number][] = [[0, 0]];
+  let at = 0.15 + random(`${seed}g0`) * 0.3;
+  for (let i = 1; at < 8; i++) {
+    out.push([at, (random(`${seed}v${i}`) - 0.5) * 2 * range]);
+    at += (1.5 - energy) * (0.6 + random(`${seed}d${i}`) * 0.8);
+  }
+  return out;
+};
+
+/** Дима по пояс, но живой: глаза бегают и опережают голову, тело дышит, шатается, вздрагивает. */
+const Bust = ({ t, emotion = "calm", lid, frost = 0.8, look, trem = 0, seed = "b", energy = 0.4, breath = 1, droop = 0, flinch }: { t: number; emotion?: "calm" | "fear" | "smile"; lid?: number; frost?: number; look?: [number, number]; trem?: number; seed?: string; energy?: number; breath?: number; droop?: number; flinch?: number }) => {
+  const keys = glances(seed, energy, 1);
+  const eyeX = snapTo(t + 0.09, keys, 0.08) * 24; // глаза первыми
+  const head = snapTo(t, keys, 0.16 + (1 - energy) * 0.2) * (4 + energy * 8); // голова догоняет
+  const sway = Math.sin(t * 0.8 + seed.length) * 6 + Math.sin(t * 1.9) * 2; // перенос веса
+  const br = Math.sin(t * 2.1) * breath; // дыхание
+  // вздрагивание: резкий рывок вверх с перелётом и плавный возврат
+  const fl = flinch !== undefined && t > flinch ? Math.exp(-(t - flinch) * 5) * Math.sin(Math.min(1, (t - flinch) / 0.08) * Math.PI * 0.5) : 0;
+  const dy = droop * 120 - fl * 70 + br * 6;
+  const rot = sway * 0.15 + head * 0.25 + droop * 6 - fl * 3;
+  const sh = trem ? Math.sin(t * 60) * trem + Math.sin(t * 37) * trem * 0.6 : 0;
+  return (
+    <g transform={`translate(${sh + sway} ${dy}) rotate(${rot} 540 1300) translate(540 1300) scale(1 ${1 + br * 0.012}) translate(-540 -1300)`}>
+      <Hero cfg={DIMA} x={540} y={820} s={0.62} t={t} emotion={emotion} lid={lid} frost={frost} look={look ?? [eyeX, droop * 14]} headTurn={head + droop * 10} blinks={[0.7 + random(seed) * 2, 3.1]} wind={0.2} />
+    </g>
+  );
+};
 
 const SHOTS: Record<string, React.FC<P>> = {
   // широкий: крошечный Дима в метели
@@ -335,7 +401,7 @@ const SHOTS: Record<string, React.FC<P>> = {
     <AbsoluteFill>
       <Cam t={t} z={ease(t, 0, 1.2, 2.3, 2.8)} cy={800} hand={4}>
         <Sky t={t} fog={0.3} />
-        <Svg><Bust t={t} emotion="fear" look={[0, 0]} /></Svg>
+        <Svg><Bust t={t} emotion="fear" seed="p02" energy={1} /></Svg>
         <Snow t={t} n={60} opacity={0.7} speed={1.6} wind={0.8} />
       </Cam>
       <NearSnow t={t} />
@@ -410,7 +476,7 @@ const SHOTS: Record<string, React.FC<P>> = {
     <AbsoluteFill>
       <Cam t={t} z={3.1} cy={790} rot={-4} hand={14}>
         <Sky t={t} fog={0.3} />
-        <Svg><Bust t={t} emotion="fear" trem={4} look={[Math.sin(t * 9) * 20, 0]} /></Svg>
+        <Svg><Bust t={t} emotion="fear" trem={3} seed="p06" energy={1.2} flinch={0.35} /></Svg>
       </Cam>
       <AbsoluteFill style={{ boxShadow: `inset 0 0 220px rgba(255,30,40,${0.35 + 0.2 * Math.sin(t * 12)})` }} />
       <Sfx name="sfx/heartbeat" vol={0.6} />
@@ -422,7 +488,7 @@ const SHOTS: Record<string, React.FC<P>> = {
       <Cam t={t} z={ease(t, 0, 1.6, 2.4, 1.8)} cy={830} hand={2}>
         <Sky t={t} fog={0.2} />
         <Svg>
-          <Bust t={t} emotion="calm" lid={0.4} />
+          <Bust t={t} emotion="calm" lid={ease(t, 0.2, 1.2, 0.1, 0.5)} seed="p07" energy={0.1} breath={2.2} />
           <Breath t={t + 1.1} x={600} y={1040} s={1.4} />
         </Svg>
         <Snow t={t} n={30} opacity={0.6} speed={0.6} wind={0.3} />
@@ -476,7 +542,7 @@ const SHOTS: Record<string, React.FC<P>> = {
       <Cam t={t} z={ease(t, 0, d, 1.1, 1.7)} cy={ease(t, 0, d, 960, 860)} hand={2}>
         <AbsoluteFill style={{ background: "#26384c" }} />
         <Svg>
-          <Bust t={t} emotion="fear" trem={2.5} frost={0.9} />
+          <Bust t={t} emotion="fear" trem={1.8} frost={0.9} seed="p10" energy={0.6} flinch={1.1} />
           <Breath t={t} x={600} y={1040} s={1.2} />
         </Svg>
         <CaveFrame glow={0.4} />
@@ -522,7 +588,7 @@ const SHOTS: Record<string, React.FC<P>> = {
     <AbsoluteFill>
       <Cam t={t} z={ease(t, 0, d, 2.8, 3.5)} cy={780} hand={1.5}>
         <AbsoluteFill style={{ background: "#26384c" }} />
-        <Svg><Bust t={t} emotion="calm" lid={ease(t, 0, d, 0.3, 0.97)} frost={0.9} /></Svg>
+        <Svg><Bust t={t} emotion="calm" lid={ease(t, 0, d, 0.3, 0.97)} frost={0.9} seed="p13" energy={0.05} droop={ease(t, 0.1, d, 0, 1) - (t > d * 0.55 && t < d * 0.7 ? 0.25 * Math.sin(((t - d * 0.55) / (d * 0.15)) * Math.PI) : 0)} /></Svg>
       </Cam>
       <AbsoluteFill style={{ background: "#000", opacity: ease(t, 0, d, 0, 0.8) }} />
       <Sfx name="sfx/heartbeat" vol={0.5} />
@@ -533,7 +599,7 @@ const SHOTS: Record<string, React.FC<P>> = {
     <AbsoluteFill>
       <Cam t={t} z={ease(t, 0, 0.2, 3.4, 1.6)} cy={ease(t, 0, 0.2, 780, 860)} hand={t < 0.4 ? 24 : 4}>
         <AbsoluteFill style={{ background: "#26384c" }} />
-        <Svg><Bust t={t} emotion="fear" frost={0.8} /></Svg>
+        <Svg><Bust t={t} emotion="fear" frost={0.8} seed="p14" energy={1} flinch={0} /></Svg>
         <CaveFrame glow={0.4} />
       </Cam>
       <AbsoluteFill style={{ background: "#fff", opacity: clamp(0.5 - t * 3) }} />
@@ -633,14 +699,16 @@ const SHOTS: Record<string, React.FC<P>> = {
   // утро: вертолёт
   p20: ({ t, d }) => {
     const hx = ease(t, 0, d, 1350, 640);
-    const hy = 520 + Math.sin(t * 2) * 12;
+    const hy = 520 + Math.sin(t * 1.4) * 10;
+    const vx = ease(t + 0.05, 0, d, 1350, 640) - hx; // скорость → наклон носа
+    const tilt = clamp(vx * 0.9, -12, 12);
     return (
       <AbsoluteFill>
         <Cam t={t} z={ease(t, 0, d, 1.6, 1.1)} cx={ease(t, 0, d, 430, 600)} cy={ease(t, 0, d, 1400, 800)} hand={6}>
           <Sky t={t} dawn={ease(t, 0, d, 0.5, 0.9)} />
           <Svg>
             <Burrow x={430} y={1500} s={0.9} />
-            <Heli t={t} x={hx} y={hy} s={0.9} />
+            <Heli t={t} x={hx} y={hy} s={0.9} tilt={tilt} />
           </Svg>
           <Snow t={t} n={40} opacity={0.6} speed={0.8} wind={1} />
         </Cam>
