@@ -30,12 +30,12 @@ const VO = voice as Record<string, V>;
  */
 const Sky = ({ t, dawn = 0, fog = 0, cam = 0, aurora = 0.35 }: { t: number; dawn?: number; fog?: number; cam?: number; aurora?: number }) => {
   const mix = (a: number[], b: number[]) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * dawn)).join(",")})`;
-  const top = mix([6, 12, 28], [255, 140, 100]);
-  const mid = mix([22, 40, 72], [255, 196, 150]);
-  const low = mix([40, 66, 104], [255, 226, 190]);
-  const far2 = mix([40, 58, 88], [210, 170, 190]);
-  const far = mix([48, 68, 100], [190, 160, 185]);
-  const near = mix([26, 38, 60], [135, 112, 145]);
+  const top = mix([6, 12, 28], [46, 78, 140]);
+  const mid = mix([22, 40, 72], [236, 150, 128]);
+  const low = mix([40, 66, 104], [255, 210, 150]);
+  const far2 = mix([40, 58, 88], [150, 140, 175]);
+  const far = mix([48, 68, 100], [108, 112, 152]);
+  const near = mix([26, 38, 60], [72, 78, 118]);
   const night = (1 - dawn) * (1 - fog);
   const au = aurora * night;
   // падающая звезда раз в ~3.5 с
@@ -124,6 +124,21 @@ const Sky = ({ t, dawn = 0, fog = 0, cam = 0, aurora = 0.35 }: { t: number; dawn
           ))}
         </g>
       )}
+      {/* блик объектива от солнца: полоса и кольца */}
+      {dawn > 0.3 && (() => {
+        const sx0 = 760;
+        const sy0 = 900 - dawn * 260;
+        const k = (dawn - 0.3) / 0.7;
+        return (
+          <g style={{ mixBlendMode: "screen" }} opacity={k}>
+            <ellipse cx={sx0} cy={sy0} rx="760" ry="7" fill="#bfe1ff" opacity="0.55" />
+            <ellipse cx={sx0} cy={sy0} rx="380" ry="3" fill="#fff" opacity="0.7" />
+            {[0.45, 0.8, 1.15, 1.6].map((m, i) => (
+              <circle key={i} cx={sx0 + (540 - sx0) * m * 2} cy={sy0 + (960 - sy0) * m * 2} r={[60, 26, 110, 44][i]} fill={["#ffcf8a", "#9fe8ff", "#ff9fd6", "#c9ffb0"][i]} opacity="0.13" />
+            ))}
+          </g>
+        );
+      })()}
       {/* дальний хребет, тонет в дымке */}
       <g transform={`translate(${cam * 0.08} 0)`} {...L}>
         <path d="M-60 980 L120 760 L260 840 L420 640 L560 760 L760 560 L960 800 L1140 700 L1140 1000 Z" fill={far2} opacity="0.85" />
@@ -133,6 +148,9 @@ const Sky = ({ t, dawn = 0, fog = 0, cam = 0, aurora = 0.35 }: { t: number; dawn
       <g transform={`translate(${cam * 0.15} 0)`} filter="url(#rough)" {...L}>
         <path d="M-60 1060 L250 640 L380 760 L600 430 L860 820 L1140 1060 Z" fill={far} stroke={INK} strokeWidth="5" />
         <path d="M600 430 L540 560 L600 530 L640 610 L690 520 Z M250 640 L215 720 L270 700 Z" fill="#eef3f7" opacity={0.9} />
+        {/* освещённые солнцем склоны (альпийское зарево) */}
+        <path d="M600 430 L860 820 L700 820 L640 600 Z M250 640 L380 760 L300 760 Z" fill="#ffad6b" opacity={dawn * 0.75} />
+        <path d="M600 430 L690 520 L640 610 L600 530 Z" fill="#ffe0bf" opacity={dawn * 0.9} />
         {/* лунный край на склонах */}
         <path d="M250 640 L120 820 M600 430 L470 640" stroke="#dfeaff" strokeWidth="5" opacity={(1 - dawn) * 0.45} />
       </g>
@@ -141,9 +159,12 @@ const Sky = ({ t, dawn = 0, fog = 0, cam = 0, aurora = 0.35 }: { t: number; dawn
         <path d="M-100 1200 L180 900 L420 1080 L700 820 L1180 1200 Z" fill={near} stroke={INK} strokeWidth="6" />
         <path d="M700 820 L640 920 L700 900 L740 960 L780 890 Z" fill="#e3ebf1" />
         <path d="M180 900 L60 1040 M700 820 L600 960" stroke="#dfeaff" strokeWidth="5" opacity={(1 - dawn) * 0.4} />
+        <path d="M700 820 L1180 1200 L900 1200 L760 960 Z M180 900 L420 1080 L300 1080 Z" fill="#ff9e5e" opacity={dawn * 0.7} />
+        <path d="M700 820 L780 890 L740 960 L700 900 Z" fill="#ffd9b0" opacity={dawn * 0.9} />
       </g>
       {/* снежное поле */}
-      <path d="M-50 1180 C300 1130 700 1160 1130 1120 V1960 H-50 Z" fill={mix([150, 172, 198], [255, 236, 226])} stroke={INK} strokeWidth="6" />
+      <path d="M-50 1180 C300 1130 700 1160 1130 1120 V1960 H-50 Z" fill={mix([150, 172, 198], [255, 228, 200])} stroke={INK} strokeWidth="6" />
+      <path d="M-50 1190 L520 1190 L-50 1700 Z M300 1200 L700 1180 L120 1960 L-50 1960 Z" fill="#6f7fb8" opacity={dawn * 0.35} />
       <path d="M-50 1400 C350 1360 760 1420 1130 1370 V1960 H-50 Z" fill={mix([176, 196, 218], [255, 244, 236])} opacity="0.8" />
       {/* отражение сияния на снегу */}
       <rect x="0" y="1150" width="1080" height="800" fill="#7cffb2" opacity={au * 0.08} />
@@ -266,13 +287,31 @@ const Heli = ({ t, x, y, s = 1, tilt = 0 }: { t: number; x: number; y: number; s
       {/* хвостовой винт — размытый круг */}
       <circle cx="-372" cy="-48" r="48" fill="#cfd8e0" opacity="0.35" stroke={INK} strokeWidth="3" />
       <path d={`M${-372 + Math.cos(tr) * 44} ${-48 + Math.sin(tr) * 44} L${-372 - Math.cos(tr) * 44} ${-48 - Math.sin(tr) * 44}`} stroke={INK} strokeWidth="6" opacity="0.6" />
+      <defs>
+        <linearGradient id="heBody" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="0.55" stopColor="#e6ebef" />
+          <stop offset="1" stopColor="#a9b3bc" />
+        </linearGradient>
+        <linearGradient id="heGlass" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#2c4f6e" />
+          <stop offset="0.5" stopColor="#14283b" />
+          <stop offset="1" stopColor="#3d6b8e" />
+        </linearGradient>
+        <radialGradient id="heDisc" cx="50%" cy="50%" r="50%">
+          <stop offset="0.2" stopColor="#d9e2ea" stopOpacity="0.05" />
+          <stop offset="0.9" stopColor="#d9e2ea" stopOpacity="0.4" />
+          <stop offset="1" stopColor="#d9e2ea" stopOpacity="0" />
+        </radialGradient>
+      </defs>
       {/* корпус */}
-      <path d="M-110 -70 C-60 -125 120 -130 190 -70 C240 -30 240 50 180 80 C90 115 -60 110 -110 70 C-150 40 -150 -40 -110 -70 Z" fill="#f7f9fb" stroke={INK} strokeWidth="9" />
+      <path d="M-110 -70 C-60 -125 120 -130 190 -70 C240 -30 240 50 180 80 C90 115 -60 110 -110 70 C-150 40 -150 -40 -110 -70 Z" fill="url(#heBody)" stroke={INK} strokeWidth="9" />
       <path d="M-140 10 C-60 30 120 32 225 10 L222 40 C120 62 -60 60 -138 40 Z" fill="#e0453b" />
       {/* большое окно кабины с бликом */}
-      <path d="M70 -95 C150 -95 215 -50 222 0 L110 0 C95 -40 85 -70 70 -95 Z" fill="#8fd0f5" stroke={INK} strokeWidth="7" />
+      <path d="M70 -95 C150 -95 215 -50 222 0 L110 0 C95 -40 85 -70 70 -95 Z" fill="url(#heGlass)" stroke={INK} strokeWidth="7" />
       <path d="M95 -82 C140 -78 175 -55 192 -28" fill="none" stroke="#fff" strokeWidth="9" opacity="0.8" />
-      <rect x="-60" y="-60" width="95" height="60" rx="14" fill="#8fd0f5" stroke={INK} strokeWidth="6" />
+      <rect x="-60" y="-60" width="95" height="60" rx="14" fill="url(#heGlass)" stroke={INK} strokeWidth="6" />
+      <path d="M-50 -50 L0 -50" stroke="#9fc8e6" strokeWidth="6" opacity="0.7" />
       {/* надпись */}
       <text x="-40" y="95" transform="scale(-1 1)" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="34" fill="#e0453b">СПАСАТЕЛИ</text>
       <g transform="translate(-95 -10)">
@@ -283,7 +322,7 @@ const Heli = ({ t, x, y, s = 1, tilt = 0 }: { t: number; x: number; y: number; s
       <path d="M-80 105 L-70 150 M140 105 L130 150 M-130 150 H200 C220 150 230 140 236 128" fill="none" stroke={INK} strokeWidth="11" />
       {/* мачта и прозрачный размытый винт */}
       <rect x="20" y="-160" width="34" height="40" rx="8" fill="#d6dde3" stroke={INK} strokeWidth="6" />
-      <ellipse cx="37" cy="-165" rx="330" ry="26" fill="#cfd8e0" opacity="0.3" />
+      <ellipse cx="37" cy="-165" rx="330" ry="26" fill="url(#heDisc)" />
       <ellipse cx="37" cy="-165" rx={330 * Math.abs(Math.cos(t * 26))} ry="7" fill={INK} opacity="0.5" />
       {/* маячок */}
       <circle cx="37" cy="-130" r="12" fill={beacon ? "#ff3b3b" : "#7a1d1d"} />
@@ -707,7 +746,7 @@ const OLD: Record<string, React.FC<P>> = {
     const hx = ease(t, 0, d, 1350, 640);
     const hy = 520 + Math.sin(t * 1.4) * 10;
     const vx = ease(t + 0.05, 0, d, 1350, 640) - hx; // скорость → наклон носа
-    const tilt = clamp(vx * 0.9, -12, 12);
+    const tilt = clamp(vx * 0.5, -6, 6);
     return (
       <AbsoluteFill>
         <Cam t={t} z={ease(t, 0, d, 1.6, 1.1)} cx={ease(t, 0, d, 430, 600)} cy={ease(t, 0, d, 1400, 800)} hand={6}>
@@ -737,7 +776,8 @@ const OLD: Record<string, React.FC<P>> = {
               <path d="M0 160 L0 40" stroke={INK} strokeWidth="90" />
               <path d="M0 160 L0 40" stroke={JACKET} strokeWidth="72" />
               <rect x="-55" y="-50" width="110" height="100" rx="34" fill={MITT} stroke={INK} strokeWidth="8" />
-              <rect x="-16" y="-120" width="34" height="90" rx="17" fill={MITT} stroke={INK} strokeWidth="8" />
+              <rect x="-62" y="-118" width="36" height="92" rx="18" fill={MITT} stroke={INK} strokeWidth="8" transform="rotate(-18 -44 -40)" />
+              <path d="M-40 -20 H40 M-40 5 H40 M-40 30 H40" stroke="#454c54" strokeWidth="7" />
             </g>
           </Svg>
           <Snow t={t} n={14} opacity={0.5} speed={0.4} wind={0.3} />
@@ -989,6 +1029,12 @@ const NEW: Record<string, React.FC<P>> = {
             <path d="M560 420 L360 1600 L720 1600 Z" fill="#fff6c8" opacity={0.4 * on} />
             <ellipse cx="540" cy="1600" rx="200" ry="50" fill="#fff6c8" opacity={0.5 * on} />
             <Hero cfg={DIMA} x={540} y={fy(1600, 0.3)} s={0.3} t={t} emotion="smile" arm={212 + Math.sin(t * 10) * 15} look={[0, -22]} frost={0.5} full wind={0.8} />
+            {/* снежный вихрь от винта */}
+            {Array.from({ length: 24 }, (_, i) => {
+              const ph = (t * 1.3 + i / 24) % 1;
+              const a = (i / 24) * Math.PI * 2;
+              return <circle key={i} cx={540 + Math.cos(a) * ph * 520} cy={1600 + Math.sin(a) * ph * 90 - ph * 60} r={10 + ph * 26} fill="#fff" opacity={(1 - ph) * 0.6} />;
+            })}
             <Heli t={t} x={560 + Math.sin(t * 1.2) * 10} y={380} s={0.75} />
           </Svg>
           <Snow t={t} n={60} opacity={0.7} speed={1.4} wind={1.4} />
@@ -1061,6 +1107,8 @@ const Hud = () => {
   );
 };
 
+const DAWN = new Set(["s31", "s32", "s33", "s34", "s35"]);
+
 const Shot = ({ id, d, v, dur }: { id: string; d: number; v: number; dur: number }) => {
   const t = useT();
   const C = SHOTS[id];
@@ -1070,7 +1118,8 @@ const Shot = ({ id, d, v, dur }: { id: string; d: number; v: number; dur: number
       <AbsoluteFill>
         <C t={t} d={d} v={v} />
       </AbsoluteFill>
-      <Finish vig={0.8} tint="#2a5a85" tintOpacity={0.08} grain={1} bigSnow={false} />
+      {DAWN.has(id) && <AbsoluteFill style={{ background: "radial-gradient(80% 55% at 72% 30%, rgba(255,170,90,.45) 0%, rgba(255,120,60,.12) 45%, rgba(40,60,120,.18) 100%)", mixBlendMode: "soft-light" }} />}
+      <Finish vig={0.8} tint={DAWN.has(id) ? "#7a4a2a" : "#2a5a85"} tintOpacity={0.08} grain={1} bigSnow={false} />
       <Sub t={t} text={vo.text} from={v} dur={dur} />
       {/* вспышка на склейке */}
       <AbsoluteFill style={{ background: "#fff", opacity: clamp(0.12 - t * 1.2) }} />
