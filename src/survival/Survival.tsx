@@ -729,7 +729,7 @@ const OLD: Record<string, React.FC<P>> = {
   // считаю вдохи: камера медленно поднимается от норы к сиянию
   p19: ({ t, d }) => (
     <AbsoluteFill>
-      <Cam t={t} z={1.4} cy={ease(t, 0, d, 1350, 700)} hand={1.2}>
+      <Cam t={t} z={ease(t, 0, d, 1.15, 1.35)} cy={ease(t, 0, d, 1000, 640)} hand={1.2}>
         <Sky t={t} aurora={1} />
         <Svg>
           <Burrow x={540} y={1560} s={0.8} />
