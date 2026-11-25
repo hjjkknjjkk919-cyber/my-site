@@ -17,4 +17,5 @@ ffmpeg -v error -y -f concat -safe 0 -i $O/list.txt -c copy $O/world.mp4
 python3 tools/shaders.py $O/world.mp4 - $O/world_fx.mp4
 ffmpeg -v error -y -i $O/world_fx.mp4 -i $O/ui.mov -i $O/audio.wav -filter_complex "[0:v][1:v]overlay=format=auto,format=yuv420p[v];[2:a]loudnorm=I=-14:TP=-1.5:LRA=11[a]" -map "[v]" -map "[a]" -c:v libx264 -crf 23 -preset slow -maxrate 9M -bufsize 18M -c:a aac -b:a 192k -movflags +faststart $S/odin_6000m_final.mp4
 ffmpeg -v error -y -i $S/odin_6000m_final.mp4 -vf "fps=3,scale=48:85,tile=40x9" -frames:v 1 $S/finalall.png
+ffmpeg -v error -y -i $S/odin_6000m_final.mp4 -c:v libx264 -preset slow -b:v 2900k -maxrate 3500k -bufsize 7000k -pix_fmt yuv420p -c:a aac -b:a 160k -movflags +faststart $S/odin_6000m_light.mp4
 echo FINISHED

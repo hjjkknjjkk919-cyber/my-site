@@ -44,6 +44,9 @@ for _ in range(40):
 dirt = cv2.GaussianBlur(dirt, (0, 0), 1.6)[..., None]
 
 
+OPEN_K = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
+
+
 def scale_about(img, cx, cy, k):
     m = np.float32([[k, 0, cx * (1 - k)], [0, k, cy * (1 - k)]])
     return cv2.warpAffine(img, m, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
@@ -55,10 +58,13 @@ def shade(frame_u8, i):
     lum = small @ np.float32([0.2126, 0.7152, 0.0722])
     # светится только настоящий свет: порог сам поднимается на ярком снегу
     thr = max(0.7, float(np.percentile(lum, 98.5)))
-    bright = (np.clip((lum - thr) / max(1e-3, 1 - thr), 0, 1) ** 1.3)[..., None] * small
+    mask = np.clip((lum - thr) / max(1e-3, 1 - thr), 0, 1) ** 1.3
+    # убрать мелкие яркие детали (буквы, тонкие линии, звёздочки): светятся только крупные источники
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, OPEN_K)
+    bright = mask[..., None] * small
 
     # 1. лучи от самого яркого места
-    heat = cv2.GaussianBlur(np.clip((lum - max(0.82, thr)) / 0.18, 0, 1), (0, 0), 9)
+    heat = cv2.GaussianBlur(cv2.morphologyEx(np.clip((lum - max(0.82, thr)) / 0.18, 0, 1), cv2.MORPH_OPEN, OPEN_K), (0, 0), 9)
     _, mx, _, (lx, ly) = cv2.minMaxLoc(heat)
     rays = np.zeros_like(bright)
     if mx > 0.05:
