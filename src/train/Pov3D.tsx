@@ -19,6 +19,7 @@ import { flickerOn } from "./Ep1Test";
 const FPS = 30;
 const W = 1080;
 const H = 1920;
+const H_PX = H;
 const FOV = 74;
 const smooth = (x: number) => x * x * (3 - 2 * x);
 /** Стык рельсов: двойной микро-толчок каждые 1.4 с (тележка вагона проходит стык дважды). */
@@ -557,7 +558,7 @@ const Dust = ({ u, cz }: { u: number; cz: number }) => {
  */
 const MON_FROM = 2.4; // с начала вспышек (≈58.4)
 /** Трещины и тёмная кровь на стекле (canvas). */
-const makeCracks = () => {
+const makeCracks = (level = 2) => {
   const S = 512;
   const c = document.createElement("canvas");
   c.width = S;
@@ -567,8 +568,9 @@ const makeCracks = () => {
   const cy = c.height * 0.38;
   g.strokeStyle = "rgba(235,230,215,.85)";
   g.lineCap = "round";
-  for (let i = 0; i < 16; i++) {
-    let a = (i / 16) * Math.PI * 2 + rnd(i + 1500) * 0.3;
+  const rays = level === 1 ? 6 : level === 2 ? 16 : 26;
+  for (let i = 0; i < rays; i++) {
+    let a = (i / rays) * Math.PI * 2 + rnd(i + 1500) * 0.3;
     let x = cx;
     let y = cy;
     g.lineWidth = 2.2;
@@ -584,7 +586,7 @@ const makeCracks = () => {
     }
     g.stroke();
   }
-  for (const r of [26, 54, 90]) {
+  for (const r of level === 1 ? [] : level === 2 ? [26, 54, 90] : [20, 40, 64, 96, 130]) {
     g.lineWidth = 1.4;
     g.beginPath();
     for (let k = 0; k <= 18; k++) {
@@ -596,6 +598,11 @@ const makeCracks = () => {
       else g.lineTo(px, py);
     }
     g.stroke();
+  }
+  if (level === 1) {
+    const t1 = new THREE.CanvasTexture(c);
+    t1.colorSpace = THREE.SRGBColorSpace;
+    return t1;
   }
   // тёмная кровь: мазки и потёки вниз
   g.strokeStyle = "rgba(60,8,10,.85)";
@@ -616,14 +623,28 @@ const makeCracks = () => {
   return t;
 };
 
+// три удара в стекло (время от начала сцены ударов)
+export const HITS = [0.5, 2.0, 3.5];
+export const HITS_LEN = 4.8;
+// позы между вспышками: потолок → поручень → потолок ближе → у двери (замирает на свету, ползёт в темноте)
+const CRAWL: { p: [number, number, number]; rz: number; s: number }[] = [
+  { p: [-0.05, 2.0, DOOR_Z - 0.95], rz: Math.PI, s: 0.72 },
+  { p: [0.38, 1.55, DOOR_Z - 0.75], rz: -1.15, s: 0.82 },
+  { p: [-0.12, 1.9, DOOR_Z - 0.55], rz: Math.PI - 0.25, s: 0.9 },
+  { p: [-0.15, 1.1, DOOR_Z - 0.35], rz: -0.05, s: 1 },
+];
+const lastOnset = (w: number) => flashOnsets.filter((o) => o <= w).pop();
+
 // зрачки основных глаз в координатах плоскости монстра (1.65×2.93) — для крошечного блика в темноте
 const PUPILS: [number, number][] = [
   [-0.2166, 0.4816],
   [0.0102, 0.4993],
 ];
 
-const Tambour = ({ u, monster, m, slam }: { u: number; monster: THREE.Texture | null; m: Mats; slam?: number }) => {
-  const crackTex = useMemo(() => makeCracks(), []);
+const Tambour = ({ u, monster, m, slam, hits }: { u: number; monster: THREE.Texture | null; m: Mats; slam?: number; hits?: number }) => {
+  const crackTex = useMemo(() => makeCracks(2), []);
+  const crack1 = useMemo(() => makeCracks(1), []);
+  const crack3 = useMemo(() => makeCracks(3), []);
   const glint = useMemo(() => new THREE.SpriteMaterial({ map: makeTex("glow"), color: "#ffe9b8", blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }), []);
   const glassTex = useMemo(() => makeDirtyGlass(), []);
   const mat = useMemo(() => new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.01, roughness: 0.85, color: "#8f8574" }), []);
@@ -633,19 +654,40 @@ const Tambour = ({ u, monster, m, slam }: { u: number; monster: THREE.Texture | 
   }
   const w = u - T_WATCH;
   const watchF = Math.round(w * FPS);
-  const flash = slam !== undefined ? true : u >= T_WATCH && flickerOn(watchF);
-  const seen = slam !== undefined || u >= T_WATCH + MON_FROM;
+  const H = hits;
+  const flash = slam !== undefined || H !== undefined ? true : u >= T_WATCH && flickerOn(watchF);
+  const seen = slam !== undefined || H !== undefined || u >= T_WATCH + MON_FROM;
+  // в темноте ползёт: поза меняется только между вспышками и держится, пока горит свет
+  const lo = lastOnset(w);
+  const crawlIdx = lo === undefined ? 0 : Math.max(0, Math.min(CRAWL.length - 1, Math.floor((lo - MON_FROM) / 1.9)));
+  const crawl = CRAWL[crawlIdx];
+  // удары: замах назад → рывок в стекло; после третьего морда остаётся в проломе
+  let hz = 0;
+  let stage = 0;
+  let hitK = 0;
+  if (H !== undefined) {
+    let d = 0.4;
+    HITS.forEach((h, i) => {
+      if (H >= h) stage = i + 1;
+      const dt = H - h;
+      if (dt > -0.35 && dt <= 0) d = Math.min(d, 0.4 * smooth(-dt / 0.35));
+      if (dt > 0 && dt < 0.7 && i < 2) d = Math.min(d, 0.4 * smooth(clamp((dt - 0.25) / 0.45)));
+      if (i === 2 && dt > 0) d = -0.06 * smooth(clamp(dt / 0.3));
+      if (dt >= 0 && dt < 0.5) hitK = Math.max(hitK, Math.exp(-dt * 8) * (0.5 + i * 0.35));
+    });
+    hz = d;
+  }
   // приближение толчками: каждая следующая вспышка — ближе
   const k = clamp((w - MON_FROM) / 6);
   const step = Math.floor(k * 3) / 3;
   // скример: рывок из глубины тамбура в стекло за 2 кадра, потом медленно сползает
   const hit = slam !== undefined ? smooth(clamp(slam / 0.07)) : 0;
-  const mz = slam !== undefined ? DOOR_Z - 0.6 + hit * 0.5 : DOOR_Z - 0.95 + step * 0.62;
+  const mz = H !== undefined ? DOOR_Z - 0.08 - hz : slam !== undefined ? DOOR_Z - 0.6 + hit * 0.5 : crawl.p[2];
   const slideY = slam !== undefined ? -ease(slam, 0.1, 0.7, 0, 0.06) : 0;
-  const jerk = slam !== undefined ? Math.sin(slam * 90) * 0.01 * Math.exp(-slam * 6) : flash && watchF % 6 < 2 ? 0.015 : 0;
+  const jerk = slam !== undefined ? Math.sin(slam * 90) * 0.01 * Math.exp(-slam * 6) : H !== undefined ? Math.sin(H * 80) * 0.012 * hitK : 0;
   const crack = slam !== undefined ? clamp((slam - 0.06) / 0.12) : 0;
   // свет вспышки: 3D-источник в тамбуре сверху, и контровой из соседнего вагона
-  const fl = slam !== undefined ? 2.2 + 4 * Math.exp(-slam * 6) : flash ? 1 : 0;
+  const fl = slam !== undefined ? 2.2 + 4 * Math.exp(-slam * 6) : H !== undefined ? 1.4 + 5 * hitK : flash ? 1 : 0;
   mat.color.set(flash ? "#a89c84" : "#0b0a08"); // без вспышки — тонет в черноте тамбура
   // контур-«контровой свет»: чуть увеличенная копия силуэта позади, светится только на вспышке
   const rim = useMemo(() => new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.2, color: "#f0d08e", depthWrite: false }), []);
@@ -657,18 +699,37 @@ const Tambour = ({ u, monster, m, slam }: { u: number; monster: THREE.Texture | 
   glint.opacity = flash ? 0.9 : 0.55;
   return (
     <group>
-      {/* грязное стекло нашей двери */}
-      <mesh position={[0, 1.425, DOOR_Z - 0.05]}>
+      {/* вертикальные поручни в тамбуре — по ним он перебирается */}
+      {[-0.5, 0.5].map((x) => (
+        <mesh key={x} position={[x, 1.05, DOOR_Z - 0.55]} material={m.metal}>
+          <cylinderGeometry args={[0.02, 0.02, 2.1, 10]} />
+          <Outlines thickness={OL * 0.5} color={INK} />
+        </mesh>
+      ))}
+      <Box p={[0, 2.08, DOOR_Z - 0.55]} s={[1.1, 0.03, 0.03]} m={m.metal} cast={false} ol />
+      {/* грязное стекло нашей двери (после третьего удара — пролом) */}
+      {stage < 3 && <mesh position={[0, 1.425, DOOR_Z - 0.05]}>
         <planeGeometry args={[0.6, 0.85]} />
         <meshStandardMaterial map={glassTex} transparent roughness={0.35} metalness={0.15} depthWrite={false} color="#e8dcc0" />
-      </mesh>
+      </mesh>}
+      {stage > 0 && (
+        <mesh position={[0, 1.425, DOOR_Z + 0.046]}>
+          <planeGeometry args={[0.6, 0.85]} />
+          <meshStandardMaterial map={stage === 1 ? crack1 : stage === 2 ? crackTex : crack3} transparent opacity={stage === 3 ? 0.55 : 1} roughness={0.4} depthWrite={false} />
+        </mesh>
+      )}
+      {stage === 3 && H !== undefined && <Shards t={H - HITS[2]} />}
       {/* блик на стекле */}
       <mesh position={[0.08, 1.5, DOOR_Z - 0.045]} rotation={[0, 0, -0.55]}>
         <planeGeometry args={[0.025, 0.9]} />
         <meshBasicMaterial color="#f3d58e" transparent opacity={0.035} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       {seen && monster && (
-        <group position={[-0.15 + jerk, 1.1 + slideY, mz]} rotation={[0, 0, -0.05 + (slam !== undefined ? ease(slam, 0.6, 1.3, 0, -0.18) : 0)]}>
+        <group
+          position={H !== undefined || slam !== undefined ? [-0.15 + jerk, 1.1 + slideY, mz] : [crawl.p[0], crawl.p[1], crawl.p[2]]}
+          rotation={[0, 0, H !== undefined ? -0.05 : slam !== undefined ? -0.05 + ease(slam, 0.6, 1.3, 0, -0.18) : crawl.rz]}
+          scale={H !== undefined || slam !== undefined ? 1 : crawl.s}
+        >
           <mesh material={mat}>
             <planeGeometry args={[1.65, 2.93]} />
           </mesh>
@@ -693,6 +754,34 @@ const Tambour = ({ u, monster, m, slam }: { u: number; monster: THREE.Texture | 
       )}
       {/* лёгкий свет нашего вагона на стекле, чтобы оно читалось */}
       <pointLight position={[0, 1.9, DOOR_Z + 0.6]} color={LAMP} intensity={0.25} distance={1.2} decay={2} />
+    </group>
+  );
+};
+
+/** Осколки: разлетаются из центра стекла к камере и падают. */
+const Shards = ({ t }: { t: number }) => {
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#d9e2de", transparent: true, opacity: 0.75, roughness: 0.1, metalness: 0.4, side: THREE.DoubleSide }), []);
+  const geo = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array([0, 0.03, 0, -0.025, -0.02, 0, 0.028, -0.015, 0]), 3));
+    g.computeVertexNormals();
+    return g;
+  }, []);
+  if (t < 0 || t > 1.4) return null;
+  return (
+    <group>
+      {Array.from({ length: 34 }, (_, i) => {
+        const a = rnd(i + 2000) * Math.PI * 2;
+        const sp = 0.6 + rnd(i + 2001) * 1.6;
+        const vx = Math.cos(a) * sp * 0.6;
+        const vy = Math.sin(a) * sp * 0.5 + 0.3;
+        const vz = 1.2 + rnd(i + 2002) * 2.2;
+        const x = Math.cos(a) * 0.08 + vx * t;
+        const y = 1.45 + Math.sin(a) * 0.08 + vy * t - 4.9 * t * t;
+        const z = DOOR_Z + 0.05 + vz * t;
+        const sc = 0.6 + rnd(i + 2003) * 1.6;
+        return <mesh key={i} geometry={geo} material={mat} position={[x, y, z]} rotation={[t * (3 + i % 5), t * (2 + i % 3), a]} scale={sc} />;
+      })}
     </group>
   );
 };
@@ -753,14 +842,14 @@ const OncomingTrain = ({ u, camZ }: { u: number; camZ: number }) => {
   );
 };
 
-const Scene = ({ u, pose, post, monster, slam }: { u: number; pose: Pose; post: boolean; monster: THREE.Texture | null; slam?: number }) => {
+const Scene = ({ u, pose, post, monster, slam, hits }: { u: number; pose: Pose; post: boolean; monster: THREE.Texture | null; slam?: number; hits?: number }) => {
   const m = useMats();
   const frame = Math.round((u - T_WATCH) * FPS);
   const watch = u >= T_WATCH;
   const flash = watch && flickerOn(frame);
   // наш вагон: мигание неисправной лампы; во время вспышек в соседнем — наш свет проседает
-  const ourK = slam !== undefined ? 0.3 + 0.7 * Math.exp(-slam * 3) : (u < T_LIGHTS_OFF ? 1 : watch ? (flash ? 0.75 : 0.42) : 0.7) * lamp(u + 6) * blink(u, BLINK_WALK);
-  const nextOn = slam !== undefined ? slam < 0.25 : u < T_LIGHTS_OFF ? true : watch ? flash : false;
+  const ourK = hits !== undefined ? 0.4 * lamp(u + 6) : slam !== undefined ? 0.3 + 0.7 * Math.exp(-slam * 3) : (u < T_LIGHTS_OFF ? 1 : watch ? (flash ? 0.75 : 0.42) : 0.7) * lamp(u + 6) * blink(u, BLINK_WALK);
+  const nextOn = hits !== undefined ? false : slam !== undefined ? slam < 0.25 : u < T_LIGHTS_OFF ? true : watch ? flash : false;
   const nextK = 0.9 * lamp(u + 20);
   return (
     <>
@@ -790,7 +879,7 @@ const Scene = ({ u, pose, post, monster, slam }: { u: number; pose: Pose; post: 
       <Dust u={u} cz={pose.z} />
       <Straps u={u} m={m} moving={clamp(speedAt(u) / SPEED)} />
       <OncomingTrain u={u} camZ={pose.z} />
-      <Tambour u={u} monster={monster} m={m} slam={slam} />
+      <Tambour u={u} monster={monster} m={m} slam={slam} hits={hits} />
     </>
   );
 };
@@ -1446,6 +1535,46 @@ export const Slam3D = ({ from = 0, rate = 1 }: { from?: number; rate?: number })
           <Scene u={T_WATCH + 9.95 + st} pose={slamPose(st)} post={false} monster={monster} slam={st} />
         </ThreeCanvas>
       )}
+      {whiteF > 0 && <AbsoluteFill style={{ background: "#f4e6c4", opacity: whiteF }} />}
+      <AbsoluteFill style={{ background: "radial-gradient(80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(8,6,2,.8) 100%)" }} />
+    </AbsoluteFill>
+  );
+};
+
+// ═════════════════════════════════════════════════════════════════════
+// 01:17–01:21.8 — три нарастающих удара в стекло: трещина → паутина с кровью → пролом с осколками.
+// ═════════════════════════════════════════════════════════════════════
+const hitsPose = (H: number): Pose => {
+  const base = poseAt(T_WATCH + 9.95);
+  let rec = 0;
+  let sh = 0;
+  HITS.forEach((h, i) => {
+    const dt = H - h;
+    if (dt < 0) return;
+    const amp = [0.05, 0.12, 0.34][i];
+    rec += amp * (1 - Math.exp(-dt * 25)) * Math.exp(-dt * (i === 2 ? 1.2 : 3));
+    sh = Math.max(sh, Math.exp(-dt * 5) * (0.4 + i * 0.4));
+  });
+  return {
+    ...base,
+    x: base.x + Math.sin(H * 71) * 0.03 * sh,
+    y: base.y + Math.sin(H * 97) * 0.025 * sh - rec * 0.1,
+    z: base.z + rec,
+    roll: base.roll + (Math.sin(H * 53) * 3 * sh * Math.PI) / 180,
+    pitch: base.pitch + rec * 0.15,
+  };
+};
+
+export const Hits3D = () => {
+  const monster = useMonsterTexture();
+  const frame = useCurrentFrame();
+  const H = frame / FPS;
+  const whiteF = HITS.reduce((v, h, i) => Math.max(v, H >= h && H < h + 0.12 ? (0.25 + i * 0.25) * (1 - (H - h) / 0.12) : 0), 0);
+  return (
+    <AbsoluteFill style={{ background: "#000" }}>
+      <ThreeCanvas width={W} height={H_PX} shadows="soft" dpr={1.5} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05, preserveDrawingBuffer: true }}>
+        <Scene u={T_WATCH + 9.95 + H} pose={hitsPose(H)} post={false} monster={monster} hits={H} />
+      </ThreeCanvas>
       {whiteF > 0 && <AbsoluteFill style={{ background: "#f4e6c4", opacity: whiteF }} />}
       <AbsoluteFill style={{ background: "radial-gradient(80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(8,6,2,.8) 100%)" }} />
     </AbsoluteFill>

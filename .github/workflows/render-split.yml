@@ -11,6 +11,18 @@ on:
         description: "Всего кадров в композиции"
         default: "2700"
         required: true
+      start:
+        description: "Первый кадр диапазона (для патча)"
+        default: "0"
+        required: false
+      end:
+        description: "Последний кадр диапазона включительно (пусто = до конца)"
+        default: ""
+        required: false
+      name:
+        description: "Имя итогового файла"
+        default: ""
+        required: false
 env:
   PARTS: 8
 jobs:
@@ -31,10 +43,12 @@ jobs:
       - run: npm ci
       - name: Render part
         run: |
-          N=${{ inputs.frames }}
+          A=${{ inputs.start }}
+          B="${{ inputs.end }}"; [ -z "$B" ] && B=$(( ${{ inputs.frames }} - 1 ))
+          N=$(( B - A + 1 ))
           P=${{ matrix.part }}
-          S=$(( P * N / PARTS ))
-          E=$(( (P + 1) * N / PARTS - 1 ))
+          S=$(( A + P * N / PARTS ))
+          E=$(( A + (P + 1) * N / PARTS - 1 ))
           echo "frames $S-$E"
           npx remotion render src/index.ts ${{ inputs.composition }} out/part_$P.mp4 --codec h264 --crf 18 --concurrency=1 --gl=swangle --muted --frames=$S-$E
       - uses: actions/upload-artifact@v4
@@ -71,9 +85,16 @@ jobs:
           : > list.txt
           for i in $(seq 0 $((PARTS-1))); do echo "file 'parts/part-$i/part_$i.mp4'" >> list.txt; done
           ffmpeg -y -f concat -safe 0 -i list.txt -c copy video.mp4
-          ffmpeg -y -i video.mp4 -i parts/audio/audio.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 256k -shortest ${{ inputs.composition }}.mp4
-          ffprobe -v error -show_entries format=duration -of csv=p=0 ${{ inputs.composition }}.mp4
+          OUT="${{ inputs.name }}"; [ -z "$OUT" ] && OUT="${{ inputs.composition }}"
+          if [ "${{ inputs.start }}" = "0" ] && [ -z "${{ inputs.end }}" ]; then
+            ffmpeg -y -i video.mp4 -i parts/audio/audio.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 256k -shortest $OUT.mp4
+          else
+            mv video.mp4 $OUT.mp4
+            cp parts/audio/audio.wav ${OUT}_full_audio.wav
+          fi
+          ffprobe -v error -show_entries format=duration -of csv=p=0 $OUT.mp4
+          echo "OUT=$OUT" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.composition }}
-          path: ${{ inputs.composition }}.mp4
+          name: ${{ env.OUT }}
+          path: ${{ env.OUT }}*

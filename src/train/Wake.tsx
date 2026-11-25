@@ -265,6 +265,31 @@ export const Sleeper = ({ d, lead = 0 }: { d: number; lead?: number }) => {
           <rect x="250" y="1600" width="40" height="320" fill="#1d120c" opacity="0.7" />
         </svg>
       </AbsoluteFill>
+      {/* полусломанная лампа сверху-сбоку: верх лица и половина корпуса в полумраке, тусклый жёлтый световой клин, нервное подмигивание */}
+      <AbsoluteFill style={{ opacity: clamp(t / 0.6), pointerEvents: "none" }}>
+        <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,.62) 0%, rgba(0,0,0,.35) 30%, rgba(0,0,0,0) 48%)" }} />
+        <AbsoluteFill style={{ background: "linear-gradient(100deg, rgba(0,0,0,0) 38%, rgba(0,0,0,.5) 62%, rgba(0,0,0,.72) 100%)" }} />
+        <AbsoluteFill
+          style={{
+            clipPath: "polygon(4% 0%, 26% 0%, 66% 100%, -20% 100%)",
+            background: "linear-gradient(170deg, rgba(236,196,112,.42) 0%, rgba(236,196,112,.16) 55%, rgba(236,196,112,0) 100%)",
+            mixBlendMode: "screen",
+            opacity: L,
+            filter: "blur(18px)",
+          }}
+        />
+      </AbsoluteFill>
+      {/* холодный синевато-белый отсвет экрана на лице, подбородке и пальцах */}
+      {phoneUp > 0.2 && (
+        <AbsoluteFill
+          style={{
+            background: "radial-gradient(26% 13% at 56% 54%, rgba(170,205,255,.5) 0%, rgba(170,205,255,.18) 55%, rgba(170,205,255,0) 100%), radial-gradient(14% 9% at 66% 64%, rgba(180,210,255,.45) 0%, rgba(180,210,255,0) 100%)",
+            mixBlendMode: "screen",
+            opacity: clamp((phoneUp - 0.2) / 0.5) * (0.85 + 0.15 * Math.sin(t * 9)),
+            pointerEvents: "none",
+          }}
+        />
+      )}
       {/* мягкий луч лампы сверху, без общего затемнения */}
       <AbsoluteFill style={{ background: "radial-gradient(60% 45% at 50% 10%, rgba(235,196,116,.2) 0%, rgba(0,0,0,0) 70%)", mixBlendMode: "screen" }} />
       <AbsoluteFill style={{ background: "#000", opacity: (1 - L) * 0.35 }} />
@@ -295,6 +320,16 @@ export const PovPhone = ({ d }: { d: number }) => {
           </g>
         </Svg>
       </AbsoluteFill>
+      {/* тёплая темнота вагона сверху-сбоку и холодный отсвет экрана на пальцах */}
+      <AbsoluteFill style={{ background: "linear-gradient(105deg, rgba(0,0,0,0) 35%, rgba(0,0,0,.45) 100%), linear-gradient(180deg, rgba(0,0,0,.4) 0%, rgba(0,0,0,0) 35%)", pointerEvents: "none" }} />
+      <AbsoluteFill
+        style={{
+          background: "radial-gradient(42% 30% at 50% 62%, rgba(165,200,255,.26) 0%, rgba(165,200,255,.08) 60%, rgba(165,200,255,0) 100%), radial-gradient(10% 22% at 29% 66%, rgba(185,215,255,.4) 0%, rgba(185,215,255,0) 100%), radial-gradient(9% 16% at 72% 74%, rgba(185,215,255,.35) 0%, rgba(185,215,255,0) 100%)",
+          mixBlendMode: "screen",
+          opacity: 1 - lower,
+          pointerEvents: "none",
+        }}
+      />
       {/* веки от первого лица: мягкие размытые шторки по всей ширине — сверху 80%, снизу 20% */}
       {lids > 0.01 && (
         <>

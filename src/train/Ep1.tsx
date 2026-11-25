@@ -9,7 +9,7 @@ import { Beyond, cuesFor, type Cue, Face, flickerOn, Follow, Hook, Hud, MONT, ri
 import { Finger, PovPhone, PovStandWalk, Sleeper } from "./Wake";
 import { lamp, lampDipsIn } from "./lamp";
 import { LEN } from "./Wagon2";
-import { BLINK_STATION, BLINK_WALK, Choice3D, ONC_A, Pov3D, Slam3D, Station3D } from "./Pov3D";
+import { BLINK_STATION, BLINK_WALK, Choice3D, HITS, Hits3D, ONC_A, Pov3D, Slam3D, Station3D } from "./Pov3D";
 import { loadFont as loadStencil } from "@remotion/google-fonts/RussoOne";
 const { fontFamily: STENCIL } = loadStencil("normal", { weights: ["400"], subsets: ["latin", "cyrillic"] });
 
@@ -350,8 +350,8 @@ const S = {
   door: [47, 56],
   watch: [56, 66],
   rule2: [66, 74],
-  button: [74, 79.4],
-  slam: [79.4, 81.8],
+  button: [74, 77.0],
+  slam: [77.0, 81.8],
   black: [81.8, 82.5],
   choice: [82.5, 90],
 } as const;
@@ -387,7 +387,7 @@ const dur = (k: keyof typeof S) => S[k][1] - S[k][0];
 // провалы в тишину перед пугающими моментами
 const SILENCE: [number, number][] = [
   [50.0, 51.5],
-  [79.0, 79.4],
+  [76.6, 77.0],
   [81.8, 82.5],
 ];
 const silentAt = (g: number) => SILENCE.some(([a, b]) => g >= a && g < b);
@@ -486,17 +486,21 @@ export const Ep1 = () => {
       {/* монстр */}
       <Sfx at={S.watch[0]} name="train/buzz" vol={0.35} dur={9} />
       <Sfx at={S.watch[0] + 1.6} name="train/claws" vol={0.6} />
+      {[1, 2, 3].map((k) => <Sfx key={`sc${k}`} at={S.watch[0] + 2.4 + 1.9 * k - 0.7} name="train/scrape" vol={0.6} dur={1.2} />)}
       <Sfx at={S.watch[0] + 3.7} name="train/growl" vol={0.6} />
       {growlAt.map((g, i) => <Sfx key={`gr${i}`} at={g} name="train/growl" vol={0.45} dur={1.0} />)}
       <Sfx at={S.watch[0] + 5.5} name="train/cbreath" vol={0.55} />
       <Sfx at={S.watch[0] + 7.4} name="train/claws" vol={0.5} />
       <Sfx at={S.button[0] + 0.4} name="train/cbreath" vol={0.45} />
       <Sfx at={S.button[0] + 1.0} name="train/static" vol={0.6} />
-      <Sfx at={S.slam[0]} name="train/sting" vol={1} />
-      <Sfx at={S.slam[0]} name="train/glass" vol={1} />
-      <Sfx at={S.slam[0] + 0.15} name="train/vibrate" vol={0.7} />
-      <Sfx at={S.slam[0] + 0.3} name="train/growl" vol={0.8} dur={1.5} />
-      <Sfx at={S.slam[0] + 0.5} name="train/claws" vol={0.6} dur={1.3} />
+      {/* три удара в стекло */}
+      <Sfx at={S.slam[0] + HITS[0] - 0.02} name="train/hit1" vol={0.9} />
+      <Sfx at={S.slam[0] + HITS[1] - 0.02} name="train/hit2" vol={1.0} />
+      <Sfx at={S.slam[0] + HITS[1] + 0.1} name="train/vibrate" vol={0.6} />
+      <Sfx at={S.slam[0] + HITS[2] - 0.02} name="train/hit3" vol={1.1} />
+      <Sfx at={S.slam[0] + HITS[2] - 0.02} name="train/sting" vol={0.9} />
+      <Sfx at={S.slam[0] + HITS[2] + 0.25} name="train/growl" vol={0.9} dur={1.5} />
+      <Sfx at={S.slam[0] + 1.1} name="train/cbreath" vol={0.5} dur={0.8} />
       {/* финальная панель: реле и потрескивание динамика */}
       {[0.15, 0.6, 1.1, 1.6, 2.1].map((d, i) => <Sfx key={`r${i}`} at={S.choice[0] + d} name="train/relay" vol={0.8} />)}
       <Sfx at={S.choice[0] + 0.2} name="train/speaker" vol={0.3} dur={7} />
@@ -522,7 +526,7 @@ export const Ep1 = () => {
       </Sequence>
       {seq("rule2", <Rule2 />)}
       {seq("button", <Button />)}
-      {seq("slam", <Slam3D />)}
+      {seq("slam", <Hits3D />)}
       {seq("black", <AbsoluteFill style={{ background: "#000" }} />)}
       {seq("choice", <Choice3D font={STENCIL} />)}
       {/* грязно-жёлтый тусклый свет старых ламп — на всём, что в вагоне (3D-проход уже освещён так сам) */}
@@ -549,7 +553,7 @@ export const Ep1 = () => {
           <Hud />
         </AbsoluteFill>
       )}
-      {t < S.slam[0] && <Subs t={t} cues={CUES} />}
+      {t < S.black[0] && <Subs t={t} cues={CUES} />}
     </AbsoluteFill>
   );
 };
