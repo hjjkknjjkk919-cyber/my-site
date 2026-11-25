@@ -4,6 +4,7 @@ import { Survival, SURVIVAL_FRAMES } from "./survival/Survival";
 import { ForestTest, FOREST_FRAMES } from "./forest/ForestTest";
 import { TrainTest, TRAIN_TEST_FRAMES } from "./train/TrainTest";
 import { GostTest, GOST_TEST_FRAMES } from "./train/Gost";
+import { Ep1Test, EP1_TEST_FRAMES } from "./train/Ep1Test";
 
 // Серия 1 «Улыбка»: длина = сумма сцен (~2:20)
 export const Root = () => (
@@ -18,5 +19,6 @@ export const Root = () => (
     <Composition id="ForestTest" component={ForestTest} width={1080} height={1920} fps={30} durationInFrames={FOREST_FRAMES} />
     <Composition id="TrainTest" component={TrainTest} width={1080} height={1920} fps={30} durationInFrames={TRAIN_TEST_FRAMES} />
     <Composition id="GostTest" component={GostTest} width={1080} height={1920} fps={30} durationInFrames={GOST_TEST_FRAMES} />
+    <Composition id="Ep1Test" component={Ep1Test} width={1080} height={1920} fps={30} durationInFrames={EP1_TEST_FRAMES} />
   </>
 );

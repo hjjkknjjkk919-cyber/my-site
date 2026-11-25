@@ -15,8 +15,8 @@ const LW = 7;
 const SKIN = "#e9c4a8";
 const SKIN_SH = "#cf9f84";
 const HAIR = "#3a2a22";
-const HOOD = "#3b4d63";
-const HOOD_SH = "#2a384a";
+const HOOD = "#2f5f9e";
+const HOOD_SH = "#1b365c";
 
 export type DimaProps = {
   t: number;
@@ -50,9 +50,9 @@ export const DimaFace = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "clos
           <path d={`M${cx - 98} 860 C${cx - 60} ${860 - 66 * eo} ${cx + 60} ${860 - 66 * eo} ${cx + 98} 860 C${cx + 60} ${860 + 52 * eo} ${cx - 60} ${860 + 52 * eo} ${cx - 98} 860 Z`} />
         </clipPath>
         <radialGradient id={`gI${cx}`} cx="50%" cy="40%" r="60%">
-          <stop offset="0" stopColor="#8fb1c8" />
-          <stop offset="0.7" stopColor="#5c7f98" />
-          <stop offset="1" stopColor="#3d5668" />
+          <stop offset="0" stopColor="#9a7552" />
+          <stop offset="0.7" stopColor="#6b4a30" />
+          <stop offset="1" stopColor="#3e2a1b" />
         </radialGradient>
       </defs>
       {/* тёмные круги под глазами от страха */}
@@ -88,14 +88,22 @@ export const DimaFace = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "clos
       <path d="M400 1230 C420 1330 470 1380 540 1380 C610 1380 660 1330 680 1230" fill="#ddd2c4" stroke={LINE} strokeWidth="6" />
       {/* шея */}
       <path d="M440 1150 L440 1280 C480 1310 600 1310 640 1280 L640 1150 Z" fill={SKIN_SH} stroke={LINE} strokeWidth={LW} />
-      {/* уши */}
-      <ellipse cx="218" cy="900" rx="42" ry="70" fill={SKIN} stroke={LINE} strokeWidth={LW} />
-      <ellipse cx="862" cy="900" rx="42" ry="70" fill={SKIN} stroke={LINE} strokeWidth={LW} />
+      {/* капюшон вокруг головы */}
+      <path d="M100 1300 C60 900 140 380 540 340 C940 380 1020 900 980 1300 C900 1260 860 1200 840 1150 C900 900 840 560 540 520 C240 560 180 900 240 1150 C220 1200 180 1260 100 1300 Z" fill={HOOD} stroke={LINE} strokeWidth={LW} />
+      <path d="M760 400 C930 500 1010 760 980 1300 C930 1270 890 1230 860 1180 C900 900 860 620 760 400 Z" fill={HOOD_SH} />
+      {/* мех по краю капюшона */}
+      <path d="M215 1160 C150 900 230 530 540 500 C850 530 930 900 865 1160" fill="none" stroke="#c9d1d8" strokeWidth="56" strokeLinecap="round" />
+      {Array.from({ length: 40 }, (_, i) => {
+        const a = Math.PI * (0.08 + (i / 39) * 0.84);
+        const x = 540 - Math.cos(a) * 335;
+        const y = 1160 - Math.sin(a) * 640;
+        return <path key={i} d={`M${x} ${y} l${-Math.cos(a) * 22 + (i % 2) * 6} ${-Math.sin(a) * 20}`} stroke="#eef2f5" strokeWidth="9" strokeLinecap="round" />;
+      })}
       {/* лицо */}
-      <path d="M540 520 C760 520 860 660 860 860 C860 1060 790 1170 700 1215 C640 1245 440 1245 380 1215 C290 1170 220 1060 220 860 C220 660 320 520 540 520 Z" fill={SKIN} stroke={LINE} strokeWidth={LW} />
+      <path d="M540 540 C750 540 845 670 845 860 C845 1050 810 1150 740 1200 C680 1240 400 1240 340 1200 C270 1150 235 1050 235 860 C235 670 330 540 540 540 Z" fill={SKIN} stroke={LINE} strokeWidth={LW} />
       <path d="M770 640 C850 760 860 960 800 1110 C760 1170 720 1200 690 1215 C770 1110 800 940 770 640 Z" fill={SKIN_SH} opacity="0.55" />
       {/* щетина */}
-      {Array.from({ length: 90 }, (_, i) => {
+      {Array.from({ length: 160 }, (_, i) => {
         const a = random(`gs${i}`);
         const x = 320 + a * 440;
         const y = 1060 + random(`gy${i}`) * 150 - Math.abs(x - 540) * 0.15;
@@ -105,8 +113,7 @@ export const DimaFace = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "clos
       <ellipse cx="335" cy="1010" rx="60" ry="30" fill="#e39b8e" opacity="0.35" />
       <ellipse cx="745" cy="1010" rx="60" ry="30" fill="#e39b8e" opacity="0.35" />
       {/* волосы: чёлка прядями */}
-      <path d="M215 820 C200 560 340 450 540 450 C760 450 890 560 870 820 C830 700 780 650 730 640 L700 700 L650 615 L600 690 L560 600 L500 690 L460 610 L400 690 L370 630 C300 660 250 720 215 820 Z" fill={HAIR} stroke={LINE} strokeWidth={LW} strokeLinejoin="round" />
-      <path d="M560 470 C640 480 720 520 770 580" stroke="#5a463c" strokeWidth="10" fill="none" opacity="0.7" />
+      <path d="M268 700 C290 590 390 548 540 548 C690 548 790 590 812 700 C780 660 750 640 715 640 L690 676 L650 632 L610 672 L570 628 L530 672 L490 632 L450 674 L410 640 C350 645 300 665 268 700 Z" fill={HAIR} stroke={LINE} strokeWidth={LW} strokeLinejoin="round" />
       {/* морщины на лбу от страха */}
       <g stroke={SKIN_SH} strokeWidth="5" fill="none" opacity={fear} strokeLinecap="round">
         <path d="M470 700 C510 692 570 692 610 700" />
@@ -161,11 +168,11 @@ export const DimaBack = ({ t, lean = 0 }: { t: number; lean?: number }) => {
       <path d="M-60 1920 C-40 1650 120 1520 330 1480 L750 1480 C960 1520 1120 1650 1140 1920 Z" fill={HOOD} stroke={LINE} strokeWidth={LW} />
       <path d="M760 1490 C960 1540 1100 1660 1140 1920 L900 1920 C880 1700 840 1580 760 1490 Z" fill={HOOD_SH} />
       <path d="M430 1420 L430 1500 C470 1520 610 1520 650 1500 L650 1420 Z" fill={SKIN_SH} stroke={LINE} strokeWidth={LW} />
-      <ellipse cx="320" cy="1250" rx="40" ry="62" fill={SKIN} stroke={LINE} strokeWidth={LW} />
-      <ellipse cx="760" cy="1250" rx="40" ry="62" fill={SKIN} stroke={LINE} strokeWidth={LW} />
-      <path d="M540 960 C740 960 790 1100 785 1250 C780 1380 700 1460 540 1460 C380 1460 300 1380 295 1250 C290 1100 340 960 540 960 Z" fill={HAIR} stroke={LINE} strokeWidth={LW} />
-      <path d="M380 1060 C430 1010 500 990 560 990 M330 1180 C360 1120 400 1090 440 1080" stroke="#5a463c" strokeWidth="9" fill="none" opacity="0.7" />
-      <path d="M420 1440 C450 1420 480 1415 540 1418 C600 1415 630 1420 660 1440" stroke="#2a1d17" strokeWidth="10" fill="none" />
+      {/* капюшон со спины */}
+      <path d="M540 900 C790 900 850 1080 845 1260 C840 1420 760 1500 540 1510 C320 1500 240 1420 235 1260 C230 1080 290 900 540 900 Z" fill={HOOD} stroke={LINE} strokeWidth={LW} />
+      <path d="M700 930 C820 1000 850 1150 845 1260 C840 1400 790 1470 700 1500 C780 1380 790 1150 700 930 Z" fill={HOOD_SH} />
+      <path d="M540 905 C560 1100 560 1300 540 1505" stroke={HOOD_SH} strokeWidth="8" fill="none" />
+      <path d="M300 1060 C360 980 450 950 520 945" stroke="#5f87c0" strokeWidth="12" fill="none" opacity="0.6" />
     </g>
   );
 };
