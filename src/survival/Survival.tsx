@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, random, Sequence, staticFile } from "remotion";
+import { AbsoluteFill, interpolate, random, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { Audio } from "@remotion/media";
 import { clamp, Cue, ease, Finish, INK, shake, Snow, Subtitle, Svg, useT } from "../components/fx";
 import { DIMA, Hero, handPos, onGround } from "../components/Hero";
@@ -43,6 +43,9 @@ const Sky = ({ t, dawn = 0, fog = 0, cam = 0 }: { t: number; dawn?: number; fog?
           <circle key={i} cx={random(`sx${i}`) * 1080} cy={random(`sy${i}`) * 700} r={1.5 + random(`sr${i}`) * 2.5} opacity={0.4 + 0.6 * Math.abs(Math.sin(t * (1 + random(`st${i}`) * 3) + i))} />
         ))}
       </g>
+      {/* луна ночью */}
+      <circle cx="250" cy="330" r="70" fill="#f3f1e6" opacity={(1 - dawn) * (1 - fog * 0.6)} />
+      <circle cx="250" cy="330" r="160" fill="#cfe0ff" opacity={(1 - dawn) * 0.12} />
       {/* солнце на рассвете */}
       <circle cx="760" cy={900 - dawn * 260} r="120" fill="#fff1c4" opacity={dawn * 0.9} />
       <circle cx="760" cy={900 - dawn * 260} r="230" fill="#ffd38a" opacity={dawn * 0.3} />
@@ -58,7 +61,7 @@ const Sky = ({ t, dawn = 0, fog = 0, cam = 0 }: { t: number; dawn?: number; fog?
       <path d="M-50 1180 C300 1130 700 1160 1130 1120 V1960 H-50 Z" fill={mix([150, 172, 198], [255, 236, 226])} stroke={INK} strokeWidth="6" />
       <path d="M-50 1400 C350 1360 760 1420 1130 1370 V1960 H-50 Z" fill={mix([176, 196, 218], [255, 244, 236])} opacity="0.8" />
       {/* мгла метели */}
-      <rect width={1080} height={1920} fill="#dfe8ef" opacity={fog * 0.75} />
+      <rect width={1080} height={1920} fill="#5d7690" opacity={fog * 0.55} />
     </Svg>
   );
 };
@@ -84,7 +87,7 @@ const Burrow = ({ x, y, s = 1, open = 1 }: { x: number; y: number; s?: number; o
 const Tip = ({ t, n, title }: { t: number; n: number; title: string }) => {
   const a = ease(t, 0, 0.35, 0, 1);
   return (
-    <div style={{ position: "absolute", top: 150, left: 0, right: 0, display: "flex", justifyContent: "center", opacity: a, transform: `translateY(${(1 - a) * -40}px)` }}>
+    <div style={{ position: "absolute", top: 250, left: 0, right: 0, display: "flex", justifyContent: "center", opacity: a, transform: `translateY(${(1 - a) * -40}px)` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 24, background: "rgba(10,16,24,.82)", border: "4px solid #0b1218", borderRadius: 28, padding: "18px 40px 18px 22px" }}>
         <div style={{ width: 96, height: 96, borderRadius: 48, background: ORANGE, color: "#10161d", fontFamily: "Oswald", fontWeight: 700, fontSize: 64, display: "flex", alignItems: "center", justifyContent: "center" }}>{n}</div>
         <div style={{ color: "#fff", fontFamily: "Oswald", fontWeight: 700, fontSize: 64, textTransform: "uppercase" }}>{title}</div>
@@ -94,7 +97,7 @@ const Tip = ({ t, n, title }: { t: number; n: number; title: string }) => {
 };
 
 /** Большой значок «так нельзя» (✗) или «так правильно» (✓). */
-const Mark = ({ t, ok, x = 860, y = 560 }: { t: number; ok: boolean; x?: number; y?: number }) => {
+const Mark = ({ t, ok, x = 860, y = 640 }: { t: number; ok: boolean; x?: number; y?: number }) => {
   const p = clamp(t / 0.25);
   const sc = p < 1 ? 0.4 + 0.8 * p : 1 + 0.04 * Math.sin(t * 8);
   return (
@@ -143,7 +146,7 @@ const Hook = ({ t }: SceneProps) => {
   const { dx, dy } = shake(t, 3);
   return (
     <AbsoluteFill style={{ transform: `translate(${dx}px,${dy}px) scale(${z})`, transformOrigin: "50% 55%" }}>
-      <Sky t={t} fog={0.55} />
+      <Sky t={t} fog={0.45} />
       <Svg>
         <Hero cfg={DIMA} x={540} y={onGround(DIMA, 1500, 0.3)} s={0.3} t={t} emotion="fear" look={[Math.sin(t * 1.4) * 20, -4]} frost={0.8} full wind={1} />
       </Svg>
@@ -187,10 +190,10 @@ const Wind = ({ t, v }: SceneProps) => {
         {a ? (
           <g>
             {/* лежит на открытом месте, его заметает */}
-            <g transform="translate(540 1420) rotate(-90) translate(-540 -1420)">
-              <Hero cfg={DIMA} x={540} y={onGround(DIMA, 1420 + 230, 0.28) } s={0.28} t={t} emotion="fear" frost={0.9} full wind={1} />
+            <g transform="translate(540 1640) rotate(-90) translate(-540 -1640)">
+              <Hero cfg={DIMA} x={540} y={onGround(DIMA, 1640 + 230, 0.28)} s={0.28} t={t} emotion="fear" frost={0.9} full wind={1} />
             </g>
-            <path d={`M240 1500 C320 ${1500 - 140 * drift} 760 ${1500 - 170 * drift} 860 1500 Z`} fill="#eef3f7" stroke={INK} strokeWidth="6" />
+            <path d={`M240 1720 C320 ${1720 - 140 * drift} 760 ${1720 - 170 * drift} 860 1720 Z`} fill="#eef3f7" stroke={INK} strokeWidth="6" />
           </g>
         ) : (
           <g>
@@ -345,7 +348,7 @@ const Signal = ({ t, v }: SceneProps) => {
         <Hero cfg={DIMA} x={330} y={onGround(DIMA, 1560, 0.32)} s={0.32} t={t} emotion="calm" arm={arm} look={[22, -4]} frost={0.7} full wind={0.4} />
         <circle cx={hp.x} cy={hp.y} r={on ? 26 : 12} fill={on ? "#fff6c8" : "#555"} />
         {/* полоска SOS: точки и тире подсвечиваются по ходу */}
-        <g transform="translate(540 430)">
+        <g transform="translate(540 540)">
           {SOS.map((q, i) => {
             const w = q.to - q.from > 0.5 ? 90 : 34;
             const x = -400 + i * 92 + (i > 2 ? 20 : 0) + (i > 5 ? 20 : 0);
@@ -377,7 +380,7 @@ const Night = ({ t, d }: SceneProps) => {
       <CaveFrame glow={0.3 * flick} />
       <AbsoluteFill style={{ background: "#03060c", opacity: 0.6 - 0.35 * flick }} />
       <Svg>
-        <g transform="translate(870 380)" {...L}>
+        <g transform="translate(900 640)" {...L}>
           <rect x="-70" y="-120" width="140" height="240" rx="18" fill="none" stroke="#fff" strokeWidth="10" />
           <rect x="-28" y="-145" width="56" height="25" rx="6" fill="#fff" />
           <rect x="-52" y={100 - 200 * bat} width="104" height={200 * bat} rx="8" fill={bat < 0.25 ? "#e5262b" : GREEN} />
@@ -493,6 +496,92 @@ const SceneWrap = ({ p }: { p: (typeof PLAN)[number] }) => {
   );
 };
 
+
+// ── интерфейс вокруг экрана: таймер, температура тела, прогресс, иней ──
+
+// температура тела по сценам: [в начале сцены, в конце]
+const TEMP: Record<string, [number, number]> = {
+  sv01: [36.6, 35.8], sv02: [35.8, 35.3], sv03: [35.3, 34.6], sv04: [34.6, 35.9], sv05: [35.9, 35.5],
+  sv06: [35.5, 34.2], sv07: [34.2, 34.0], sv08: [34.0, 33.6], sv09: [33.6, 36.6], sv10: [36.6, 36.6],
+};
+
+const Frost = ({ k }: { k: number }) => (
+  <Svg>
+    <defs>
+      <radialGradient id="svFrost" cx="50%" cy="50%" r="75%">
+        <stop offset={0.62 - k * 0.22} stopColor="#dff0ff" stopOpacity="0" />
+        <stop offset="1" stopColor="#e9f5ff" stopOpacity={0.35 + k * 0.5} />
+      </radialGradient>
+    </defs>
+    <rect width={1080} height={1920} fill="url(#svFrost)" />
+    {/* кристаллы инея по углам */}
+    <g stroke="#f4fbff" strokeWidth="3" strokeLinecap="round" opacity={0.15 + k * 0.55}>
+      {Array.from({ length: 28 }, (_, i) => {
+        const c = i % 4;
+        const x = (c % 2 ? 1080 : 0) + (c % 2 ? -1 : 1) * random(`fu${i}`) * 220;
+        const y = (c > 1 ? 1920 : 0) + (c > 1 ? -1 : 1) * random(`fv${i}`) * 260;
+        const len = (25 + random(`fl${i}`) * 60) * (0.3 + k);
+        const a = Math.atan2(960 - y, 540 - x) + (random(`fa${i}`) - 0.5) * 0.9;
+        const ex = x + Math.cos(a) * len;
+        const ey = y + Math.sin(a) * len;
+        const bx = x + Math.cos(a) * len * 0.55;
+        const by = y + Math.sin(a) * len * 0.55;
+        return (
+          <g key={i}>
+            <path d={`M${x} ${y} L${ex} ${ey}`} />
+            <path d={`M${bx} ${by} l${Math.cos(a + 0.7) * len * 0.3} ${Math.sin(a + 0.7) * len * 0.3} M${bx} ${by} l${Math.cos(a - 0.7) * len * 0.3} ${Math.sin(a - 0.7) * len * 0.3}`} />
+          </g>
+        );
+      })}
+    </g>
+  </Svg>
+);
+
+const Hud = () => {
+  const f = useCurrentFrame();
+  const t = f / FPS;
+  const cur = [...PLAN].reverse().find((p) => f >= p.start)!;
+  const local = (f - cur.start) / cur.frames;
+  const [a, b] = TEMP[cur.id];
+  const temp = a + (b - a) * local;
+  const danger = clamp((35 - temp) / 1.4);
+  const rescueAt = PLAN.find((p) => p.id === "sv09")!.start;
+  const saved = f >= rescueAt + 3.4 * FPS;
+  // «у тебя есть час»: 60 минут сжаты в ролик, к рассвету почти ноль
+  const left = interpolate(f, [0, rescueAt + 3.4 * FPS], [3600, 7], { extrapolateRight: "clamp" });
+  const mm = String(Math.floor(left / 60)).padStart(2, "0");
+  const ss = String(Math.floor(left % 60)).padStart(2, "0");
+  const tipIdx = Math.max(0, PLAN.findIndex((p) => p.id === cur.id) - 1); // sv02 = совет 1
+  const tipsDone = cur.id === "sv01" ? 0 : Math.min(7, tipIdx + (local > 0.8 ? 1 : 0));
+  const pulse = danger > 0.5 ? 0.6 + 0.4 * Math.abs(Math.sin(t * 6)) : 1;
+  const tempColor = danger > 0.5 ? "#ff4a4a" : danger > 0 ? ORANGE : "#7fd1ff";
+  const box: React.CSSProperties = { background: "rgba(8,13,20,.72)", border: "3px solid rgba(255,255,255,.18)", borderRadius: 22, padding: "10px 22px", fontFamily: "Oswald", fontWeight: 700, color: "#fff", display: "flex", alignItems: "center", gap: 12 };
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <Frost k={saved ? 0 : clamp((36.6 - temp) / 2.6)} />
+      {/* красное мигание по краям, когда опасно холодно */}
+      {danger > 0.5 && !saved && <AbsoluteFill style={{ boxShadow: `inset 0 0 160px rgba(255,40,40,${0.35 * pulse})` }} />}
+      <div style={{ position: "absolute", top: 70, left: 40, right: 40, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ ...box, fontSize: 52, color: saved ? GREEN : left < 600 ? "#ff6a6a" : "#fff" }}>
+          <svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="24" r="17" fill="none" stroke="currentColor" strokeWidth="5" /><path d="M22 24 V13 M17 4 H27" stroke="currentColor" strokeWidth="5" strokeLinecap="round" /></svg>
+          {saved ? "СПАСЁН" : `${mm}:${ss}`}
+        </div>
+        <div style={{ ...box, fontSize: 40, color: "#c9d6e2" }}>6000 М</div>
+        <div style={{ ...box, fontSize: 52, color: saved ? GREEN : tempColor, opacity: saved ? 1 : pulse }}>
+          <svg width="30" height="52" viewBox="0 0 30 52"><rect x="9" y="3" width="12" height="32" rx="6" fill="none" stroke="currentColor" strokeWidth="4" /><circle cx="15" cy="41" r="9" fill="currentColor" /></svg>
+          {temp.toFixed(1).replace(".", ",")}°
+        </div>
+      </div>
+      {/* прогресс: 7 советов */}
+      <div style={{ position: "absolute", top: 196, left: 60, right: 60, display: "flex", gap: 10 }}>
+        {Array.from({ length: 7 }, (_, i) => (
+          <div key={i} style={{ flex: 1, height: 14, borderRadius: 7, background: i < tipsDone ? ORANGE : i === tipsDone && cur.id !== "sv01" && tipsDone < 7 ? "rgba(255,138,31,.45)" : "rgba(255,255,255,.22)" }} />
+        ))}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 /** Звук: ветер под всем роликом (тише на рассвете), голос рассказчика. */
 export const Survival = () => {
   const rescueAt = PLAN.find((p) => p.id === "sv09")!.start;
@@ -509,6 +598,7 @@ export const Survival = () => {
           )}
         </Sequence>
       ))}
+      <Hud />
     </AbsoluteFill>
   );
 };
