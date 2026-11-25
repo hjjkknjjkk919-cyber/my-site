@@ -401,6 +401,17 @@ const bed = (base: number, start = 0) => (f: number) => {
 // треск лампы на её провалах (сцены пробуждения и прохода; там лампа = lamp(локальное t + сдвиг))
 const crackles = [...lampDipsIn(1, 10).map((x) => x + 1), ...lampDipsIn(3, 13).map((x) => x + 8), ...lampDipsIn(14, 22).map((x) => x + 7), ...lampDipsIn(6, 25).map((x) => x + 31)];
 
+// плавные переходы: короткое затемнение (0.3 с в каждую сторону) на стыках сцен;
+// пробуждение→POV уже закрыто веками, удар монстра остаётся резким (это скример)
+const CUTS = [S.station[0], S.rule1[0], S.walk[0], S.rule2[0], S.button[0]];
+const dipAt = (t: number) => {
+  let v = 0;
+  for (const c of CUTS) v = Math.max(v, 1 - Math.abs(t - c) / 0.3);
+  // выход из темноты на панель выбора и плавный уход в конце
+  v = Math.max(v, t >= S.choice[0] ? 1 - (t - S.choice[0]) / 0.5 : 0, t > S.choice[1] - 0.6 ? (t - (S.choice[1] - 0.6)) / 0.6 : 0);
+  return clamp(v);
+};
+
 // низкий рык на вспышках, когда существо уже в тамбуре (со 2.4 с вспышек), не чаще раза в 1.5 с
 const growlAt = (() => {
   const out: number[] = [];
@@ -499,6 +510,7 @@ export const Ep1 = () => {
           <AbsoluteFill style={{ background: "rgba(30,22,8,.16)" }} />
         </>
       )}
+      {dipAt(t) > 0 && <AbsoluteFill style={{ background: "#000", opacity: dipAt(t) }} />}
       {!noHud && <Hud />}
       {t < S.slam[0] && <Subs t={t} cues={CUES} />}
     </AbsoluteFill>
