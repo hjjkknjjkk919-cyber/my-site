@@ -93,17 +93,56 @@ const Dust = ({ t, l }: { t: number; l: number }) => (
 );
 
 // ── Дима в 3D ─────────────────────────────────────────────────────────
-const dimaActor = (z: number, x: number, t: number, walk: number, _turn = 0, dark = 0) => ({
+/**
+ * Дима в 3D в полный рост со спины: шаг ногами, подъём-опускание тела, качание плеч, кивок головы.
+ * walk — фаза цикла (1 = два шага); moving 0..1 — идёт или стоит (у двери переносит вес).
+ * Масштаб: 20 единиц рисунка = 1 см; макушка (960) = 182 см, пол = 4600.
+ */
+const dimaActor = (z: number, x: number, t: number, walk: number, _turn = 0, dark = 0, moving = 1) => ({
   z,
   draw: (cam: Cam) => {
     const p = proj(cam, x, 182, z);
     const s = p.k / 20;
+    const ph = walk * Math.PI * 2;
+    const bob = -Math.abs(Math.sin(ph)) * 70 * moving; // тело выше на опорной ноге
+    const sway = Math.sin(ph) * 34 * moving; // перенос веса с ноги на ногу
+    const roll = Math.sin(ph) * 2.2 * moving;
+    const nod = Math.sin(ph * 2) * 1.5 * moving;
+    const idle = (1 - moving) * Math.sin(t * 1.6) * 10; // стоит — едва покачивается
+    const leg = (side: -1 | 1) => {
+      const lift = Math.max(0, Math.sin(ph + (side > 0 ? Math.PI : 0))) * moving; // нога в переносе
+      const hipX = 540 + side * 170;
+      const footY = 4600 - lift * 230;
+      const kneeX = hipX + side * 12 - lift * side * 20;
+      const kneeY = 3650 - lift * 120;
+      return (
+        <g key={side}>
+          <path d={`M${hipX - 150} 2700 L${kneeX - 140} ${kneeY} L${kneeX - 130} ${footY - 120} L${kneeX + 130} ${footY - 120} L${kneeX + 140} ${kneeY} L${hipX + 150} 2700 Z`} fill={dark ? "#11141b" : "#46506a"} stroke="#2b1d16" strokeWidth="10" strokeLinejoin="round" />
+          <path d={`M${kneeX - 130} ${kneeY} L${kneeX + 130} ${kneeY}`} stroke="#2b1d16" strokeWidth="5" opacity="0.6" />
+          {/* ботинок: когда нога поднята, видна подошва */}
+          <path d={`M${kneeX - 150} ${footY - 140} H${kneeX + 150} V${footY - 20} C${kneeX + 150} ${footY + 10} ${kneeX + 120} ${footY + 20} ${kneeX + 90} ${footY + 20} H${kneeX - 90} C${kneeX - 120} ${footY + 20} ${kneeX - 150} ${footY + 10} ${kneeX - 150} ${footY - 20} Z`} fill="#1a1c20" stroke="#2b1d16" strokeWidth="9" />
+          {lift > 0.15 && <path d={`M${kneeX - 140} ${footY + 6} H${kneeX + 140}`} stroke="#4a4f57" strokeWidth={18 * lift} />}
+        </g>
+      );
+    };
     return (
-      <g transform={`translate(${p.x - 540 * s} ${p.y - 960 * s + Math.abs(Math.sin(walk * Math.PI * 2)) * 6 * s}) scale(${s})`}>
-        {/* тело до пояса, чтобы не обрывалось */}
-        <path d="M-120 1600 C-180 2100 -190 2800 -170 3500 H1250 C1270 2800 1260 2100 1200 1600 Z" fill={dark ? "#141924" : "#2a384a"} stroke="#3b2b26" strokeWidth="8" />
-        <g opacity={dark ? 0.55 : 1}>
-          <DimaBackOld t={t} />
+      <g transform={`translate(${p.x - 540 * s} ${p.y - 960 * s}) scale(${s})`}>
+        {/* тень на полу */}
+        <ellipse cx="540" cy="4610" rx="420" ry="60" fill="#000" opacity="0.35" />
+        {leg(-1)}
+        {leg(1)}
+        <g transform={`translate(${sway + idle} ${bob}) rotate(${roll} 540 2700)`}>
+          {/* куртка до бёдер */}
+          <path d="M-90 1600 C-150 2000 -150 2500 -110 2780 H1190 C1230 2500 1230 2000 1170 1600 Z" fill={dark ? "#141924" : "#3c5170"} stroke="#3b2b26" strokeWidth="9" />
+          <path d="M-110 2700 H1190" stroke="#3b2b26" strokeWidth="7" />
+          {/* руки качаются в противофазе ногам */}
+          <path d={`M-90 1700 C-160 2050 -170 2350 ${-150 + Math.sin(ph) * 60 * moving} 2650`} stroke="#3b2b26" strokeWidth="190" strokeLinecap="round" fill="none" />
+          <path d={`M-90 1700 C-160 2050 -170 2350 ${-150 + Math.sin(ph) * 60 * moving} 2650`} stroke={dark ? "#1a2030" : "#334459"} strokeWidth="172" strokeLinecap="round" fill="none" />
+          <path d={`M1170 1700 C1240 2050 1250 2350 ${1230 - Math.sin(ph) * 60 * moving} 2650`} stroke="#3b2b26" strokeWidth="190" strokeLinecap="round" fill="none" />
+          <path d={`M1170 1700 C1240 2050 1250 2350 ${1230 - Math.sin(ph) * 60 * moving} 2650`} stroke={dark ? "#1a2030" : "#334459"} strokeWidth="172" strokeLinecap="round" fill="none" />
+          <g opacity={dark ? 0.55 : 1} transform={`rotate(${nod} 540 1500)`}>
+            <DimaBackOld t={t} />
+          </g>
         </g>
       </g>
     );
@@ -134,15 +173,21 @@ const Hook = () => {
 /** 1. Идём за Димой по проходу; на 3.5 с он оглядывается через плечо. */
 const Follow = () => {
   const t = useT();
-  const z = ease(t, 0, 5.5, 1000, 1950);
+  const D = 5.5;
+  // шаги: скорость толчками (≈1.8 шага/с), к двери замедляется и встаёт
+  const moving = 1 - ease(t, 4.4, 5.1, 0, 1);
+  const walk = t * 0.9;
+  const pulse = Math.sin(walk * Math.PI * 4) * 6 * moving;
+  const z = ease(t, 0, D, 1050, 1980) + pulse;
+  // камера идёт следом с задержкой, как в руках
+  const zc = ease(t - 0.25, 0, D, 1050, 1980) - 150;
   const r = ride(t);
-  const cam: Cam = { x: 0, y: 175, z: z - 190, roll: r.rot, pitch: r.y };
-  const L = 0.85;
+  const cam: Cam = { x: Math.sin(t * 1.1) * 5 + Math.sin(t * 2.3) * 3, y: 172 + Math.sin((walk - 0.08) * Math.PI * 4) * 1.5, z: zc, roll: r.rot + Math.sin(t * 0.9) * 0.4, pitch: r.y };
   const turn = ease(t, 3.0, 3.4, 0, 1) - ease(t, 4.2, 4.6, 0, 1);
   return (
     <AbsoluteFill>
-      <Wagon2 cam={cam} t={t} light={0.55} actors={[dimaActor(z, 0, t, (t * 0.85) % 1, turn)]} />
-      <Atmos t={t + 2} />
+      <Wagon2 cam={cam} t={t} light={0.78} actors={[dimaActor(z, 0, t, walk, turn, 0, moving)]} />
+      <Atmos t={t + 2} beam={false} />
       <Vig />
     </AbsoluteFill>
   );
