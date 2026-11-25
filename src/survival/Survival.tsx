@@ -21,45 +21,136 @@ const MITT = "#2a2f35";
 const L = { strokeLinecap: "round", strokeLinejoin: "round" } as const;
 type V = { text: string; start: number; end: number };
 const VO = voice as Record<string, V>;
-/** Небо и горы. dawn 0 — глухая ночь, 1 — рассвет. fog — белая мгла метели. */
-const Sky = ({ t, dawn = 0, fog = 0, cam = 0 }: { t: number; dawn?: number; fog?: number; cam?: number }) => {
+/**
+ * Небо и горы. dawn 0 — глухая ночь, 1 — рассвет. fog — мгла метели.
+ * aurora 0..1 — северное сияние; ночью ещё Млечный путь, падающие звёзды, дымка между хребтами, блики на снегу.
+ */
+const Sky = ({ t, dawn = 0, fog = 0, cam = 0, aurora = 0.35 }: { t: number; dawn?: number; fog?: number; cam?: number; aurora?: number }) => {
   const mix = (a: number[], b: number[]) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * dawn)).join(",")})`;
-  const top = mix([14, 24, 44], [255, 150, 110]);
-  const mid = mix([38, 58, 88], [255, 205, 160]);
-  const far = mix([52, 72, 102], [196, 170, 190]);
-  const near = mix([30, 44, 66], [140, 120, 150]);
+  const top = mix([6, 12, 28], [255, 140, 100]);
+  const mid = mix([22, 40, 72], [255, 196, 150]);
+  const low = mix([40, 66, 104], [255, 226, 190]);
+  const far2 = mix([40, 58, 88], [210, 170, 190]);
+  const far = mix([48, 68, 100], [190, 160, 185]);
+  const near = mix([26, 38, 60], [135, 112, 145]);
+  const night = (1 - dawn) * (1 - fog);
+  const au = aurora * night;
+  // падающая звезда раз в ~3.5 с
+  const sp = (t % 3.5) / 0.5;
+  const sx = 900 - random(`ssx${Math.floor(t / 3.5)}`) * 500;
+  const sy = 120 + random(`ssy${Math.floor(t / 3.5)}`) * 300;
+  const wave = (k: number, amp: number, base: number) =>
+    Array.from({ length: 13 }, (_, i) => {
+      const x = -100 + i * 110;
+      const y = base + Math.sin(i * 0.7 + t * (0.6 + k * 0.2) + k) * amp + Math.sin(i * 1.9 - t * 0.9) * amp * 0.3;
+      return `${i === 0 ? "M" : "L"}${x} ${y}`;
+    }).join(" ");
   return (
     <Svg>
       <defs>
         <linearGradient id="svSky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={top} />
-          <stop offset="0.6" stopColor={mid} />
+          <stop offset="0.45" stopColor={mid} />
+          <stop offset="0.62" stopColor={low} />
         </linearGradient>
+        <linearGradient id="svAu1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#a35cff" stopOpacity="0" />
+          <stop offset="0.45" stopColor="#7cffb2" stopOpacity="0.85" />
+          <stop offset="1" stopColor="#2affc6" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="svAu2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ff5ad1" stopOpacity="0" />
+          <stop offset="0.5" stopColor="#8a7dff" stopOpacity="0.7" />
+          <stop offset="1" stopColor="#4fe3ff" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="svRay" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff2c8" stopOpacity="0.5" />
+          <stop offset="1" stopColor="#fff2c8" stopOpacity="0" />
+        </linearGradient>
+        <filter id="svSoft" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="14" />
+        </filter>
+        <filter id="svSoft2" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="50" />
+        </filter>
       </defs>
       <rect width={1080} height={1920} fill="url(#svSky)" />
-      {/* звёзды ночью */}
-      <g fill="#fff" opacity={(1 - dawn) * (1 - fog) * 0.8}>
-        {Array.from({ length: 40 }, (_, i) => (
-          <circle key={i} cx={random(`sx${i}`) * 1080} cy={random(`sy${i}`) * 700} r={1.5 + random(`sr${i}`) * 2.5} opacity={0.4 + 0.6 * Math.abs(Math.sin(t * (1 + random(`st${i}`) * 3) + i))} />
-        ))}
+      {/* Млечный путь: светлая диагональная полоса и густые мелкие звёзды */}
+      <g opacity={night * 0.9}>
+        <path d="M-200 900 C200 500 700 250 1300 -100 L1300 200 C800 450 300 750 -200 1150 Z" fill="#b9c8ff" opacity="0.13" filter="url(#svSoft2)" />
+        {Array.from({ length: 90 }, (_, i) => {
+          const u = random(`mw${i}`);
+          const off = (random(`mo${i}`) - 0.5) * 260;
+          return <circle key={i} cx={-100 + u * 1300} cy={950 - u * 1000 + off} r={0.8 + random(`mr${i}`) * 1.6} fill="#fff" opacity={0.35 + 0.4 * random(`mq${i}`)} />;
+        })}
       </g>
-      {/* луна ночью */}
-      <circle cx="250" cy="330" r="70" fill="#f3f1e6" opacity={(1 - dawn) * (1 - fog * 0.6)} />
-      <circle cx="250" cy="330" r="160" fill="#cfe0ff" opacity={(1 - dawn) * 0.12} />
-      {/* солнце на рассвете */}
-      <circle cx="760" cy={900 - dawn * 260} r="120" fill="#fff1c4" opacity={dawn * 0.9} />
-      <circle cx="760" cy={900 - dawn * 260} r="230" fill="#ffd38a" opacity={dawn * 0.3} />
+      {/* яркие звёзды с мерцанием */}
+      <g fill="#fff" opacity={night}>
+        {Array.from({ length: 55 }, (_, i) => (
+          <circle key={i} cx={random(`sx${i}`) * 1080} cy={random(`sy${i}`) * 900} r={1.4 + random(`sr${i}`) * 2.6} opacity={0.35 + 0.65 * Math.abs(Math.sin(t * (1 + random(`st${i}`) * 3) + i))} />
+        ))}
+        {[0, 1, 2, 3].map((i) => {
+          const x = 120 + random(`bx${i}`) * 840;
+          const y = 80 + random(`by${i}`) * 500;
+          const k = 0.6 + 0.4 * Math.sin(t * 2 + i);
+          return <path key={i} d={`M${x - 22 * k} ${y} L${x + 22 * k} ${y} M${x} ${y - 22 * k} L${x} ${y + 22 * k}`} stroke="#fff" strokeWidth="2.5" opacity="0.8" />;
+        })}
+      </g>
+      {/* падающая звезда */}
+      {sp < 1 && night > 0.3 && <path d={`M${sx - sp * 260} ${sy + sp * 130} l 160 -80`} stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity={(1 - sp) * night} />}
+      {/* северное сияние: две волнистые ленты */}
+      {au > 0.01 && (
+        <g opacity={Math.min(1, au * 1.3)} style={{ mixBlendMode: "screen" }} filter="url(#svSoft)" transform="translate(0 -260) scale(1 1.7)">
+          <path d={`${wave(0, 70, 260)} L1300 620 L-100 620 Z`} fill="url(#svAu1)" transform="translate(0 -40)" />
+          <path d={`${wave(1, 90, 380)} L1300 760 L-100 760 Z`} fill="url(#svAu2)" opacity="0.8" />
+          <path d={`${wave(2, 50, 200)} L1300 480 L-100 480 Z`} fill="url(#svAu1)" opacity="0.6" />
+        </g>
+      )}
+      {/* луна с ореолом */}
+      <circle cx="250" cy="330" r="200" fill="#cfe0ff" opacity={(1 - dawn) * 0.12} filter="url(#svSoft2)" />
+      <circle cx="250" cy="330" r="70" fill="#f6f3e6" opacity={(1 - dawn) * (1 - fog * 0.6)} />
+      <circle cx="228" cy="312" r="14" fill="#d8d3c2" opacity={(1 - dawn) * 0.6} />
+      <circle cx="275" cy="350" r="9" fill="#d8d3c2" opacity={(1 - dawn) * 0.6} />
+      {/* солнце на рассвете и лучи */}
+      <circle cx="760" cy={900 - dawn * 260} r="260" fill="#ffd38a" opacity={dawn * 0.45} filter="url(#svSoft2)" />
+      <circle cx="760" cy={900 - dawn * 260} r="110" fill="#fff4cf" opacity={dawn * 0.95} />
+      {dawn > 0.4 && (
+        <g opacity={(dawn - 0.4) * 1.3} style={{ mixBlendMode: "screen" }}>
+          {[-50, -28, -8, 12, 34, 58].map((a, i) => (
+            <path key={i} d={`M760 ${900 - dawn * 260} L${760 + Math.tan(((a + Math.sin(t * 0.5 + i) * 2) * Math.PI) / 180) * 1800 - 60} 2000 L${760 + Math.tan(((a + Math.sin(t * 0.5 + i) * 2) * Math.PI) / 180) * 1800 + 60} 2000 Z`} fill="url(#svRay)" />
+          ))}
+        </g>
+      )}
+      {/* дальний хребет, тонет в дымке */}
+      <g transform={`translate(${cam * 0.08} 0)`} {...L}>
+        <path d="M-60 980 L120 760 L260 840 L420 640 L560 760 L760 560 L960 800 L1140 700 L1140 1000 Z" fill={far2} opacity="0.85" />
+        <path d="M760 560 L720 640 L760 625 L790 670 L815 610 Z M420 640 L392 700 L430 690 Z" fill="#e8f0f8" opacity="0.6" />
+      </g>
+      <ellipse cx={540 + Math.sin(t * 0.2) * 80} cy="900" rx="900" ry="80" fill={mix([90, 120, 160], [255, 220, 200])} opacity="0.35" filter="url(#svSoft)" />
       <g transform={`translate(${cam * 0.15} 0)`} filter="url(#rough)" {...L}>
         <path d="M-60 1060 L250 640 L380 760 L600 430 L860 820 L1140 1060 Z" fill={far} stroke={INK} strokeWidth="5" />
-        <path d="M600 430 L540 560 L600 530 L640 610 L690 520 Z M250 640 L215 720 L270 700 Z" fill="#eef3f7" opacity={0.85} />
+        <path d="M600 430 L540 560 L600 530 L640 610 L690 520 Z M250 640 L215 720 L270 700 Z" fill="#eef3f7" opacity={0.9} />
+        {/* лунный край на склонах */}
+        <path d="M250 640 L120 820 M600 430 L470 640" stroke="#dfeaff" strokeWidth="5" opacity={(1 - dawn) * 0.45} />
       </g>
+      <ellipse cx={540 - Math.sin(t * 0.25) * 120} cy="1100" rx="800" ry="70" fill={mix([110, 140, 180], [255, 230, 215])} opacity="0.4" filter="url(#svSoft)" />
       <g transform={`translate(${cam * 0.35} 0)`} filter="url(#rough)" {...L}>
         <path d="M-100 1200 L180 900 L420 1080 L700 820 L1180 1200 Z" fill={near} stroke={INK} strokeWidth="6" />
         <path d="M700 820 L640 920 L700 900 L740 960 L780 890 Z" fill="#e3ebf1" />
+        <path d="M180 900 L60 1040 M700 820 L600 960" stroke="#dfeaff" strokeWidth="5" opacity={(1 - dawn) * 0.4} />
       </g>
       {/* снежное поле */}
       <path d="M-50 1180 C300 1130 700 1160 1130 1120 V1960 H-50 Z" fill={mix([150, 172, 198], [255, 236, 226])} stroke={INK} strokeWidth="6" />
       <path d="M-50 1400 C350 1360 760 1420 1130 1370 V1960 H-50 Z" fill={mix([176, 196, 218], [255, 244, 236])} opacity="0.8" />
+      {/* отражение сияния на снегу */}
+      <rect x="0" y="1150" width="1080" height="800" fill="#7cffb2" opacity={au * 0.08} />
+      {/* блики на снегу */}
+      <g fill="#fff">
+        {Array.from({ length: 36 }, (_, i) => {
+          const k = Math.max(0, Math.sin(t * (2 + random(`gk${i}`) * 3) + i * 1.7));
+          return <circle key={i} cx={random(`gx${i}`) * 1080} cy={1170 + random(`gy${i}`) * 740} r={1.5 + k * 3.5} opacity={k * 0.9} />;
+        })}
+      </g>
       {/* мгла метели */}
       <rect width={1080} height={1920} fill="#5d7690" opacity={fog * 0.55} />
     </Svg>
@@ -230,8 +321,8 @@ const SHOTS: Record<string, React.FC<P>> = {
   // широкий: крошечный Дима в метели
   p01: ({ t, d }) => (
     <AbsoluteFill>
-      <Cam t={t} z={ease(t, 0, d, 1, 1.4)} cy={1000} hand={5}>
-        <Sky t={t} fog={0.45} />
+      <Cam t={t} z={ease(t, 0, d, 1.25, 1.45)} cy={ease(t, 0, d, 700, 1150)} hand={4}>
+        <Sky t={t} fog={0.15} aurora={0.9} />
         <Svg><Hero cfg={DIMA} x={540} y={fy(1500, 0.24)} s={0.24} t={t} emotion="fear" look={[Math.sin(t * 2) * 20, 0]} frost={0.8} full wind={1} /></Svg>
         <Snow t={t} n={120} opacity={0.85} speed={2.2} wind={1} />
       </Cam>
@@ -471,8 +562,8 @@ const SHOTS: Record<string, React.FC<P>> = {
     const on = SOS.some((q) => ts >= q.from && ts < q.to);
     return (
       <AbsoluteFill>
-        <Sky t={t} />
-        <AbsoluteFill style={{ background: "#03060c", opacity: on ? 0.25 : 0.55 }} />
+        <Sky t={t} aurora={0.7} />
+        <AbsoluteFill style={{ background: "#03060c", opacity: on ? 0.1 : 0.35 }} />
         <Svg>
           {on && <path d="M560 1180 L-200 -100 L1280 -100 Z" fill="#fff6c8" opacity="0.28" />}
           <Mitt wx={600} wy={1300} ang={-8} from={1} s={1.1}>
@@ -495,9 +586,8 @@ const SHOTS: Record<string, React.FC<P>> = {
   // никто не отвечает: широкий, крошечный луч в темноте
   p17: ({ t, d }) => (
     <AbsoluteFill>
-      <Cam t={t} z={ease(t, 0, d, 1.3, 1)} cy={1100} hand={2}>
-        <Sky t={t} />
-        <AbsoluteFill style={{ background: "#03060c", opacity: 0.5 }} />
+      <Cam t={t} z={ease(t, 0, d, 1.35, 1)} cy={ease(t, 0, d, 650, 1000)} hand={1.5}>
+        <Sky t={t} aurora={1} />
         <Svg>
           <Burrow x={330} y={1560} s={0.6} />
           <path d="M360 1480 L1100 1050 L1100 1250 Z" fill="#fff6c8" opacity={Math.floor(t * 3) % 2 ? 0.25 : 0.05} />
@@ -525,17 +615,18 @@ const SHOTS: Record<string, React.FC<P>> = {
       </AbsoluteFill>
     );
   },
-  // считаю вдохи: лицо в темноте, только пар
+  // считаю вдохи: камера медленно поднимается от норы к сиянию
   p19: ({ t, d }) => (
     <AbsoluteFill>
-      <Cam t={t} z={ease(t, 0, d, 1.8, 2.2)} cy={840} rot={-2} hand={1.5}>
-        <AbsoluteFill style={{ background: "#1a2738" }} />
+      <Cam t={t} z={1.4} cy={ease(t, 0, d, 1350, 700)} hand={1.2}>
+        <Sky t={t} aurora={1} />
         <Svg>
-          <Bust t={t} emotion="calm" lid={0.5} frost={1} />
-          <Breath t={t} x={600} y={1040} s={1.3} />
+          <Burrow x={540} y={1560} s={0.8} />
+          <ellipse cx="540" cy="1545" rx="60" ry="45" fill="#ffb760" opacity={0.25 + 0.1 * Math.sin(t * 3)} />
+          <Breath t={t} x={560} y={1480} s={0.8} />
         </Svg>
+        <Snow t={t} n={25} opacity={0.5} speed={0.4} wind={0.2} />
       </Cam>
-      <AbsoluteFill style={{ background: "#000", opacity: 0.45 }} />
       <Sfx name="sfx/breath" vol={0.5} />
     </AbsoluteFill>
   ),
