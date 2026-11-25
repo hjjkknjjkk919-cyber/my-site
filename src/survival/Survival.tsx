@@ -3,7 +3,7 @@ import { AbsoluteFill, interpolate, random, Sequence, staticFile, useCurrentFram
 import { Audio } from "@remotion/media";
 import { loadFont } from "@remotion/google-fonts/Montserrat";
 import { clamp, ease, Finish, INK, shake, Snow, Svg, useT } from "../components/fx";
-import { DIMA, Hero, onGround } from "../components/Hero";
+import { DIMA, GENA, Hero, LERA, onGround, STAS } from "../components/Hero";
 import { Sfx } from "../components/audio";
 import voice from "./voice.json";
 
@@ -315,11 +315,14 @@ const Mitt = ({ wx, wy, ang = 0, from = 1, fist = 0, s = 1, children }: { wx: nu
 
 /** Субтитры как в примере: обычные буквы, жирно, чёрная обводка, ключевое слово красным. */
 const Sub = ({ t, text, from, dur }: { t: number; text: string; from: number; dur: number }) => {
-  const words = text.split(" ");
+  const shout = text.startsWith("!");
+  const words = (shout ? text.slice(1) : text).split(" ");
   const step = Math.min(0.22, (dur * 0.7) / words.length);
   if (t < from - 0.05) return null;
+  const sx = shout ? Math.sin(t * 70) * 8 : 0;
+  const sy = shout ? Math.cos(t * 53) * 6 : 0;
   return (
-    <div style={{ position: "absolute", left: 60, right: 60, top: "66%", textAlign: "center", fontFamily: MONT, fontWeight: 800, fontSize: 84, lineHeight: 1.12, color: "#fff", WebkitTextStroke: "14px #000", paintOrder: "stroke fill", textShadow: "0 6px 18px rgba(0,0,0,.6)" }}>
+    <div style={{ position: "absolute", left: 50, right: 50, top: shout ? "58%" : "66%", textAlign: "center", fontFamily: MONT, fontWeight: 800, fontSize: shout ? 118 : 84, color: shout ? RED : "#fff", transform: `translate(${sx}px,${sy}px) rotate(${shout ? Math.sin(t * 9) * 2 : 0}deg)`, lineHeight: 1.12, WebkitTextStroke: "14px #000", paintOrder: "stroke fill", textShadow: "0 6px 18px rgba(0,0,0,.6)" }}>
       {words.map((w, i) => {
         const a = clamp((t - from - i * step) / 0.08);
         const pop = 1 + 0.15 * (1 - clamp((t - from - i * step) / 0.15));
@@ -383,7 +386,7 @@ const Bust = ({ t, emotion = "calm", lid, frost = 0.8, look, trem = 0, seed = "b
   );
 };
 
-const SHOTS: Record<string, React.FC<P>> = {
+const OLD: Record<string, React.FC<P>> = {
   // широкий: крошечный Дима в метели
   p01: ({ t, d }) => (
     <AbsoluteFill>
@@ -767,6 +770,241 @@ const SOS = (() => {
 })();
 const SOS_LEN = SOS[SOS.length - 1].to;
 
+// ── новые кадры для длинной версии ─────────────────────────────────────
+const Shout = ({ t }: { t: number }) => (
+  <AbsoluteFill style={{ background: RED, opacity: clamp(0.35 - t * 0.9), mixBlendMode: "screen" }} />
+);
+
+const NEW: Record<string, React.FC<P>> = {
+  // орёт в камеру: лицо во весь экран, сильная тряска
+  s04: ({ t }) => (
+    <AbsoluteFill>
+      <Cam t={t} z={ease(t, 0, 0.25, 2.6, 3.6)} cy={840} rot={Math.sin(t * 30) * 3} hand={26}>
+        <Sky t={t} fog={0.3} />
+        <Svg><Bust t={t} emotion="fear" trem={5} seed="s04" energy={1.3} flinch={0} /></Svg>
+      </Cam>
+      <AbsoluteFill style={{ boxShadow: "inset 0 0 260px rgba(255,20,30,.55)" }} />
+      <Shout t={t} />
+      <Sfx name="sfx/gust" vol={0.8} dur={1} />
+    </AbsoluteFill>
+  ),
+  // группа уходит в метель и пропадает
+  s05: ({ t, d }) => {
+    const fog = ease(t, 0, d, 0.15, 0.75);
+    const g = (cfg: typeof DIMA, x0: number, k: number) => (
+      <Hero cfg={cfg} x={x0 + t * 22 * k} y={fy(1330, 0.17)} s={0.17} flip={-1} t={t + k} walk={t * 1.4 + k} emotion="calm" frost={0.6} full wind={1} />
+    );
+    return (
+      <AbsoluteFill>
+        <Cam t={t} z={ease(t, 0, d, 1.1, 1.35)} cy={1150} hand={3}>
+          <Sky t={t} fog={0.2} aurora={0.3} />
+          <Svg>
+            <g opacity={1 - fog}>
+              {g(STAS, 600, 1)}
+              {g(LERA, 700, 1.2)}
+              {g(GENA, 800, 0.9)}
+            </g>
+          </Svg>
+          <AbsoluteFill style={{ background: "#9fb3c6", opacity: fog * 0.7 }} />
+          <Snow t={t} n={150} opacity={0.9} speed={2.4} wind={1.3} />
+          <Svg><Hero cfg={DIMA} x={230} y={fy(1900, 0.42)} s={0.42} t={t} emotion="fear" look={[22, -4]} frost={0.8} full wind={1} arm={ease(t, 0, 1, 40, 215)} /></Svg>
+        </Cam>
+        <NearSnow t={t} wind={1.4} n={10} />
+        <Sfx name="sfx/blizzard" vol={0.6} />
+      </AbsoluteFill>
+    );
+  },
+  // огромные горы, крошечный Дима
+  s07: ({ t, d }) => (
+    <AbsoluteFill>
+      <Cam t={t} z={ease(t, 0, d, 2.2, 1)} cy={ease(t, 0, d, 1380, 1050)} hand={2}>
+        <Sky t={t} fog={0.25} aurora={0.6} />
+        <Svg><Hero cfg={DIMA} x={540} y={fy(1420, 0.08)} s={0.08} t={t} emotion="fear" frost={0.8} full wind={1} /></Svg>
+        <Snow t={t} n={80} opacity={0.7} speed={1.6} wind={1} />
+      </Cam>
+    </AbsoluteFill>
+  ),
+  // падение кубарем: мир крутится, удар — вспышка
+  s10: ({ t, d }) => {
+    const fall = clamp((t - d * 0.35) / (d * 0.55));
+    const spin = fall * 620;
+    return (
+      <AbsoluteFill>
+        <Cam t={t} z={1.6 + fall * 0.6} cy={1100} rot={spin} hand={fall > 0 ? 18 : 6}>
+          <Sky t={t} fog={0.2} />
+          <Svg>
+            <Hero cfg={DIMA} x={540 + fall * 200} y={fy(1560, 0.32) + fall * 300} s={0.32} t={t} emotion="fear" walk={fall > 0 ? undefined : t * 2} frost={0.7} full wind={1} />
+          </Svg>
+          <Snow t={t} n={120} opacity={0.9} speed={3} wind={1.5} />
+        </Cam>
+        {fall > 0 && <AbsoluteFill style={{ background: "#fff", opacity: fall > 0.92 ? (1 - fall) * 10 : fall * 0.15 }} />}
+        <Sfx name="sfx/steps" vol={0.6} dur={d * 0.35} />
+        <Sfx at={d * 0.35} name="sfx/rustle" vol={1} />
+        <Sfx at={d * 0.88} name="sfx/boom" vol={0.6} dur={0.8} />
+      </AbsoluteFill>
+    );
+  },
+  // лежит на спине в снегу, задыхается
+  s11: ({ t, d }) => (
+    <AbsoluteFill>
+      <Cam t={t} z={ease(t, 0, d, 1.5, 1.8)} cy={880} rot={-78} hand={3}>
+        <AbsoluteFill style={{ background: "#dfe8f0" }} />
+        <Svg>
+          <Bust t={t} emotion="fear" trem={1.2} breath={2.8} seed="s11" energy={0.7} frost={1} />
+          <Breath t={t * 1.6} x={600} y={1040} s={1.3} />
+        </Svg>
+      </Cam>
+      <Sfx name="sfx/breath" vol={0.8} />
+    </AbsoluteFill>
+  ),
+  // телефон: сообщение маме не уходит
+  s19: ({ t, d }) => {
+    const sent = t > d * 0.62;
+    return (
+      <AbsoluteFill>
+        <AbsoluteFill style={{ background: "#0c1420" }} />
+        <CaveFrame glow={0.25} />
+        <Svg>
+          <g transform={`translate(0 ${ease(t, 0, 0.3, 120, -200)})`}>
+            <rect x="250" y="520" width="580" height="1100" rx="80" fill="#0b0f14" stroke={INK} strokeWidth="12" />
+            <rect x="280" y="550" width="520" height="1040" rx="60" fill="#121b27" />
+            <text x="320" y="625" fontFamily={MONT} fontWeight="800" fontSize="40" fill="#fff">Мама ❤</text>
+            <rect x="660" y="592" width="90" height="40" rx="8" fill="none" stroke={RED} strokeWidth="5" />
+            <rect x="666" y="598" width={8 + 4 * Math.abs(Math.sin(t * 6))} height="28" fill={RED} />
+            <text x="705" y="660" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="28" fill={RED}>2%</text>
+            <g transform="translate(0 0)">
+              <rect x="310" y="1050" width="400" height="170" rx="30" fill="#2f6fe0" />
+              <text x="335" y="1110" fontFamily={MONT} fontWeight="800" fontSize="36" fill="#fff">Мам, я тебя</text>
+              <text x="335" y="1160" fontFamily={MONT} fontWeight="800" fontSize="36" fill="#fff">люблю. Прости.</text>
+              {sent && <circle cx="740" cy="1135" r="30" fill={RED} />}
+              {sent && <text x="740" y="1149" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="40" fill="#fff">!</text>}
+              {sent && <text x="705" y="1270" textAnchor="end" fontFamily={MONT} fontWeight="800" fontSize="28" fill={RED}>Не доставлено</text>}
+            </g>
+          </g>
+          <Mitt wx={880} wy={1450} ang={-12} from={1} />
+        </Svg>
+        {sent && <Sfx at={d * 0.62} name="survival/buzz" vol={0.4} />}
+      </AbsoluteFill>
+    );
+  },
+  // шёпот: глаза крупно в темноте
+  s21: ({ t, d }) => (
+    <AbsoluteFill>
+      <Cam t={t} z={ease(t, 0, d, 3, 3.4)} cy={790} hand={1}>
+        <AbsoluteFill style={{ background: "#1a2738" }} />
+        <Svg><Bust t={t} emotion="fear" lid={0.35} frost={1} seed="s21" energy={0.2} /></Svg>
+      </Cam>
+      <AbsoluteFill style={{ background: "#000", opacity: 0.4 }} />
+    </AbsoluteFill>
+  ),
+  // из норы: светлый вход, по нему проходит тень
+  s24: ({ t, d }) => {
+    const sh = ease(t, d * 0.45, d * 0.85, -400, 1400);
+    return (
+      <AbsoluteFill>
+        <Cam t={t} z={ease(t, 0, d, 1, 1.35)} cy={900} hand={1.5}>
+          <AbsoluteFill style={{ background: "#0b1119" }} />
+          <Svg>
+            <ellipse cx="540" cy="900" rx="330" ry="270" fill="#7f9bb8" stroke={INK} strokeWidth="10" />
+            <ellipse cx="540" cy="980" rx="330" ry="120" fill="#b9cbdc" opacity="0.7" />
+            {Array.from({ length: 14 }, (_, i) => {
+              const ph = (t * 1.5 + i / 14) % 1;
+              return <circle key={i} cx={210 + ph * 660} cy={700 + random(`s24${i}`) * 400} r="5" fill="#fff" opacity="0.8" />;
+            })}
+            {/* тень проходит мимо входа */}
+            <g transform={`translate(${sh} 0)`} opacity="0.85">
+              <ellipse cx="0" cy="760" rx="70" ry="80" fill="#05080c" />
+              <rect x="-90" y="820" width="180" height="420" rx="70" fill="#05080c" />
+            </g>
+          </Svg>
+          <AbsoluteFill style={{ background: "radial-gradient(40% 30% at 50% 47%, rgba(0,0,0,0) 60%, #05080c 100%)" }} />
+        </Cam>
+        <Sfx name="sfx/heartbeat" vol={0.7} />
+        <Sfx at={d * 0.3} name="sfx/steps" vol={0.5} dur={1.5} />
+      </AbsoluteFill>
+    );
+  },
+  // тот же вход: просто метель
+  s25: ({ t, d }) => (
+    <AbsoluteFill>
+      <Cam t={t} z={ease(t, 0, d, 1.35, 1.15)} cy={900} hand={1.5}>
+        <AbsoluteFill style={{ background: "#0b1119" }} />
+        <Svg>
+          <ellipse cx="540" cy="900" rx="330" ry="270" fill="#7f9bb8" stroke={INK} strokeWidth="10" />
+          <ellipse cx="540" cy="980" rx="330" ry="120" fill="#b9cbdc" opacity="0.7" />
+          {Array.from({ length: 40 }, (_, i) => {
+            const ph = (t * 2.4 + i / 40) % 1;
+            return <path key={i} d={`M${210 + ph * 660} ${660 + random(`s25${i}`) * 480} l 40 6`} stroke="#fff" strokeWidth="5" strokeLinecap="round" opacity="0.8" />;
+          })}
+        </Svg>
+        <AbsoluteFill style={{ background: "radial-gradient(40% 30% at 50% 47%, rgba(0,0,0,0) 60%, #05080c 100%)" }} />
+      </Cam>
+      <Sfx name="sfx/gust" vol={0.6} />
+    </AbsoluteFill>
+  ),
+  // темнота: лицо, только пар изо рта
+  s29: ({ t, d }) => (
+    <AbsoluteFill>
+      <Cam t={t} z={ease(t, 0, d, 1.8, 2.2)} cy={840} rot={-2} hand={1.2}>
+        <AbsoluteFill style={{ background: "#1a2738" }} />
+        <Svg>
+          <Bust t={t} emotion="calm" lid={0.55} frost={1} seed="s29" energy={0.1} breath={1.8} />
+          <Breath t={t} x={600} y={1040} s={1.3} />
+        </Svg>
+      </Cam>
+      <AbsoluteFill style={{ background: "#000", opacity: 0.55 }} />
+      <Sfx name="sfx/breath" vol={0.5} />
+    </AbsoluteFill>
+  ),
+  // вылезает и орёт, машет руками вертолёту
+  s32: ({ t, d }) => {
+    const shout = t > d * 0.35;
+    return (
+      <AbsoluteFill>
+        <Cam t={t} z={shout ? 1.9 : 1.3} cy={shout ? 1000 : 1150} hand={shout ? 14 : 4}>
+          <Sky t={t} dawn={0.85} />
+          <Svg>
+            <Burrow x={760} y={1560} s={0.8} />
+            <Heli t={t} x={880 - t * 30} y={330} s={0.45} />
+            <Hero cfg={DIMA} x={460} y={fy(1600, 0.34)} s={0.34} t={t} emotion="fear" arm={218 + Math.sin(t * 14) * 22} look={[18, -20]} frost={0.6} full wind={0.6} />
+          </Svg>
+          <Snow t={t} n={30} opacity={0.6} speed={0.8} wind={0.8} />
+        </Cam>
+        {shout && <Shout t={t - d * 0.35} />}
+        <Sfx name="survival/heli" vol={0.8} />
+      </AbsoluteFill>
+    );
+  },
+  // прожектор вертолёта находит Диму
+  s33: ({ t, d }) => {
+    const on = ease(t, 0.1, 0.6, 0, 1);
+    return (
+      <AbsoluteFill>
+        <Cam t={t} z={ease(t, 0, d, 1.2, 1.4)} cy={1000} hand={5}>
+          <Sky t={t} dawn={0.9} />
+          <Svg>
+            <path d="M560 420 L360 1600 L720 1600 Z" fill="#fff6c8" opacity={0.4 * on} />
+            <ellipse cx="540" cy="1600" rx="200" ry="50" fill="#fff6c8" opacity={0.5 * on} />
+            <Hero cfg={DIMA} x={540} y={fy(1600, 0.3)} s={0.3} t={t} emotion="smile" arm={212 + Math.sin(t * 10) * 15} look={[0, -22]} frost={0.5} full wind={0.8} />
+            <Heli t={t} x={560 + Math.sin(t * 1.2) * 10} y={380} s={0.75} />
+          </Svg>
+          <Snow t={t} n={60} opacity={0.7} speed={1.4} wind={1.4} />
+        </Cam>
+        <NearSnow t={t} wind={1.5} n={9} />
+        <Sfx name="survival/heli" vol={1} />
+      </AbsoluteFill>
+    );
+  },
+};
+
+const SHOTS: Record<string, React.FC<P>> = {
+  s01: OLD.p01, s02: OLD.p02, s03: OLD.p03, s04: NEW.s04, s05: NEW.s05, s06: OLD.p04, s07: NEW.s07,
+  s08: OLD.p05, s09: OLD.p06, s10: NEW.s10, s11: NEW.s11, s12: OLD.p07, s13: OLD.p08, s14: OLD.p09,
+  s15: OLD.p09, s16: OLD.p10, s17: OLD.p11, s18: OLD.p12, s19: NEW.s19, s20: OLD.p13, s21: NEW.s21,
+  s22: OLD.p14, s23: OLD.p15, s24: NEW.s24, s25: NEW.s25, s26: OLD.p16, s27: OLD.p17, s28: OLD.p18,
+  s29: NEW.s29, s30: OLD.p19, s31: OLD.p20, s32: NEW.s32, s33: NEW.s33, s34: OLD.p21, s35: OLD.p22,
+};
+
 // ── сборка ─────────────────────────────────────────────────────────────
 const FPS = 30;
 // весь текст — один монолог (mono.mp3); кадр меняется чуть раньше начала своей фразы
@@ -786,19 +1024,19 @@ const PLAN = (() => {
 export const SURVIVAL_FRAMES = PLAN.reduce((s, p) => s + p.frames, 0);
 
 // температура тела: ключевые точки по кадрам
-const TEMP: [string, number][] = [["p01", 36.6], ["p05", 35.9], ["p08", 35.0], ["p10", 34.6], ["p12", 35.2], ["p13", 34.3], ["p15", 34.8], ["p18", 34.0], ["p19", 33.6], ["p21", 36.4]];
+const TEMP: [string, number][] = [["s01", 36.6], ["s07", 36.0], ["s11", 35.4], ["s13", 34.9], ["s16", 34.5], ["s18", 35.0], ["s20", 34.2], ["s23", 34.7], ["s28", 34.0], ["s30", 33.5], ["s34", 36.4]];
 
 /** Интерфейс в углах, как в примере: красный REC с высотой, отсчёт до рассвета, температура тела. */
 const Hud = () => {
   const f = useCurrentFrame();
   const startOf = (id: string) => PLAN.find((p) => p.id === id)!.start;
   const temp = interpolate(f, TEMP.map(([id]) => startOf(id)), TEMP.map(([, v]) => v), { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const dawnAt = startOf("p20");
+  const dawnAt = startOf("s31");
   const left = interpolate(f, [0, dawnAt], [8 * 3600, 0], { extrapolateRight: "clamp" });
   const hh = String(Math.floor(left / 3600)).padStart(2, "0");
   const mm = String(Math.floor((left % 3600) / 60)).padStart(2, "0");
   const ss = String(Math.floor(left % 60)).padStart(2, "0");
-  const saved = f >= startOf("p21");
+  const saved = f >= startOf("s33");
   const cold = clamp((35 - temp) / 1.4);
   const blink = Math.floor(f / 15) % 2 === 0;
   const tag: React.CSSProperties = { fontFamily: MONT, fontWeight: 800, background: "rgba(0,0,0,.55)", borderRadius: 10, padding: "8px 16px" };
@@ -838,7 +1076,7 @@ const Shot = ({ id, d, v, dur }: { id: string; d: number; v: number; dur: number
 };
 
 export const Survival = () => {
-  const dawnAt = PLAN.find((p) => p.id === "p20")!.start;
+  const dawnAt = PLAN.find((p) => p.id === "s31")!.start;
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <Audio src={staticFile("audio/sfx/wind_strong.mp3")} loop volume={(f) => (f < dawnAt ? 0.3 : Math.max(0.05, 0.3 - (f - dawnAt) / 90))} />
