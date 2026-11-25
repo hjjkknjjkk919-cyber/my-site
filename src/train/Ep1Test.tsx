@@ -6,7 +6,8 @@ import { clamp, ease, Svg, useT } from "../components/fx";
 import { Sfx } from "../components/audio";
 import { LEN, proj, Wagon2, type Cam } from "./Wagon2";
 import { Rake } from "./Rake";
-import { DimaBack2, Face2 } from "./Dima2";
+import { DimaBack2 } from "./Dima2";
+import { Atmos, DimaBack as DimaBackOld, DimaFace as DimaFaceOld } from "./GostOld";
 import { Cracks, CreatureGlass } from "./Creature2";
 
 /** Пробный монтаж v2 (по ревью): крючок → идём за Димой → лицо → вспышки в окне → скример. */
@@ -92,14 +93,18 @@ const Dust = ({ t, l }: { t: number; l: number }) => (
 );
 
 // ── Дима в 3D ─────────────────────────────────────────────────────────
-const dimaActor = (z: number, x: number, t: number, walk: number, turn = 0, dark = 0) => ({
+const dimaActor = (z: number, x: number, t: number, walk: number, _turn = 0, dark = 0) => ({
   z,
   draw: (cam: Cam) => {
     const p = proj(cam, x, 182, z);
     const s = p.k / 20;
     return (
-      <g transform={`translate(${p.x - 540 * s} ${p.y}) scale(${s})`}>
-        <DimaBack2 t={t} walk={walk} turn={turn} dark={dark} />
+      <g transform={`translate(${p.x - 540 * s} ${p.y - 960 * s + Math.abs(Math.sin(walk * Math.PI * 2)) * 6 * s}) scale(${s})`}>
+        {/* тело до пояса, чтобы не обрывалось */}
+        <path d="M-120 1600 C-180 2100 -190 2800 -170 3500 H1250 C1270 2800 1260 2100 1200 1600 Z" fill={dark ? "#141924" : "#2a384a"} stroke="#3b2b26" strokeWidth="8" />
+        <g opacity={dark ? 0.55 : 1}>
+          <DimaBackOld t={t} />
+        </g>
       </g>
     );
   },
@@ -136,27 +141,28 @@ const Follow = () => {
   const turn = ease(t, 3.0, 3.4, 0, 1) - ease(t, 4.2, 4.6, 0, 1);
   return (
     <AbsoluteFill>
-      <Wagon2 cam={cam} t={t} light={L} actors={[dimaActor(z, 0, t, (t * 0.85) % 1, turn)]} />
-      <Dust t={t} l={L} />
+      <Wagon2 cam={cam} t={t} light={0.55} actors={[dimaActor(z, 0, t, (t * 0.85) % 1, turn)]} />
+      <Atmos t={t + 2} />
       <Vig />
     </AbsoluteFill>
   );
 };
 
-/** 2. Лицо крупно: страх, пот, слеза, наезд 100→115%. */
+/** 2. Лицо крупно (дизайн из первого теста): полумрак, луч сверху, пыль. */
 const Face = () => {
   const t = useT();
   const r = ride(t);
   return (
-    <AbsoluteFill style={{ background: "#151b21", transform: `translateY(${r.y}px) rotate(${r.rot}deg) scale(1.03)` }}>
+    <AbsoluteFill style={{ background: "#202a30", transform: `translateY(${r.y}px) rotate(${r.rot}deg) scale(1.04)` }}>
       <Svg>
-        <g transform={`translate(540 960) scale(${ease(t, 0, 3, 1.0, 1.15)}) translate(-540 -900)`}>
-          <Face2 t={t} fear={ease(t, 0, 1.5, 0.6, 1)} eyes={ease(t, 0, 0.8, 1, 1.28)} look={[0.25, -0.2]} mouth="clench" sweat={1} tear={ease(t, 0.2, 2.9, 0, 1)} tremble={1} />
+        <g transform={`translate(540 960) scale(${ease(t, 0, 3.6, 1.05, 1.2)}) translate(-540 -900)`}>
+          <DimaFaceOld t={t} fear={ease(t, 0, 2, 0.5, 1)} eyes={ease(t, 0, 1.2, 0.95, 1.25)} look={[Math.sin(t * 0.7) * 0.3, -0.1]} mouth="clench" sweat={ease(t, 0, 1.5, 0.4, 1)} tears={ease(t, 0.4, 3.4, 0, 1)} tremble={ease(t, 0, 2, 0.3, 1)} />
         </g>
       </Svg>
-      <AbsoluteFill style={{ background: "radial-gradient(70% 45% at 40% 10%, rgba(255,232,190,.28) 0%, rgba(0,0,0,0) 70%)", mixBlendMode: "screen" }} />
-      <AbsoluteFill style={{ background: "linear-gradient(90deg, rgba(8,10,14,0) 45%, rgba(8,10,14,.55) 100%)" }} />
-      <Dust t={t} l={1} />
+      <Svg>
+        <ellipse cx="540" cy="1130" rx={140 + Math.sin(t * 3) * 30} ry={70 + Math.sin(t * 3) * 15} fill="#e3edf3" opacity={0.12 + 0.08 * Math.sin(t * 3)} />
+      </Svg>
+      <Atmos t={t} side={-1} />
       <Vig />
     </AbsoluteFill>
   );
@@ -215,8 +221,8 @@ const Watch = () => {
   const cam: Cam = { x: -25, y: 160, z: LEN - 240, roll: r.rot, pitch: r.y };
   return (
     <AbsoluteFill style={{ transform: `scale(${ease(t, 0, 6, 1.0, 1.3)})`, transformOrigin: "62% 48%" }}>
-      <Wagon2 cam={cam} t={t} light={on ? 0.8 : 0.18} beyond={<Beyond t={t} frame={frame} on={on} />} actors={[dimaActor(LEN - 150, -62, t, 0, 0, 1)]} />
-      <Dust t={t} l={on ? 1 : 0.25} />
+      <Wagon2 cam={cam} t={t} light={on ? 0.55 : 0.12} beyond={<Beyond t={t} frame={frame} on={on} />} actors={[dimaActor(LEN - 150, -62, t, 0, 0, 1)]} />
+      <Atmos t={t + 5} />
       <Vig k={1.1} />
     </AbsoluteFill>
   );
