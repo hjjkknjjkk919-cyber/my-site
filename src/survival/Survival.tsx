@@ -1109,10 +1109,14 @@ const Hud = () => {
 
 const DAWN = new Set(["s31", "s32", "s33", "s34", "s35"]);
 
-const Shot = ({ id, d, v, dur }: { id: string; d: number; v: number; dur: number }) => {
+// слои: world — только картинка (её обрабатывают «шейдеры»), ui — только субтитры и часы на прозрачном фоне
+type Layer = "all" | "world" | "ui";
+
+const Shot = ({ id, d, v, dur, layer }: { id: string; d: number; v: number; dur: number; layer: Layer }) => {
   const t = useT();
   const C = SHOTS[id];
   const vo = VO[id];
+  if (layer === "ui") return <Sub t={t} text={vo.text} from={v} dur={dur} />;
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
       <AbsoluteFill>
@@ -1120,28 +1124,28 @@ const Shot = ({ id, d, v, dur }: { id: string; d: number; v: number; dur: number
       </AbsoluteFill>
       {DAWN.has(id) && <AbsoluteFill style={{ background: "radial-gradient(80% 55% at 72% 30%, rgba(255,170,90,.45) 0%, rgba(255,120,60,.12) 45%, rgba(40,60,120,.18) 100%)", mixBlendMode: "soft-light" }} />}
       <Finish vig={0.8} tint={DAWN.has(id) ? "#7a4a2a" : "#2a5a85"} tintOpacity={0.08} grain={1} bigSnow={false} />
-      <Sub t={t} text={vo.text} from={v} dur={dur} />
+      {layer === "all" && <Sub t={t} text={vo.text} from={v} dur={dur} />}
       {/* вспышка на склейке */}
       <AbsoluteFill style={{ background: "#fff", opacity: clamp(0.12 - t * 1.2) }} />
     </AbsoluteFill>
   );
 };
 
-export const Survival = () => {
+export const Survival = ({ layer = "all" }: { layer?: Layer }) => {
   const dawnAt = PLAN.find((p) => p.id === "s31")!.start;
   return (
-    <AbsoluteFill style={{ background: "#000" }}>
+    <AbsoluteFill style={{ background: layer === "ui" ? "transparent" : "#000" }}>
       <Audio src={staticFile("audio/survival/wind.mp3")} loop volume={(f) => (f < dawnAt ? 0.3 : Math.max(0.05, 0.3 - (f - dawnAt) / 90))} />
       <Audio src={staticFile("audio/music/drone.mp3")} loop volume={(f) => (f < dawnAt ? 0.25 : 0)} />
       {PLAN.map((p) => (
         <Sequence key={p.id} from={p.start} durationInFrames={p.frames}>
-          <Shot id={p.id} d={p.d} v={p.v} dur={p.dur} />
+          <Shot id={p.id} d={p.d} v={p.v} dur={p.dur} layer={layer} />
         </Sequence>
       ))}
       <Sequence from={Math.round(LEAD * FPS)} layout="none">
         <Audio src={staticFile("audio/survival/mono.mp3")} volume={1.2} />
       </Sequence>
-      <Hud />
+      {layer !== "world" && <Hud />}
     </AbsoluteFill>
   );
 };
