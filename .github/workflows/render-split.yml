@@ -1,0 +1,79 @@
+# Параллельный рендер: 8 кусков видео без звука + звук отдельно → склейка в один MP4.
+name: render-split
+on:
+  workflow_dispatch:
+    inputs:
+      composition:
+        description: "Композиция"
+        default: "Ep1"
+        required: true
+      frames:
+        description: "Всего кадров в композиции"
+        default: "2700"
+        required: true
+env:
+  PARTS: 8
+jobs:
+  chunk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: true
+      matrix:
+        part: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2
+      - run: npm ci
+      - name: Render part
+        run: |
+          N=${{ inputs.frames }}
+          P=${{ matrix.part }}
+          S=$(( P * N / PARTS ))
+          E=$(( (P + 1) * N / PARTS - 1 ))
+          echo "frames $S-$E"
+          npx remotion render src/index.ts ${{ inputs.composition }} out/part_$P.mp4 --codec h264 --crf 18 --concurrency=1 --gl=swangle --muted --frames=$S-$E
+      - uses: actions/upload-artifact@v4
+        with:
+          name: part-${{ matrix.part }}
+          path: out/part_${{ matrix.part }}.mp4
+  audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2
+      - run: npm ci
+      - run: npx remotion render src/index.ts ${{ inputs.composition }} out/audio.wav --codec wav --gl=swangle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audio
+          path: out/audio.wav
+  combine:
+    needs: [chunk, audio]
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          path: parts
+      - name: Concat + mux
+        run: |
+          ls -R parts
+          : > list.txt
+          for i in $(seq 0 $((PARTS-1))); do echo "file 'parts/part-$i/part_$i.mp4'" >> list.txt; done
+          ffmpeg -y -f concat -safe 0 -i list.txt -c copy video.mp4
+          ffmpeg -y -i video.mp4 -i parts/audio/audio.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 256k -shortest ${{ inputs.composition }}.mp4
+          ffprobe -v error -show_entries format=duration -of csv=p=0 ${{ inputs.composition }}.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.composition }}
+          path: ${{ inputs.composition }}.mp4
