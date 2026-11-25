@@ -1,6 +1,7 @@
 import { Composition } from "remotion";
 import { Main, TOTAL_FRAMES } from "./Main";
 import { Survival, SURVIVAL_FRAMES } from "./survival/Survival";
+import { ForestTest, FOREST_FRAMES } from "./forest/ForestTest";
 
 // Серия 1 «Улыбка»: длина = сумма сцен (~2:20)
 export const Root = () => (
@@ -11,5 +12,7 @@ export const Root = () => (
     {/* слои для своих «шейдеров»: картинка отдельно, надписи отдельно */}
     <Composition id="SurvivalWorld" component={Survival} defaultProps={{ layer: "world" as const }} width={1080} height={1920} fps={30} durationInFrames={SURVIVAL_FRAMES} />
     <Composition id="SurvivalUI" component={Survival} defaultProps={{ layer: "ui" as const }} width={1080} height={1920} fps={30} durationInFrames={SURVIVAL_FRAMES} />
+    {/* пробные кадры «лес ночью» (2D-рисовка в 3D-пространстве) */}
+    <Composition id="ForestTest" component={ForestTest} width={1080} height={1920} fps={30} durationInFrames={FOREST_FRAMES} />
   </>
 );
