@@ -344,7 +344,7 @@ const SHOTS: Record<string, React.FC<P>> = {
     const drift = clamp(t / d) * 0.6;
     return (
       <AbsoluteFill>
-        <Cam t={t} z={ease(t, 0, d, 1.5, 1.9)} cx={560} cy={1620} rot={-10} hand={7}>
+        <Cam t={t} z={ease(t, 0, d, 1.5, 1.8)} cx={560} cy={1620} rot={-6} hand={7}>
           <Sky t={t} fog={0.3} />
           <Svg>
             <g transform="translate(540 1640) rotate(-90) translate(-540 -1640)">
@@ -352,7 +352,7 @@ const SHOTS: Record<string, React.FC<P>> = {
             </g>
             <path d={`M240 1720 C320 ${1720 - 140 * drift} 760 ${1720 - 170 * drift} 860 1720 Z`} fill="#eef3f7" stroke={INK} strokeWidth="6" />
           </Svg>
-          <Snow t={t} n={150} opacity={0.9} speed={2.6} wind={1.2} />
+          <Snow t={t} n={70} opacity={0.9} speed={2.6} wind={1.2} />
         </Cam>
         <NearSnow t={t} wind={1.4} n={11} />
         <Sfx name="sfx/gust" vol={0.7} />
@@ -663,8 +663,7 @@ const Shot = ({ id, d }: { id: string; d: number }) => {
   const v = VO[id];
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
-      {/* лёгкий красно-синий сдвиг по контурам, как в примере */}
-      <AbsoluteFill style={{ filter: "drop-shadow(5px 0 0 rgba(255,30,60,.35)) drop-shadow(-5px 0 0 rgba(30,160,255,.35))" }}>
+      <AbsoluteFill>
         <C t={t} d={d} v={GAP} />
       </AbsoluteFill>
       <Finish vig={0.8} tint="#2a5a85" tintOpacity={0.08} grain={1} bigSnow={false} />
