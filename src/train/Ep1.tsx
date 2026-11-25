@@ -66,13 +66,13 @@ const Station = () => {
             <path d={`M${-200 - ((t * 140) % 200)} 520 ${Array.from({ length: 14 }, (_, i) => `l60 -${60 + (i % 3) * 30} l60 ${60 + (i % 3) * 30}`).join(" ")} V900 H-200 Z`} fill="#06080b" />
             {/* платформа */}
             <g transform={`translate(${x0} 0)`}>
-              <rect x="0" y="640" width="2400" height="70" fill="#5c6166" />
-              <rect x="0" y="700" width="2400" height="200" fill="#2a2e33" />
+              <rect x="0" y="640" width="2400" height="70" fill="#8a9096" />
+              <rect x="0" y="700" width="2400" height="200" fill="#3d4248" />
               {[0, 1, 2, 3].map((i) => (
                 <g key={i} transform={`translate(${200 + i * 600} 0)`}>
                   <rect x="-8" y="320" width="16" height="320" fill="#3a3f45" />
                   <rect x="-40" y="305" width="80" height="22" rx="6" fill="#3a3f45" />
-                  <ellipse cx="0" cy="340" rx="140" ry="70" fill="#ffd98a" opacity="0.18" />
+                  <ellipse cx="0" cy="560" rx="150" ry="110" fill="#ffd98a" opacity="0.22" />
                   <circle cx="0" cy="330" r="12" fill="#ffe2a0" />
                 </g>
               ))}
@@ -94,8 +94,7 @@ const Station = () => {
         <rect x="120" y="420" width="840" height="900" fill="none" stroke={LINE} strokeWidth="18" rx="20" />
         <rect x="100" y="1320" width="880" height="40" fill="#8b9294" stroke={LINE} strokeWidth="6" />
       </Svg>
-      <Atmos t={t + 3} beam={false} />
-      <Vig />
+      <Vig k={0.7} />
     </AbsoluteFill>
   );
 };
@@ -187,16 +186,21 @@ const Button = () => {
   );
 };
 
-/** Финальный вопрос в комментарии. */
-const Question = () => {
+/** Выбор зрителя: два варианта, голосование в комментариях. */
+const Choice = () => {
   const t = useT();
+  const opt = (n: string, text: string, col: string, d: number) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 28, background: "rgba(20,24,30,.9)", border: `5px solid ${col}`, borderRadius: 24, padding: "26px 36px", width: 820, opacity: ease(t, d, d + 0.2, 0, 1), transform: `translateX(${(1 - ease(t, d, d + 0.25, 0, 1)) * -60}px)` }}>
+      <div style={{ width: 110, height: 110, borderRadius: 55, background: col, color: "#0c0f13", fontSize: 76, display: "flex", alignItems: "center", justifyContent: "center" }}>{n}</div>
+      <div style={{ color: "#fff", fontSize: 64, lineHeight: 1.05 }}>{text}</div>
+    </div>
+  );
   return (
-    <AbsoluteFill style={{ background: "#0a0c0f", alignItems: "center", justifyContent: "center", fontFamily: MONT, fontWeight: 900 }}>
-      <div style={{ textAlign: "center", transform: `scale(${ease(t, 0, 0.3, 0.85, 1)})`, opacity: ease(t, 0, 0.25, 0, 1) }}>
-        <div style={{ color: "#fff", fontSize: 92, lineHeight: 1.05 }}>ТЫ БЫ НАЖАЛ</div>
-        <div style={{ color: "#ff5a1f", fontSize: 92, lineHeight: 1.05 }}>КНОПКУ?</div>
-        <div style={{ marginTop: 50, display: "inline-block", border: "4px solid #f2e6c8", borderRadius: 18, padding: "14px 34px", color: "#f2e6c8", fontSize: 44 }}>пиши в комментариях ↓</div>
-      </div>
+    <AbsoluteFill style={{ background: "#0a0c0f", alignItems: "center", justifyContent: "center", fontFamily: MONT, fontWeight: 900, gap: 44 }}>
+      <div style={{ color: "#f2e6c8", fontSize: 58, letterSpacing: 2, opacity: ease(t, 0, 0.2, 0, 1) }}>ЧТО ДЕЛАТЬ ДИМЕ?</div>
+      {opt("1", "Обернуться", "#ff5a1f", 0.3)}
+      {opt("2", "Не оборачиваться", "#4fa3ff", 0.6)}
+      <div style={{ color: "#9aa7b4", fontSize: 40, marginTop: 10, opacity: ease(t, 1.0, 1.3, 0, 1) }}>пиши 1 или 2 в комментариях ↓</div>
     </AbsoluteFill>
   );
 };
@@ -213,7 +217,7 @@ const S = {
   rule2: [32.3, 38.3],
   button: [38.3, 42.5],
   slam: [42.5, 44.9],
-  question: [44.9, 48.0],
+  question: [44.9, 49.5],
 } as const;
 const fr = (s: number) => Math.round(s * FPS);
 export const EP1_FRAMES = fr(S.question[1]);
@@ -228,7 +232,6 @@ const VO: [string, number, number, string][] = [
   ["e6", 26.6, 4.7, "Вспышка. Пусто. Вспышка… оно *ближе*."],
   ["e7", 32.5, 5.5, "Правило второе. У каждых дверей есть *кнопка* связи с машинистом. Жми."],
   ["e8", 38.9, 3.4, "Треск. Потом голос: не *смотри* на него."],
-  ["e9", 45.1, 2.0, ""],
 ];
 const CUES: Cue[] = [{ from: 0, to: 1.0, text: "В этой электричке ты *не один*" }, ...VO.filter((v) => v[3]).flatMap(([, at, d, tx]) => cuesFor(at, d, tx))];
 
@@ -266,7 +269,7 @@ export const Ep1 = () => {
       {seq("rule2", <Rule2 />)}
       {seq("button", <Button />)}
       {seq("slam", <Slam />)}
-      {seq("question", <Question />)}
+      {seq("question", <Choice />)}
       {t < S.slam[0] && !cards && <Hud />}
       {t < S.slam[0] && <Subs t={t} cues={CUES} />}
     </AbsoluteFill>
