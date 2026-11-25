@@ -9,7 +9,7 @@ import { Beyond, cuesFor, type Cue, Face, flickerOn, Follow, Hook, Hud, MONT, ri
 import { Finger, PovPhone, PovStandWalk, Sleeper } from "./Wake";
 import { lamp, lampDipsIn } from "./lamp";
 import { LEN } from "./Wagon2";
-import { BLINK_STATION, BLINK_WALK, Choice3D, Pov3D, Station3D } from "./Pov3D";
+import { BLINK_STATION, BLINK_WALK, Choice3D, ONC_A, Pov3D, Slam3D, Station3D } from "./Pov3D";
 import { loadFont as loadStencil } from "@remotion/google-fonts/RussoOne";
 const { fontFamily: STENCIL } = loadStencil("normal", { weights: ["400"], subsets: ["latin", "cyrillic"] });
 
@@ -403,13 +403,21 @@ const crackles = [...lampDipsIn(1, 10).map((x) => x + 1), ...lampDipsIn(3, 13).m
 
 // плавные переходы: короткое затемнение (0.3 с в каждую сторону) на стыках сцен;
 // пробуждение→POV уже закрыто веками, удар монстра остаётся резким (это скример)
-const CUTS = [S.station[0], S.rule1[0], S.walk[0], S.rule2[0], S.button[0]];
+const HOOK = 0.8;
+const CUTS = [HOOK, S.station[0], S.rule1[0], S.walk[0], S.rule2[0], S.button[0]];
 const dipAt = (t: number) => {
   let v = 0;
   for (const c of CUTS) v = Math.max(v, 1 - Math.abs(t - c) / 0.3);
   // выход из темноты на панель выбора и плавный уход в конце
   v = Math.max(v, t >= S.choice[0] ? 1 - (t - S.choice[0]) / 0.5 : 0, t > S.choice[1] - 0.6 ? (t - (S.choice[1] - 0.6)) / 0.6 : 0);
   return clamp(v);
+};
+
+// плашки: первые 3.5 с и 1.8 с после каждой склейки, с мягким появлением/уходом
+const hudK = (t: number) => {
+  let v = clamp((3.5 - t) / 0.4);
+  for (const c of CUTS) if (t >= c + 0.2 && t < c + 2.0) v = Math.max(v, clamp((t - c - 0.2) / 0.3) * clamp((c + 2.0 - t) / 0.4));
+  return v;
 };
 
 // низкий рык на вспышках, когда существо уже в тамбуре (со 2.4 с вспышек), не чаще раза в 1.5 с
@@ -447,6 +455,9 @@ export const Ep1 = () => {
         </React.Fragment>
       ))}
       {/* крючок */}
+      {/* крючок */}
+      <Sfx at={0.02} name="train/sting" vol={0.9} dur={0.8} />
+      <Sfx at={0.04} name="train/glass" vol={0.8} dur={0.8} />
       {/* пробуждение */}
       <Sfx at={2.1} name="train/breath" vol={0.3} dur={2.6} />
       <Sfx at={3.4} name="train/rustle" vol={0.6} />
@@ -463,6 +474,9 @@ export const Ep1 = () => {
       <Sfx at={S.walk[0] + 0.5} name="train/rustle" vol={0.5} />
       <Sfx at={S.walk[0] + 1.7} name="train/steps2" vol={0.65} dur={3.6} />
       <Sfx at={S.walk[0] + 5.3} name="train/whoosh" vol={0.45} />
+      {/* ложный скример: грохот встречной электрички, когда Дима оглянулся */}
+      <Sfx at={S.walk[0] + ONC_A - 0.15} name="train/oncoming" vol={1.1} />
+      <Sfx at={S.walk[0] + ONC_A + 0.2} name="train/pass" vol={0.6} />
       <Sfx at={S.walk[0] + 7.3} name="train/whoosh" vol={0.4} />
       <Sfx at={S.walk[0] + 7.9} name="train/steps2" vol={0.55} dur={4.6} />
       {/* у двери: гаснет свет после тишины */}
@@ -484,12 +498,20 @@ export const Ep1 = () => {
       <Sfx at={S.slam[0] + 0.3} name="train/growl" vol={0.8} dur={1.5} />
       <Sfx at={S.slam[0] + 0.5} name="train/claws" vol={0.6} dur={1.3} />
       {/* финальная панель: реле и потрескивание динамика */}
-      {[0.15, 0.6, 1.1, 1.6].map((d, i) => <Sfx key={`r${i}`} at={S.choice[0] + d} name="train/relay" vol={0.8} />)}
+      {[0.15, 0.6, 1.1, 1.6, 2.1].map((d, i) => <Sfx key={`r${i}`} at={S.choice[0] + d} name="train/relay" vol={0.8} />)}
       <Sfx at={S.choice[0] + 0.2} name="train/speaker" vol={0.3} dur={7} />
+      {/* нарастающий низкий гул: с 45 с, обрывается в тишину за 0.4 с до удара в стекло */}
+      <Sequence from={fr(45)} durationInFrames={fr(S.slam[0] - 0.4) - fr(45)}>
+        <Audio src={staticFile("audio/train/infra.mp3")} loop volume={(f) => 0.12 + 0.6 * clamp(f / (fr(S.slam[0] - 0.4) - fr(45)))} />
+      </Sequence>
       {/* голос — всегда поверх */}
       {VO.map(([k, at]) => <Sfx key={k} at={at} name={`train/${k}`} vol={1.25} />)}
       <Sequence from={0} durationInFrames={fr(S.sleep[1])}>
         <Sleeper d={dur("sleep")} lead={S.sleep[0]} />
+      </Sequence>
+      {/* крючок на пересмотр: доля секунды финального 3D-скримера */}
+      <Sequence from={0} durationInFrames={fr(HOOK)}>
+        <Slam3D from={0} />
       </Sequence>
       {seq("pov", <PovPhone d={dur("pov")} />)}
       {seq("station", <Station3D />)}
@@ -500,7 +522,7 @@ export const Ep1 = () => {
       </Sequence>
       {seq("rule2", <Rule2 />)}
       {seq("button", <Button />)}
-      {seq("slam", <Slam />)}
+      {seq("slam", <Slam3D />)}
       {seq("black", <AbsoluteFill style={{ background: "#000" }} />)}
       {seq("choice", <Choice3D font={STENCIL} />)}
       {/* грязно-жёлтый тусклый свет старых ламп — на всём, что в вагоне (3D-проход уже освещён так сам) */}
@@ -511,7 +533,22 @@ export const Ep1 = () => {
         </>
       )}
       {dipAt(t) > 0 && <AbsoluteFill style={{ background: "#000", opacity: dipAt(t) }} />}
-      {!noHud && <Hud />}
+      {/* единое плёночное зерно и виньетка поверх 2D и 3D — склеивают стили */}
+      <AbsoluteFill style={{ mixBlendMode: "overlay", opacity: 0.16, pointerEvents: "none" }}>
+        <svg width="1080" height="1920" viewBox="0 0 1080 1920">
+          <filter id="grain" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed={Math.round(t * FPS) % 12} stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="1080" height="1920" filter="url(#grain)" />
+        </svg>
+      </AbsoluteFill>
+      <AbsoluteFill style={{ background: "radial-gradient(90% 70% at 50% 48%, rgba(0,0,0,0) 60%, rgba(6,4,1,.45) 100%)", pointerEvents: "none" }} />
+      {!noHud && hudK(t) > 0 && (
+        <AbsoluteFill style={{ opacity: hudK(t) }}>
+          <Hud />
+        </AbsoluteFill>
+      )}
       {t < S.slam[0] && <Subs t={t} cues={CUES} />}
     </AbsoluteFill>
   );

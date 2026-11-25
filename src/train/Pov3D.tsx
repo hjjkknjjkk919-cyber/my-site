@@ -5,7 +5,7 @@ import { CreatureGlass } from "./Creature2";
 import { DimaFace } from "./GostOld";
 import { ThreeCanvas } from "@remotion/three";
 import { useThree } from "@react-three/fiber";
-import { SpotLight, Outlines } from "@react-three/drei";
+import { SpotLight, Outlines, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { clamp, ease } from "../components/fx";
 import { lamp } from "./lamp";
@@ -20,6 +20,13 @@ const FPS = 30;
 const W = 1080;
 const H = 1920;
 const FOV = 74;
+const smooth = (x: number) => x * x * (3 - 2 * x);
+/** Стык рельсов: двойной микро-толчок каждые 1.4 с (тележка вагона проходит стык дважды). */
+export const railJolt = (u: number) => {
+  const ph = u % 1.4;
+  const bump = (k: number) => (k > 0 && k < 0.09 ? Math.sin((k / 0.09) * Math.PI) : 0);
+  return bump(ph) + 0.7 * bump(ph - 0.17);
+};
 // грязно-жёлтый свет старых люминесцентных ламп
 // грязно-жёлтый тусклый свет старых люминесцентных ламп
 const LAMP = "#e6c27a";
@@ -35,7 +42,7 @@ const NEXT_Z = -21.1; // задний торец соседнего вагона
 
 /** Лампа «подмигивает» в ключевые моменты: два быстрых провала (≈0.3 с). Под каждый ставится треск. */
 export const BLINK_WALK = [5.75, 7.35]; // разворот назад и обратно (локальное время прохода)
-export const BLINK_STATION = [4.55]; // силуэт в отражении
+export const BLINK_STATION = [7.35]; // силуэт в отражении на «Почти»
 export const blink = (u: number, at: number[]) => {
   for (const b of at) {
     const k = u - b;
@@ -76,7 +83,7 @@ const dist = (u: number) => distTable[Math.min(distTable.length - 1, Math.max(0,
 const TOTAL = dist(T_ARRIVE + 1);
 const Z_END = DOOR_Z + 1.55;
 
-const smooth = (x: number) => x * x * (3 - 2 * x);
+
 
 /** Моменты, когда в соседнем вагоне вспыхивает свет (для отшатывания и дрожи). */
 const flashOnsets = (() => {
@@ -85,7 +92,11 @@ const flashOnsets = (() => {
   return out;
 })();
 
-export type Pose = { x: number; y: number; z: number; yaw: number; pitch: number; roll: number; yawVel: number };
+export type Pose = { x: number; y: number; z: number; yaw: number; pitch: number; roll: number; yawVel: number; fov?: number };
+
+/** Dolly zoom у двери: угол сужается, камера отъезжает так, что дверь остаётся того же размера, а тамбур «наезжает». */
+export const doorFov = (u: number) => (u < 11.5 ? FOV : u < 13 ? FOV + (60 - FOV) * smooth((u - 11.5) / 1.5) : 60 + (44 - 60) * smooth(clamp((u - 13) / 16)));
+const dollyBack = (fov: number) => 1.55 * (Math.tan((FOV * Math.PI) / 360) / Math.tan((fov * Math.PI) / 360) - 1);
 
 export const poseAt = (u: number): Pose => {
   const s = dist(u);
@@ -115,7 +126,7 @@ export const poseAt = (u: number): Pose => {
   let zz = z;
   if (u >= T_WATCH) {
     const w = u - T_WATCH;
-    zz -= ease(w, 0, 9, 0, 0.45);
+
     const last = flashOnsets.filter((o) => o <= w).pop();
     if (last !== undefined) {
       const k = w - last;
@@ -127,10 +138,15 @@ export const poseAt = (u: number): Pose => {
       roll += Math.sin(w * 83) * 1.2 * sh;
     }
   }
+  // dolly zoom + тревожный завал горизонта во время вспышек
+  const fov = doorFov(u);
+  zz += dollyBack(fov);
+  roll += 3.5 * ease(u, T_WATCH - 0.5, T_WATCH + 1.5, 0, 1);
   // лёгкая качка поезда
   roll += Math.sin((u / 1.4) * Math.PI * 2) * 0.35;
-  y += Math.sin(u * 2 * Math.PI / 0.9) * 0.003;
-  return { x, y, z: zz, yaw, pitch, roll: (roll * Math.PI) / 180, yawVel };
+  y += Math.sin(u * 2 * Math.PI / 0.9) * 0.003 - railJolt(u) * 0.006;
+  pitch += railJolt(u) * 0.004;
+  return { x, y, z: zz, yaw, pitch, roll: (roll * Math.PI) / 180, yawVel, fov };
 };
 
 const applyPose = (cam: THREE.PerspectiveCamera, p: Pose) => {
@@ -141,7 +157,7 @@ const applyPose = (cam: THREE.PerspectiveCamera, p: Pose) => {
 
 const CamRig = ({ pose }: { pose: Pose }) => {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
-  camera.fov = FOV;
+  camera.fov = pose.fov ?? FOV;
   camera.near = 0.03;
   camera.far = 60;
   camera.updateProjectionMatrix();
@@ -417,12 +433,13 @@ const Car = ({ z0, m, lights, lampK, pointCount }: { z0: number; m: Mats; lights
               <group key={i}>
                 {[-1, 1].map((f) => (
                   <group key={f}>
-                    <Box p={[sd * 0.93, 0.46, z + f * 0.6]} s={[1.0, 0.1, 0.46]} m={m.seat} ol />
-                    <Box p={[sd * 0.93, 0.22, z + f * 0.62]} s={[0.96, 0.42, 0.3]} m={m.seatDark} />
-                    <mesh position={[sd * 0.93, 0.82, z + f * 0.85]} rotation={[f * 0.12, 0, 0]} castShadow receiveShadow material={m.seat}>
-                      <boxGeometry args={[1.0, 0.68, 0.08]} />
+                    <RoundedBox args={[1.0, 0.13, 0.48]} radius={0.05} smoothness={3} position={[sd * 0.93, 0.47, z + f * 0.6]} castShadow receiveShadow material={m.seat}>
                       <Outlines thickness={OL} color={INK} />
-                    </mesh>
+                    </RoundedBox>
+                    <Box p={[sd * 0.93, 0.22, z + f * 0.62]} s={[0.96, 0.42, 0.3]} m={m.seatDark} />
+                    <RoundedBox args={[1.0, 0.7, 0.11]} radius={0.05} smoothness={3} position={[sd * 0.93, 0.83, z + f * 0.85]} rotation={[f * 0.12, 0, 0]} castShadow receiveShadow material={m.seat}>
+                      <Outlines thickness={OL} color={INK} />
+                    </RoundedBox>
                     {/* поручень на спинке у прохода */}
                     <Box p={[sd * 0.47, 1.2, z + f * 0.87]} s={[0.035, 0.12, 0.035]} m={m.metal} ol />
                   </group>
@@ -434,6 +451,13 @@ const Car = ({ z0, m, lights, lampK, pointCount }: { z0: number; m: Mats; lights
                     <Outlines thickness={OL * 0.6} color={INK} />
                   </mesh>
                 )}
+                {i % 2 === 0 &&
+                  [0.02, 1.93].map((yy) => (
+                    <mesh key={yy} position={[sd * 0.43, yy, z + 0.9]} material={m.metal}>
+                      <cylinderGeometry args={[0.04, 0.045, 0.035, 12]} />
+                      <Outlines thickness={OL * 0.5} color={INK} />
+                    </mesh>
+                  ))}
               </group>
             );
           })}
@@ -449,6 +473,12 @@ const Car = ({ z0, m, lights, lampK, pointCount }: { z0: number; m: Mats; lights
             <boxGeometry args={[0.2, 0.04, 1.3]} />
           </mesh>
           <Box p={[0, 2.59, z]} s={[0.26, 0.02, 1.36]} m={m.frame} cast={false} ol />
+          {/* защитная решётка */}
+          {Array.from({ length: 7 }, (_, k) => (
+            <Box key={k} p={[0, 2.548, z - 0.6 + k * 0.2]} s={[0.24, 0.008, 0.012]} m={m.frame} cast={false} />
+          ))}
+          <Box p={[-0.11, 2.55, z]} s={[0.012, 0.012, 1.3]} m={m.frame} cast={false} />
+          <Box p={[0.11, 2.55, z]} s={[0.012, 0.012, 1.3]} m={m.frame} cast={false} />
           {lights && !dead(i) && (
             <>
               <sprite position={[0, 2.5, z]} scale={[1.5, 1.5, 1]} material={glowMat} />
@@ -500,6 +530,7 @@ const Cone = ({ z, k }: { z: number; k: number }) => {
 
 /** Пылинки: детерминированно от кадра, ярче рядом с лампами. */
 const Dust = ({ u, cz }: { u: number; cz: number }) => {
+  const dustTex = useMemo(() => makeTex("glow"), []);
   const N = 360;
   const geo = useMemo(() => new THREE.BufferGeometry(), []);
   const pos = useMemo(() => new Float32Array(N * 3), []);
@@ -514,7 +545,7 @@ const Dust = ({ u, cz }: { u: number; cz: number }) => {
   geo.attributes.position.needsUpdate = true;
   return (
     <points geometry={geo}>
-      <pointsMaterial color="#ffe2a6" size={0.005} sizeAttenuation transparent opacity={0.4} depthWrite={false} />
+      <pointsMaterial color="#ffe2a6" map={dustTex} size={0.011} sizeAttenuation transparent opacity={0.5} depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
   );
 };
@@ -525,7 +556,75 @@ const Dust = ({ u, cz }: { u: number; cz: number }) => {
  * «Вспышка. Пусто.» — на первой вспышке его ещё нет; дальше он с каждой вспышкой ближе.
  */
 const MON_FROM = 2.4; // с начала вспышек (≈58.4)
-const Tambour = ({ u, monster, m }: { u: number; monster: THREE.Texture | null; m: Mats }) => {
+/** Трещины и тёмная кровь на стекле (canvas). */
+const makeCracks = () => {
+  const S = 512;
+  const c = document.createElement("canvas");
+  c.width = S;
+  c.height = Math.round(S * (0.85 / 0.6));
+  const g = c.getContext("2d")!;
+  const cx = S * 0.5;
+  const cy = c.height * 0.38;
+  g.strokeStyle = "rgba(235,230,215,.85)";
+  g.lineCap = "round";
+  for (let i = 0; i < 16; i++) {
+    let a = (i / 16) * Math.PI * 2 + rnd(i + 1500) * 0.3;
+    let x = cx;
+    let y = cy;
+    g.lineWidth = 2.2;
+    g.beginPath();
+    g.moveTo(x, y);
+    const n = 5 + Math.floor(rnd(i + 1501) * 4);
+    for (let k = 0; k < n; k++) {
+      a += (rnd(i * 10 + k + 1502) - 0.5) * 0.6;
+      const len = 18 + rnd(i * 10 + k + 1503) * 40;
+      x += Math.cos(a) * len;
+      y += Math.sin(a) * len;
+      g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+  for (const r of [26, 54, 90]) {
+    g.lineWidth = 1.4;
+    g.beginPath();
+    for (let k = 0; k <= 18; k++) {
+      const a = (k / 18) * Math.PI * 2;
+      const rr = r * (0.85 + rnd(r + k + 1600) * 0.3);
+      const px = cx + Math.cos(a) * rr;
+      const py = cy + Math.sin(a) * rr;
+      if (k === 0) g.moveTo(px, py);
+      else g.lineTo(px, py);
+    }
+    g.stroke();
+  }
+  // тёмная кровь: мазки и потёки вниз
+  g.strokeStyle = "rgba(60,8,10,.85)";
+  for (let i = 0; i < 6; i++) {
+    const x = cx - 150 + i * 60 + rnd(i + 1700) * 20;
+    g.lineWidth = 8 + rnd(i + 1701) * 8;
+    g.beginPath();
+    g.moveTo(x, cy - 40 + rnd(i + 1702) * 60);
+    g.bezierCurveTo(x + 6, cy + 80, x - 6, cy + 180, x + 4, cy + 230 + rnd(i + 1703) * 120);
+    g.stroke();
+  }
+  g.fillStyle = "rgba(55,6,8,.7)";
+  g.beginPath();
+  g.ellipse(cx + 20, cy + 10, 50, 30, 0.3, 0, Math.PI * 2);
+  g.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+};
+
+// зрачки основных глаз в координатах плоскости монстра (1.65×2.93) — для крошечного блика в темноте
+const PUPILS: [number, number][] = [
+  [-0.2166, 0.4816],
+  [0.0102, 0.4993],
+];
+
+const Tambour = ({ u, monster, m, slam }: { u: number; monster: THREE.Texture | null; m: Mats; slam?: number }) => {
+  const crackTex = useMemo(() => makeCracks(), []);
+  const glint = useMemo(() => new THREE.SpriteMaterial({ map: makeTex("glow"), color: "#ffe9b8", blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }), []);
   const glassTex = useMemo(() => makeDirtyGlass(), []);
   const mat = useMemo(() => new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.01, roughness: 0.85, color: "#8f8574" }), []);
   if (monster && mat.map !== monster) {
@@ -534,15 +633,19 @@ const Tambour = ({ u, monster, m }: { u: number; monster: THREE.Texture | null; 
   }
   const w = u - T_WATCH;
   const watchF = Math.round(w * FPS);
-  const flash = u >= T_WATCH && flickerOn(watchF);
-  const seen = u >= T_WATCH + MON_FROM;
+  const flash = slam !== undefined ? true : u >= T_WATCH && flickerOn(watchF);
+  const seen = slam !== undefined || u >= T_WATCH + MON_FROM;
   // приближение толчками: каждая следующая вспышка — ближе
   const k = clamp((w - MON_FROM) / 6);
   const step = Math.floor(k * 3) / 3;
-  const mz = DOOR_Z - 0.95 + step * 0.62;
-  const jerk = flash && watchF % 6 < 2 ? 0.015 : 0;
+  // скример: рывок из глубины тамбура в стекло за 2 кадра, потом медленно сползает
+  const hit = slam !== undefined ? smooth(clamp(slam / 0.07)) : 0;
+  const mz = slam !== undefined ? DOOR_Z - 0.6 + hit * 0.5 : DOOR_Z - 0.95 + step * 0.62;
+  const slideY = slam !== undefined ? -ease(slam, 0.1, 0.7, 0, 0.06) : 0;
+  const jerk = slam !== undefined ? Math.sin(slam * 90) * 0.01 * Math.exp(-slam * 6) : flash && watchF % 6 < 2 ? 0.015 : 0;
+  const crack = slam !== undefined ? clamp((slam - 0.06) / 0.12) : 0;
   // свет вспышки: 3D-источник в тамбуре сверху, и контровой из соседнего вагона
-  const fl = flash ? 1 : 0;
+  const fl = slam !== undefined ? 2.2 + 4 * Math.exp(-slam * 6) : flash ? 1 : 0;
   mat.color.set(flash ? "#a89c84" : "#0b0a08"); // без вспышки — тонет в черноте тамбура
   // контур-«контровой свет»: чуть увеличенная копия силуэта позади, светится только на вспышке
   const rim = useMemo(() => new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.2, color: "#f0d08e", depthWrite: false }), []);
@@ -551,6 +654,7 @@ const Tambour = ({ u, monster, m }: { u: number; monster: THREE.Texture | null; 
     rim.needsUpdate = true;
   }
   rim.opacity = flash ? 0.85 : 0;
+  glint.opacity = flash ? 0.9 : 0.55;
   return (
     <group>
       {/* грязное стекло нашей двери */}
@@ -564,32 +668,99 @@ const Tambour = ({ u, monster, m }: { u: number; monster: THREE.Texture | null; 
         <meshBasicMaterial color="#f3d58e" transparent opacity={0.035} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       {seen && monster && (
-        <group position={[-0.15 + jerk, 1.1, mz]} rotation={[0, 0, -0.05]}>
+        <group position={[-0.15 + jerk, 1.1 + slideY, mz]} rotation={[0, 0, -0.05 + (slam !== undefined ? ease(slam, 0.6, 1.3, 0, -0.18) : 0)]}>
           <mesh material={mat}>
             <planeGeometry args={[1.65, 2.93]} />
           </mesh>
           <mesh position={[0.005, 0.02, -0.03]} scale={[1.022, 1.014, 1]} material={rim}>
             <planeGeometry args={[1.65, 2.93]} />
           </mesh>
+          {/* крошечный блик в зрачках: виден даже в темноте */}
+          {PUPILS.map(([px, py], i) => (
+            <sprite key={i} position={[px, py, 0.01]} scale={[0.035, 0.035, 1]} material={glint} />
+          ))}
         </group>
       )}
       <pointLight position={[0.1, 2.3, mz - 0.45]} color={LAMP} intensity={fl * 3.2} distance={2.6} decay={2} />
       <pointLight position={[0.2, 2.35, mz + 0.3]} color={LAMP} intensity={fl * 0.9} distance={1.6} decay={2} />
       <pointLight position={[0, 1.8, NEXT_Z - 0.6]} color={LAMP} intensity={fl * 1.6} distance={3} decay={2} />
+      {/* трещины и кровь на стекле в момент удара */}
+      {crack > 0 && (
+        <mesh position={[0, 1.425, DOOR_Z + 0.045]}>
+          <planeGeometry args={[0.6, 0.85]} />
+          <meshStandardMaterial map={crackTex} transparent opacity={crack} roughness={0.4} depthWrite={false} />
+        </mesh>
+      )}
       {/* лёгкий свет нашего вагона на стекле, чтобы оно читалось */}
       <pointLight position={[0, 1.9, DOOR_Z + 0.6]} color={LAMP} intensity={0.25} distance={1.2} decay={2} />
     </group>
   );
 };
 
-const Scene = ({ u, pose, post, monster }: { u: number; pose: Pose; post: boolean; monster: THREE.Texture | null }) => {
+const Straps = ({ u, m, moving }: { u: number; m: Mats; moving: number }) => {
+  const strap = useMemo(() => new THREE.MeshStandardMaterial({ color: "#2a2622", roughness: 0.7 }), []);
+  return (
+    <group>
+      {[-0.32, 0.32].map((x) => (
+        <group key={x}>
+          <Box p={[x, 2.12, -CAR_L / 2]} s={[0.022, 0.022, CAR_L - 0.4]} m={m.metal} cast={false} ol />
+          {Array.from({ length: 21 }, (_, i) => {
+            const z = -0.6 - i * 0.9;
+            const sw = Math.sin(u * 1.9 + i * 0.7 + x * 3) * 0.1 + Math.sin(u * 4.4 + i) * 0.05 * moving;
+            return (
+              <group key={i} position={[x, 2.11, z]} rotation={[sw, 0, sw * 0.4]}>
+                <mesh position={[0, -0.12, 0]} material={strap} castShadow>
+                  <boxGeometry args={[0.032, 0.22, 0.008]} />
+                </mesh>
+                <mesh position={[0, -0.28, 0]} rotation={[0, Math.PI / 2, 0]} material={strap} castShadow>
+                  <torusGeometry args={[0.055, 0.011, 8, 20]} />
+                  <Outlines thickness={OL * 0.5} color={INK} />
+                </mesh>
+              </group>
+            );
+          })}
+        </group>
+      ))}
+    </group>
+  );
+};
+
+/** Ложный скример: навстречу по соседнему пути с грохотом проносится освещённая электричка (огни бегут по вагону). */
+export const ONC_A = 6.35;
+const OncomingTrain = ({ u, camZ }: { u: number; camZ: number }) => {
+  const mats = useMemo(
+    () => ({
+      body: new THREE.MeshStandardMaterial({ color: "#3a3f3a", roughness: 0.6, metalness: 0.3 }),
+      win: new THREE.MeshStandardMaterial({ color: "#ffe3a8", emissive: new THREE.Color("#ffc870"), emissiveIntensity: 2.4 }),
+    }),
+    [],
+  );
+  const k = u - ONC_A;
+  if (k < -0.2 || k > 1.8) return null;
+  const L = 70;
+  const zc = camZ - 5 - L / 2 + 55 * k; // скорость сближения 55 м/с: голова поезда у камеры через 0.1 с
+  const near = Math.abs(zc - camZ) < L / 2 + 4;
+  const strobe = near ? 0.55 + 0.45 * Math.sign(Math.sin((camZ - zc) * 3.4)) : 0;
+  return (
+    <group>
+      <Box p={[3.6, 1.3, zc]} s={[0.4, 3.0, L]} m={mats.body} cast={false} />
+      {Array.from({ length: 36 }, (_, i) => (
+        <Box key={i} p={[3.38, 1.45, zc - L / 2 + 1 + i * 1.92]} s={[0.04, 0.7, 1.3]} m={mats.win} cast={false} />
+      ))}
+      <pointLight position={[2.2, 1.5, camZ - 0.5]} color="#ffcf7a" intensity={strobe * 5} distance={5} decay={2} />
+      <pointLight position={[2.2, 1.5, camZ + 2.5]} color="#ffcf7a" intensity={strobe * 3} distance={4} decay={2} />
+    </group>
+  );
+};
+
+const Scene = ({ u, pose, post, monster, slam }: { u: number; pose: Pose; post: boolean; monster: THREE.Texture | null; slam?: number }) => {
   const m = useMats();
   const frame = Math.round((u - T_WATCH) * FPS);
   const watch = u >= T_WATCH;
   const flash = watch && flickerOn(frame);
   // наш вагон: мигание неисправной лампы; во время вспышек в соседнем — наш свет проседает
-  const ourK = (u < T_LIGHTS_OFF ? 1 : watch ? (flash ? 0.75 : 0.42) : 0.7) * lamp(u + 6) * blink(u, BLINK_WALK);
-  const nextOn = u < T_LIGHTS_OFF ? true : watch ? flash : false;
+  const ourK = slam !== undefined ? 0.3 + 0.7 * Math.exp(-slam * 3) : (u < T_LIGHTS_OFF ? 1 : watch ? (flash ? 0.75 : 0.42) : 0.7) * lamp(u + 6) * blink(u, BLINK_WALK);
+  const nextOn = slam !== undefined ? slam < 0.25 : u < T_LIGHTS_OFF ? true : watch ? flash : false;
   const nextK = 0.9 * lamp(u + 20);
   return (
     <>
@@ -617,7 +788,9 @@ const Scene = ({ u, pose, post, monster }: { u: number; pose: Pose; post: boolea
         <Cone key={z} z={z} k={ourK} />
       ))}
       <Dust u={u} cz={pose.z} />
-      <Tambour u={u} monster={monster} m={m} />
+      <Straps u={u} m={m} moving={clamp(speedAt(u) / SPEED)} />
+      <OncomingTrain u={u} camZ={pose.z} />
+      <Tambour u={u} monster={monster} m={m} slam={slam} />
     </>
   );
 };
@@ -652,7 +825,7 @@ export const Pov3D = ({ post = true }: { post?: boolean }) => {
         </filter>
       </svg>
       <AbsoluteFill style={{ filter: blur > 0.5 ? "url(#povmb)" : undefined }}>
-        <ThreeCanvas width={W} height={H} shadows dpr={1} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05, preserveDrawingBuffer: true }}>
+        <ThreeCanvas width={W} height={H} shadows="soft" dpr={1.5} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05, preserveDrawingBuffer: true }}>
           <Scene u={u} pose={pose} post={post} monster={monster} />
         </ThreeCanvas>
       </AbsoluteFill>
@@ -670,8 +843,8 @@ export const Pov3D = ({ post = true }: { post?: boolean }) => {
 const V_OUT = 17; // м/с — скорость, с которой мимо летит станция
 const PLAT_L = 84;
 const ST_IN = 0.6; // когда передний край платформы входит в кадр
-const SIL_A = 4.6; // силуэт в отражении (00:25.6–00:26.1, «В стекле… только ты. Почти»)
-const SIL_B = 5.1;
+const SIL_A = 7.4; // силуэт в отражении — на слове «Почти» (00:28.56)
+const SIL_B = 7.95;
 
 // сидит у окна, смотрит вперёд-влево вдоль стекла: станция «налетает» спереди
 const ST_YAW = Math.PI / 2 - 0.5;
@@ -685,7 +858,7 @@ const stationPose = (u: number): Pose => {
   const roll = Math.sin((u / 1.4) * Math.PI * 2) * 0.45 + (u % 0.9 < 0.09 ? Math.sin(((u % 0.9) / 0.09) * Math.PI) * 0.25 : 0);
   return {
     x: ST_X - push * 0.08,
-    y: 1.2 + Math.sin(u * 1.7) * 0.004,
+    y: 1.2 + Math.sin(u * 1.7) * 0.004 - railJolt(u) * 0.006,
     z: z0,
     yaw: ST_YAW + Math.sin(u * 0.6) * 0.015 + push * 0.12,
     pitch: -0.08,
@@ -696,31 +869,58 @@ const stationPose = (u: number): Pose => {
 
 /** Силуэт для отражения: высокая бледная фигура (рисуется в canvas). */
 const makeSilhouette = () => {
+  const Wc = 256;
+  const Hc = 640;
   const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 640;
+  c.width = Wc;
+  c.height = Hc;
   const g = c.getContext("2d")!;
-  const body = (col: string, grow: number) => {
-    g.fillStyle = col;
+  const shape = () => {
     g.beginPath();
-    g.ellipse(128, 80, 40 + grow, 52 + grow, 0, 0, Math.PI * 2);
-    g.fill();
-    g.beginPath();
-    g.moveTo(96 - grow, 130);
-    g.bezierCurveTo(78 - grow, 260, 84 - grow, 460, 96 - grow, 640);
-    g.lineTo(160 + grow, 640);
-    g.bezierCurveTo(172 + grow, 460, 178 + grow, 260, 160 + grow, 130);
+    // вытянутая голова, наклонена вперёд
+    g.ellipse(120, 82, 30, 50, -0.18, 0, Math.PI * 2);
+    g.moveTo(94, 128);
+    // сутулые узкие плечи, длинное тело, руки до колен
+    g.bezierCurveTo(60, 150, 52, 200, 58, 300);
+    g.bezierCurveTo(54, 380, 50, 460, 56, 520);
+    g.lineTo(74, 520);
+    g.bezierCurveTo(76, 440, 80, 360, 86, 300);
+    g.lineTo(92, 640);
+    g.lineTo(164, 640);
+    g.lineTo(170, 300);
+    g.bezierCurveTo(176, 360, 180, 440, 182, 520);
+    g.lineTo(200, 520);
+    g.bezierCurveTo(206, 460, 202, 380, 198, 300);
+    g.bezierCurveTo(204, 200, 196, 150, 150, 124);
     g.closePath();
-    g.fill();
-    g.fillRect(68 - grow, 150, 16 + grow * 2, 380);
-    g.fillRect(172 - grow, 150, 16 + grow * 2, 380);
   };
-  body("rgba(214,196,150,.55)", 4); // бледная кромка — отсвет станции
-  body("#070605", 0); // сам силуэт тёмный
-  g.fillStyle = "#e9dcb6";
+  g.filter = "blur(5px)";
+  g.fillStyle = "rgba(225,205,160,.6)";
+  shape();
+  g.fill();
+  g.filter = "blur(2px)";
+  g.fillStyle = "#060504";
+  g.save();
+  g.translate(Wc / 2, Hc / 2);
+  g.scale(0.97, 0.985);
+  g.translate(-Wc / 2, -Hc / 2);
+  shape();
+  g.fill();
+  g.restore();
+  g.filter = "none";
+  // ноги растворяются в темноте — без обрезанного низа
+  g.globalCompositeOperation = "destination-in";
+  const fade = g.createLinearGradient(0, 0, 0, Hc);
+  fade.addColorStop(0, "rgba(0,0,0,1)");
+  fade.addColorStop(0.45, "rgba(0,0,0,1)");
+  fade.addColorStop(0.8, "rgba(0,0,0,0)");
+  g.fillStyle = fade;
+  g.fillRect(0, 0, Wc, Hc);
+  g.globalCompositeOperation = "source-over";
+  g.fillStyle = "rgba(240,225,185,.9)";
   g.beginPath();
-  g.arc(114, 78, 6, 0, Math.PI * 2);
-  g.arc(142, 78, 6, 0, Math.PI * 2);
+  g.arc(110, 80, 3.5, 0, Math.PI * 2);
+  g.arc(132, 78, 3.5, 0, Math.PI * 2);
   g.fill();
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
@@ -742,6 +942,8 @@ const Outside = ({ u, camZ, m }: { u: number; camZ: number; m: Mats }) => {
       ground: new THREE.MeshStandardMaterial({ color: "#0c0d0b", roughness: 1 }),
       tree: new THREE.MeshStandardMaterial({ color: "#070907", roughness: 1 }),
       glow: new THREE.SpriteMaterial({ map: makeTex("glow"), color: "#ffcf7a", blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }),
+      bench: new THREE.MeshStandardMaterial({ color: "#6b4a30", roughness: 0.8, map: makeTex("grime", 1, 1) }),
+      bin: new THREE.MeshStandardMaterial({ color: "#3d4a3e", roughness: 0.6, metalness: 0.3 }),
     }),
     [],
   );
@@ -794,6 +996,33 @@ const Outside = ({ u, camZ, m }: { u: number; camZ: number; m: Mats }) => {
           <pointLight position={[-2.4, 3.1, z]} color="#ffcf7a" intensity={Math.abs(z - camZ) < 18 ? 26 : 0} distance={18} decay={2} />
         </group>
       ))}
+      {/* навес на колоннах, лавки, урны */}
+      <Box p={[-4.4, 3.75, pc]} s={[4.6, 0.12, PLAT_L - 4]} m={mats.pole} cast={false} ol />
+      {Array.from({ length: 9 }, (_, i) => {
+        const z = pc - PLAT_L / 2 + 6 + i * 9.2;
+        return (
+          <group key={i}>
+            <mesh position={[-4.6, 2.0, z]} material={mats.wall}>
+              <cylinderGeometry args={[0.16, 0.18, 3.5, 12]} />
+              <Outlines thickness={OL} color={INK} />
+            </mesh>
+            {i % 2 === 0 && (
+              <group position={[-3.9, 0.32, z + 3]}>
+                <Box p={[0, 0.42, 0]} s={[0.42, 0.06, 1.8]} m={mats.bench} cast={false} ol />
+                <Box p={[-0.2, 0.72, 0]} s={[0.06, 0.5, 1.8]} m={mats.bench} cast={false} ol />
+                <Box p={[0, 0.2, -0.75]} s={[0.36, 0.4, 0.06]} m={mats.pole} cast={false} />
+                <Box p={[0, 0.2, 0.75]} s={[0.36, 0.4, 0.06]} m={mats.pole} cast={false} />
+              </group>
+            )}
+            {i % 2 === 1 && (
+              <mesh position={[-3.7, 0.66, z + 1.2]} material={mats.bin}>
+                <cylinderGeometry args={[0.2, 0.17, 0.7, 12]} />
+                <Outlines thickness={OL} color={INK} />
+              </mesh>
+            )}
+          </group>
+        );
+      })}
       {/* табличка без названия */}
       <group position={[-2.8, 0, pc + 6]}>
         <mesh position={[0, 0.9, -1.0]} material={mats.pole}>
@@ -844,7 +1073,8 @@ const StationBeam = ({ z, k, camZ }: { z: number; k: number; camZ: number }) => 
 const StationScene = ({ u, pose, dima, sil }: { u: number; pose: Pose; dima: THREE.Texture | null; sil: THREE.Texture }) => {
   const m = useMats();
   const ourK = lamp(u + 14) * blink(u, BLINK_STATION);
-  const dark = 1 - clamp((u - 4.2) / 0.8) * 0 - (u > ST_IN && u < 4.6 ? 0.45 : 0); // на фоне освещённой платформы отражение слабее
+  const dark = 1 - (u > ST_IN && u < 5.6 ? 0.45 : 0);
+  const silK = u > SIL_A && u < SIL_B ? Math.min(1, Math.sin(((u - SIL_A) / (SIL_B - SIL_A)) * Math.PI) * 1.6) : 0; // на фоне освещённой платформы отражение слабее
   const gx = GX;
   return (
     <>
@@ -865,6 +1095,19 @@ const StationScene = ({ u, pose, dima, sil }: { u: number; pose: Pose; dima: THR
           <meshBasicMaterial map={dima} transparent opacity={0.075 * dark} blending={THREE.AdditiveBlending} depthWrite={false} fog={false} />
         </mesh>
       )}
+      {silK > 0 && (
+        <mesh position={[gx + 0.003, 1.36, ST_FACE_Z + 0.24]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[0.2, 0.5]} />
+          <meshBasicMaterial map={sil} transparent opacity={0.92 * silK} depthWrite={false} fog={false} />
+        </mesh>
+      )}
+      {/* блики на стёклах окон */}
+      {[ST_FACE_Z + 0.35, ST_FACE_Z - 0.3].map((z, i) => (
+        <mesh key={i} position={[gx + 0.004, 1.42, z]} rotation={[0, Math.PI / 2, 0.5]}>
+          <planeGeometry args={[0.03 + i * 0.02, 0.9]} />
+          <meshBasicMaterial color="#f3d58e" transparent opacity={0.05} blending={THREE.AdditiveBlending} depthWrite={false} fog={false} />
+        </mesh>
+      ))}
       <Dust u={u} cz={pose.z} />
     </>
   );
@@ -878,7 +1121,7 @@ export const Station3D = () => {
   const sil = useMemo(() => makeSilhouette(), []);
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <ThreeCanvas width={W} height={H} shadows dpr={1} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.4, preserveDrawingBuffer: true }}>
+      <ThreeCanvas width={W} height={H} shadows="soft" dpr={1.5} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.4, preserveDrawingBuffer: true }}>
         <StationScene u={u} pose={pose} dima={dima} sil={sil} />
       </ThreeCanvas>
       <AbsoluteFill style={{ background: "radial-gradient(80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(8,6,2,.78) 100%)" }} />
@@ -895,7 +1138,7 @@ const PH = 0.88;
 const CW = 1024; // разрешение текстуры лицевой стороны (по ширине)
 const CH = Math.round((CW * PH) / PW);
 
-type ChoiceTex = { face: THREE.Texture; header: THREE.Texture; row1: THREE.Texture; row2: THREE.Texture; footer: THREE.Texture };
+type ChoiceTex = { face: THREE.Texture; header: THREE.Texture; row1: THREE.Texture; row2: THREE.Texture; footer: THREE.Texture; note: THREE.Texture };
 
 const fitText = (g: CanvasRenderingContext2D, text: string, font: string, size: number, maxW: number) => {
   let s = size;
@@ -1010,7 +1253,16 @@ const useChoiceTextures = (font: string) => {
           g.textBaseline = "middle";
           g.fillText("ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ", 512, 60);
         });
-        setTex({ face, header, row1: row("1 — НАЖАТЬ КНОПКУ СВЯЗИ"), row2: row("2 — БЕЖАТЬ ОБРАТНО В ВАГОН"), footer });
+        const note = textTex(1024, 90, (g) => {
+          const t = "ПРОДОЛЖЕНИЕ СНИМЕМ ПО ВЫБОРУ БОЛЬШИНСТВА";
+          const s2 = fitText(g, t, F, 40, 840);
+          g.font = `${s2}px ${F}`;
+          g.fillStyle = "#8f8a7c";
+          g.textAlign = "center";
+          g.textBaseline = "middle";
+          g.fillText(t, 512, 45);
+        });
+        setTex({ face, header, row1: row("1 — НАЖАТЬ КНОПКУ СВЯЗИ"), row2: row("2 — БЕЖАТЬ ОБРАТНО В ВАГОН"), footer, note });
         continueRender(handle);
       });
   }, [font, handle]);
@@ -1091,14 +1343,15 @@ const ChoiceScene = ({ u, tex }: { u: number; tex: ChoiceTex | null }) => {
           <Outlines thickness={OL * 0.5} color={INK} />
         </mesh>
       ))}
-      {plane(tex?.header, 0.8, 0.8 * (180 / 1024), rowY(0.17), on(0.15), 0.15)}
-      {plane(tex?.row1, 0.8, 0.8 * (170 / 1024), rowY(0.43), on(0.6), 0.08)}
-      {plane(tex?.row2, 0.8, 0.8 * (170 / 1024), rowY(0.65), on(1.1), 0.08)}
-      {plane(tex?.footer, 0.8, 0.8 * (120 / 1024), rowY(0.86), on(1.6), 0.05)}
+      {plane(tex?.header, 0.8, 0.8 * (180 / 1024), rowY(0.16), on(0.15), 0.15)}
+      {plane(tex?.row1, 0.8, 0.8 * (170 / 1024), rowY(0.39), on(0.6), 0.08)}
+      {plane(tex?.row2, 0.8, 0.8 * (170 / 1024), rowY(0.59), on(1.1), 0.08)}
+      {plane(tex?.footer, 0.8, 0.8 * (120 / 1024), rowY(0.78), on(1.6), 0.05)}
+      {plane(tex?.note, 0.74, 0.74 * (90 / 1024), rowY(0.88), on(2.1), 0.03)}
       {/* индикаторы: красный мигает, янтарный тлеет */}
       {[
-        { y: rowY(0.43), d: 0.6, c: "#ff2a22", k: ledRed },
-        { y: rowY(0.65), d: 1.1, c: "#ffb54a", k: ledAmb },
+        { y: rowY(0.39), d: 0.6, c: "#ff2a22", k: ledRed },
+        { y: rowY(0.59), d: 1.1, c: "#ffb54a", k: ledAmb },
       ].map((l, i) =>
         on(l.d) ? (
           <group key={i} position={[-0.4 + 0.07, l.y, fz + 0.012]}>
@@ -1154,9 +1407,46 @@ export const Choice3D = ({ font }: { font: string }) => {
   const tex = useChoiceTextures(font);
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <ThreeCanvas width={W} height={H} shadows dpr={1} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15, preserveDrawingBuffer: true }}>
+      <ThreeCanvas width={W} height={H} shadows="soft" dpr={1.5} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15, preserveDrawingBuffer: true }}>
         <ChoiceScene u={u} tex={tex} />
       </ThreeCanvas>
+      <AbsoluteFill style={{ background: "radial-gradient(80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(8,6,2,.8) 100%)" }} />
+    </AbsoluteFill>
+  );
+};
+
+// ═════════════════════════════════════════════════════════════════════
+// 01:19.4 — скример в том же 3D-тамбуре: монстр бьётся в стекло, трещины и кровь, камера отшатывается с тряской.
+// Микро-фрагмент того же кадра — крючок в самом начале серии (from > 0).
+// ═════════════════════════════════════════════════════════════════════
+export const slamPose = (st: number): Pose => {
+  const base = poseAt(T_WATCH + 9.95);
+  const rec = (1 - Math.exp(-st * 25)) * Math.exp(-st * 1.6) * 0.32;
+  const sh = Math.exp(-st * 4);
+  return {
+    ...base,
+    x: base.x + Math.sin(st * 71) * 0.03 * sh,
+    y: base.y + Math.sin(st * 97) * 0.025 * sh - rec * 0.1,
+    z: base.z + rec,
+    roll: base.roll + (Math.sin(st * 53) * 3 * sh * Math.PI) / 180,
+    pitch: base.pitch + rec * 0.15,
+  };
+};
+
+export const Slam3D = ({ from = 0, rate = 1 }: { from?: number; rate?: number }) => {
+  const monster = useMonsterTexture();
+  const frame = useCurrentFrame();
+  const st = from + (frame / FPS) * rate;
+  const black = st > 2.1;
+  const whiteF = st < 0.1 ? 0.75 * (1 - st / 0.1) : 0;
+  return (
+    <AbsoluteFill style={{ background: "#000" }}>
+      {!black && (
+        <ThreeCanvas width={W} height={H} shadows="soft" dpr={1.5} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05, preserveDrawingBuffer: true }}>
+          <Scene u={T_WATCH + 9.95 + st} pose={slamPose(st)} post={false} monster={monster} slam={st} />
+        </ThreeCanvas>
+      )}
+      {whiteF > 0 && <AbsoluteFill style={{ background: "#f4e6c4", opacity: whiteF }} />}
       <AbsoluteFill style={{ background: "radial-gradient(80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(8,6,2,.8) 100%)" }} />
     </AbsoluteFill>
   );

@@ -102,6 +102,12 @@ export const CreatureGlass = ({ t, open = 1, tilt = 0, slide = 0, bare = false }
           <stop offset="0.7" stopColor={SH} />
           <stop offset="1" stopColor="#4f483c" />
         </linearGradient>
+        <radialGradient id="cgSock" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stopColor="#120c0a" stopOpacity="1" />
+          <stop offset="0.45" stopColor="#1d1512" stopOpacity="0.95" />
+          <stop offset="0.75" stopColor="#2e2620" stopOpacity="0.5" />
+          <stop offset="1" stopColor="#3a3128" stopOpacity="0" />
+        </radialGradient>
         <linearGradient id="cgChest" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={SH} />
           <stop offset="1" stopColor="#5e574a" />
@@ -144,8 +150,8 @@ export const CreatureGlass = ({ t, open = 1, tilt = 0, slide = 0, bare = false }
           const sx = i ? -1 : 1; // внутренний край к переносице
           return (
             <g key={cx}>
-              <ellipse cx={cx} cy={685 + i * 8} rx="72" ry="66" fill="#2e2620" opacity="0.92" />
-              <ellipse cx={cx} cy={685 + i * 8} rx="54" ry="46" fill="#1a1411" />
+              {/* глазница с мягким краем (градиент), без чётких «кругов панды» */}
+              <ellipse cx={cx} cy={685 + i * 8} rx="88" ry="80" fill="url(#cgSock)" />
               <ellipse cx={cx + sx * 4} cy={692 + i * 8} rx={26 - i * 3} ry={15 + i * 2} fill="#c9c2ac" stroke={LINE} strokeWidth="3" />
               <path d={`M${cx - 24} ${694 + i * 8} q10 -2 14 6 M${cx + 6} ${688 + i * 8} q8 4 12 10`} stroke="#9a2c30" strokeWidth="2" fill="none" />
               <circle cx={cx + sx * (8 + i * 3)} cy={692 + i * 8} r={i ? 3.2 : 4.4} fill="#070505" />
@@ -162,7 +168,7 @@ export const CreatureGlass = ({ t, open = 1, tilt = 0, slide = 0, bare = false }
           [430, 860, 9, 6, 0.85],
         ] as const).map(([cx, cy, rx, ry, o], i) => (
           <g key={`x${i}`} opacity={o}>
-            <ellipse cx={cx} cy={cy} rx={rx * 2.1} ry={ry * 2.3} fill="#2e2620" />
+            <ellipse cx={cx} cy={cy} rx={rx * 2.6} ry={ry * 2.8} fill="url(#cgSock)" />
             <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="#b9b19b" stroke={LINE} strokeWidth="2.5" />
             <circle cx={cx + (i === 1 ? -3 : 2)} cy={cy + 1} r={Math.max(2.2, rx * 0.22)} fill="#060404" />
             <path d={`M${cx - rx - 3} ${cy - ry * 0.4} L${cx + rx + 3} ${cy - ry * 0.9}`} stroke={LINE} strokeWidth="3.5" strokeLinecap="round" />

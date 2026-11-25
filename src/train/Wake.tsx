@@ -161,6 +161,15 @@ export const Sleeper = ({ d, lead = 0 }: { d: number; lead?: number }) => {
           {/* спинка сиденья (подголовник) */}
           <path d="M120 760 C120 640 200 600 300 600 L780 600 C880 600 960 640 960 760 L980 1500 H100 Z" fill="#7a4a36" stroke={LINE} strokeWidth="9" />
           <path d="M800 610 C900 640 960 700 960 760 L980 1500 H860 Z" fill="#4e2f24" opacity="0.6" />
+          {/* мягкая контактная тень от тела на сиденье */}
+          <defs>
+            <radialGradient id="slShadow" cx="50%" cy="50%" r="50%">
+              <stop offset="0" stopColor="#000" stopOpacity="0.55" />
+              <stop offset="1" stopColor="#000" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <ellipse cx="560" cy="1380" rx="520" ry="380" fill="url(#slShadow)" />
+          <ellipse cx="580" cy="900" rx="300" ry="260" fill="url(#slShadow)" opacity="0.6" />
           {/* тело: куртка, дыхание грудной клетки */}
           <g transform={`translate(0 ${breath * 0.3})`}>
             <path d={`M110 1920 C120 1560 190 1280 370 ${1170 + breath} L710 ${1170 + breath} C890 1280 960 1560 970 1920 Z`} fill={JK} stroke={LINE} strokeWidth="9" />
@@ -247,6 +256,14 @@ export const Sleeper = ({ d, lead = 0 }: { d: number; lead?: number }) => {
           {/* отсвет экрана на лице */}
           {phoneUp > 0.3 && <ellipse cx="560" cy="980" rx="260" ry="200" fill="#9fc3ff" opacity={0.12 * phoneUp} />}
         </Svg>
+      </AbsoluteFill>
+      {/* край спинки переднего сиденья в нижнем углу — размытый передний план для глубины */}
+      <AbsoluteFill style={{ filter: "blur(14px)", pointerEvents: "none" }}>
+        <svg width="1080" height="1920" viewBox="0 0 1080 1920">
+          <path d="M-40 1920 L-40 1560 C40 1500 180 1490 300 1530 C360 1550 390 1600 400 1660 L420 1920 Z" fill="#3e2418" />
+          <path d="M-40 1560 C40 1500 180 1490 300 1530 C360 1550 390 1600 400 1660" stroke="#7a4a33" strokeWidth="26" fill="none" />
+          <rect x="250" y="1600" width="40" height="320" fill="#1d120c" opacity="0.7" />
+        </svg>
       </AbsoluteFill>
       {/* мягкий луч лампы сверху, без общего затемнения */}
       <AbsoluteFill style={{ background: "radial-gradient(60% 45% at 50% 10%, rgba(235,196,116,.2) 0%, rgba(0,0,0,0) 70%)", mixBlendMode: "screen" }} />
