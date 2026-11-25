@@ -1,12 +1,14 @@
-import React, { useMemo } from "react";
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import React, { useEffect, useMemo, useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { AbsoluteFill, continueRender, delayRender, useCurrentFrame } from "remotion";
+import { CreatureGlass } from "./Creature2";
 import { ThreeCanvas } from "@remotion/three";
 import { useThree } from "@react-three/fiber";
 import { SpotLight, Outlines } from "@react-three/drei";
 import * as THREE from "three";
 import { clamp, ease } from "../components/fx";
 import { lamp } from "./lamp";
-import { Beyond, flickerOn } from "./Ep1Test";
+import { flickerOn } from "./Ep1Test";
 
 /**
  * 00:37–01:06 одним непрерывным POV в настоящем 3D (Three.js):
@@ -191,6 +193,81 @@ const makeTex = (kind: "grime" | "fabric" | "glow", rx = 1, ry = 1) => {
   t.repeat.set(rx, ry);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
+};
+
+/** Грязное стекло: прозрачное, с разводами, пылью и потёками (RGBA). */
+const makeDirtyGlass = () => {
+  const S = 512;
+  const c = document.createElement("canvas");
+  c.width = S;
+  c.height = S;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "rgba(190,180,150,0.06)";
+  g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 60; i++) {
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+    gr.addColorStop(0, `rgba(205,195,165,${0.05 + rnd(i + 300) * 0.08})`);
+    gr.addColorStop(1, "rgba(205,195,165,0)");
+    g.save();
+    g.translate(rnd(i + 301) * S, rnd(i + 302) * S);
+    g.scale(20 + rnd(i + 303) * 90, 12 + rnd(i + 304) * 60);
+    g.fillStyle = gr;
+    g.beginPath();
+    g.arc(0, 0, 1, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  }
+  // пыль у нижнего края и потёки
+  for (let i = 0; i < 2500; i++) {
+    const y = S - Math.pow(rnd(i + 400), 2.2) * S;
+    g.fillStyle = `rgba(215,205,175,${rnd(i + 401) * 0.22})`;
+    g.fillRect(rnd(i + 402) * S, y, 1.6, 1.6);
+  }
+  g.strokeStyle = "rgba(200,190,160,.12)";
+  for (let i = 0; i < 14; i++) {
+    g.lineWidth = 2 + rnd(i + 500) * 4;
+    const x = rnd(i + 501) * S;
+    g.beginPath();
+    g.moveTo(x, rnd(i + 502) * S * 0.5);
+    g.bezierCurveTo(x + 6, S * 0.6, x - 6, S * 0.8, x + 3, S);
+    g.stroke();
+  }
+  // отпечаток ладони
+  g.fillStyle = "rgba(210,200,170,.1)";
+  g.beginPath();
+  g.ellipse(S * 0.68, S * 0.42, 46, 60, 0.2, 0, Math.PI * 2);
+  g.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+};
+
+/** Монстр (CreatureGlass) как текстура: SVG → картинка → CanvasTexture, рендер ждёт загрузки. */
+export const useMonsterTexture = () => {
+  const [tex, setTex] = useState<THREE.Texture | null>(null);
+  const [handle] = useState(() => delayRender("monster texture"));
+  useEffect(() => {
+    const svg = renderToStaticMarkup(
+      <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+        <CreatureGlass t={0.3} open={0.55} tilt={-8} bare />
+      </svg>,
+    );
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = 1080;
+      c.height = 1920;
+      c.getContext("2d")!.drawImage(img, 0, 0);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 4;
+      setTex(t);
+      continueRender(handle);
+    };
+    img.onerror = () => continueRender(handle);
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }, [handle]);
+  return tex;
 };
 
 // ── материалы ─────────────────────────────────────────────────────────
@@ -400,7 +477,57 @@ const Dust = ({ u, cz }: { u: number; cz: number }) => {
   );
 };
 
-const Scene = ({ u, pose, post }: { u: number; pose: Pose; post: boolean }) => {
+/**
+ * Тамбур за нашей дверью: высокий сгорбленный монстр стоит вплотную (в окне — плечи, шея, голова, одна рука на краю проёма),
+ * перед ним — грязное стекло. Виден только на вспышках: свет от отдельной лампы в тамбуре + контровой свет из соседнего вагона.
+ * «Вспышка. Пусто.» — на первой вспышке его ещё нет; дальше он с каждой вспышкой ближе.
+ */
+const MON_FROM = 2.4; // с начала вспышек (≈58.4)
+const Tambour = ({ u, monster, m }: { u: number; monster: THREE.Texture | null; m: Mats }) => {
+  const glassTex = useMemo(() => makeDirtyGlass(), []);
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.04, roughness: 0.85, color: "#8f8574" }), []);
+  if (monster && mat.map !== monster) {
+    mat.map = monster;
+    mat.needsUpdate = true;
+  }
+  const w = u - T_WATCH;
+  const watchF = Math.round(w * FPS);
+  const flash = u >= T_WATCH && flickerOn(watchF);
+  const seen = u >= T_WATCH + MON_FROM;
+  // приближение толчками: каждая следующая вспышка — ближе
+  const k = clamp((w - MON_FROM) / 6);
+  const step = Math.floor(k * 3) / 3;
+  const mz = DOOR_Z - 0.95 + step * 0.62;
+  const jerk = flash && watchF % 6 < 2 ? 0.015 : 0;
+  // свет вспышки: 3D-источник в тамбуре сверху, и контровой из соседнего вагона
+  const fl = flash ? 1 : 0;
+  mat.color.set(flash ? "#8f8574" : "#2e2a23"); // без вспышки — тонет в темноте тамбура
+  return (
+    <group>
+      {/* грязное стекло нашей двери */}
+      <mesh position={[0, 1.425, DOOR_Z - 0.05]}>
+        <planeGeometry args={[0.6, 0.85]} />
+        <meshStandardMaterial map={glassTex} transparent roughness={0.35} metalness={0.15} depthWrite={false} color="#e8dcc0" />
+      </mesh>
+      {/* блик на стекле */}
+      <mesh position={[0.08, 1.5, DOOR_Z - 0.045]} rotation={[0, 0, -0.55]}>
+        <planeGeometry args={[0.025, 0.9]} />
+        <meshBasicMaterial color="#f3d58e" transparent opacity={0.035} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {seen && monster && (
+        <mesh position={[-0.15 + jerk, 1.1, mz]} rotation={[0, 0, -0.05]} material={mat}>
+          <planeGeometry args={[1.65, 2.93]} />
+        </mesh>
+      )}
+      <pointLight position={[0.15, 2.05, mz + 0.35]} color={LAMP} intensity={fl * 2.6} distance={2.2} decay={1.5} />
+      <pointLight position={[0, 1.8, NEXT_Z - 0.6]} color={LAMP} intensity={fl * 1.6} distance={3} decay={1.5} />
+      {/* лёгкий свет нашего вагона на стекле, чтобы оно читалось */}
+      <pointLight position={[0, 1.9, DOOR_Z + 0.6]} color={LAMP} intensity={0.25} distance={1.2} decay={2} />
+    </group>
+  );
+};
+
+const Scene = ({ u, pose, post, monster }: { u: number; pose: Pose; post: boolean; monster: THREE.Texture | null }) => {
   const m = useMats();
   const frame = Math.round((u - T_WATCH) * FPS);
   const watch = u >= T_WATCH;
@@ -435,6 +562,7 @@ const Scene = ({ u, pose, post }: { u: number; pose: Pose; post: boolean }) => {
         <Cone key={z} z={z} k={ourK} />
       ))}
       <Dust u={u} cz={pose.z} />
+      <Tambour u={u} monster={monster} m={m} />
     </>
   );
 };
@@ -456,12 +584,11 @@ const glassRect = (p: Pose) => {
 };
 
 export const Pov3D = ({ post = true }: { post?: boolean }) => {
+  const monster = useMonsterTexture();
   const frame = useCurrentFrame();
   const u = frame / FPS;
   const pose = poseAt(u);
   const blur = clamp(Math.abs(pose.yawVel) / 4) * 22; // направленный смаз на развороте
-  const watchF = Math.round((u - T_WATCH) * FPS);
-  const g = u >= T_WATCH ? glassRect(pose) : null;
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <svg width="0" height="0" style={{ position: "absolute" }}>
@@ -471,19 +598,11 @@ export const Pov3D = ({ post = true }: { post?: boolean }) => {
       </svg>
       <AbsoluteFill style={{ filter: blur > 0.5 ? "url(#povmb)" : undefined }}>
         <ThreeCanvas width={W} height={H} shadows dpr={1} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05, preserveDrawingBuffer: true }}>
-          <Scene u={u} pose={pose} post={post} />
+          <Scene u={u} pose={pose} post={post} monster={monster} />
         </ThreeCanvas>
       </AbsoluteFill>
       {/* виньетка (EffectComposer в headless Remotion даёт чёрный кадр; свечение ламп — аддитивными спрайтами в 3D) */}
       <AbsoluteFill style={{ background: "radial-gradient(80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(8,6,2,.78) 100%)" }} />
-      {/* существо на потолке соседнего вагона — в проекции стекла двери */}
-      {g && (
-        <svg style={{ position: "absolute", left: g.x, top: g.y, width: g.w, height: g.h, overflow: "hidden" }} viewBox="0 0 400 600" preserveAspectRatio="none">
-          <g style={{ filter: "sepia(0.85) saturate(1.3) brightness(0.42) contrast(1.2)" }}>
-            <Beyond t={u - T_WATCH} frame={watchF} on={flickerOn(watchF)} bg={false} />
-          </g>
-        </svg>
-      )}
     </AbsoluteFill>
   );
 };

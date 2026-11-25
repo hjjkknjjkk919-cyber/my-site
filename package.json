@@ -23,5 +23,8 @@
     "remotion": "^4.0.546",
     "three": "^0.187.0",
     "typescript": "^5.9.0"
+  },
+  "devDependencies": {
+    "@types/react-dom": "^19.3.0"
   }
 }

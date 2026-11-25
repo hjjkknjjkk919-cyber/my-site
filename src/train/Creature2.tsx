@@ -62,7 +62,8 @@ const Hand = ({ x, y, flip, spread, slide }: { x: number; y: number; flip: 1 | -
   );
 };
 
-export const CreatureGlass = ({ t, open = 1, tilt = 0, slide = 0 }: { t: number; open?: number; tilt?: number; slide?: number }) => {
+/** bare: без левой руки и без полноэкранных затемнений — для текстуры в 3D-сцене. */
+export const CreatureGlass = ({ t, open = 1, tilt = 0, slide = 0, bare = false }: { t: number; open?: number; tilt?: number; slide?: number; bare?: boolean }) => {
   const twitch = (Math.floor(t * 12) % 7 === 0 ? 1 : 0) * 6;
   const jaw = 120 + open * 200;
   const teethRow = (n: number, y0: number, w: number, dir: 1 | -1, h: number, seed: string) =>
@@ -191,7 +192,7 @@ export const CreatureGlass = ({ t, open = 1, tilt = 0, slide = 0 }: { t: number;
         })}
       </g>
       {/* ладони — самое крупное пятно кадра */}
-      <Hand x={170} y={1180} flip={1} spread={1} slide={slide} />
+      {!bare && <Hand x={170} y={1180} flip={1} spread={1} slide={slide} />}
       <Hand x={920} y={1140} flip={-1} spread={1.1} slide={slide * 0.7} />
       {/* полумрак вагона: глубокая тень снизу, холодный контровой свет лампы сверху */}
       <defs>
@@ -210,9 +211,13 @@ export const CreatureGlass = ({ t, open = 1, tilt = 0, slide = 0 }: { t: number;
           <stop offset="1" stopColor="#000" stopOpacity="0.6" />
         </radialGradient>
       </defs>
-      <rect width="1080" height="1920" fill="url(#cgDark)" />
-      <rect width="1080" height="1920" fill="url(#cgSide)" />
-      <rect width="1080" height="1920" fill="url(#cgRim)" style={{ mixBlendMode: "screen" }} />
+      {!bare && (
+        <>
+          <rect width="1080" height="1920" fill="url(#cgDark)" />
+          <rect width="1080" height="1920" fill="url(#cgSide)" />
+          <rect width="1080" height="1920" fill="url(#cgRim)" style={{ mixBlendMode: "screen" }} />
+        </>
+      )}
     </g>
   );
 };
