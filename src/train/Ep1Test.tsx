@@ -214,7 +214,7 @@ export const Face = () => {
 };
 
 /** Соседний вагон за стеклом: ряды сидений, плафоны; существо на потолке рывками, голова вывернута к нам. */
-const Beyond = ({ t, frame, on }: { t: number; frame: number; on: boolean }) => {
+export const Beyond = ({ t, frame, on, creature = true, ghost = -1 }: { t: number; frame: number; on: boolean; creature?: boolean; ghost?: number }) => {
   // три появления: 15% → 30% → 55% высоты окна; рывок 2 кадра, стоп 4
   const step = frame < 50 ? 0 : frame < 110 ? 1 : 2;
   const scale = [0.15, 0.3, 0.55][step];
@@ -240,8 +240,16 @@ const Beyond = ({ t, frame, on }: { t: number; frame: number; on: boolean }) => 
           <rect x="150" y="210" width="100" height="130" fill="#0b0d10" />
         </g>
       )}
+      {/* силуэт, едва заметно проходящий за стеклом (до отключения света) */}
+      {ghost >= 0 && ghost <= 1 && (
+        <g transform={`translate(${60 + ghost * 280} 250)`} opacity={Math.sin(ghost * Math.PI) * 0.55}>
+          <ellipse cx="0" cy="0" rx="16" ry="20" fill="#05070a" />
+          <path d="M-14 16 L-20 120 L20 120 L14 16 Z" fill="#05070a" />
+          <path d="M-14 30 L-40 110 M14 30 L40 110" stroke="#05070a" strokeWidth="7" />
+        </g>
+      )}
       {/* существо: тело вверх ногами по потолку, голова вывернута к нам */}
-      {on ? (
+      {!creature ? null : on ? (
         <g transform={`translate(${cx} ${cy}) scale(${scale * 1.2})`}>
           <g transform="scale(1 -1)">
             <Rake t={t} phase={jerk * 0.15 + step * 0.3} jaw={0.4 + step * 0.25} look={0} />
@@ -263,7 +271,7 @@ export const Watch = () => {
   const frame = Math.round(t * FPS);
   const on = flickerOn(frame);
   const r = ride(t);
-  const cam: Cam = { x: -25, y: 160, z: LEN - 240, roll: r.rot, pitch: r.y };
+  const cam: Cam = { x: -25, y: 190, z: LEN - 240, roll: r.rot, pitch: r.y - 120 };
   return (
     <AbsoluteFill style={{ transform: `scale(${ease(t, 0, 6, 1.0, 1.3)})`, transformOrigin: "62% 48%" }}>
       <Wagon2 cam={cam} t={t} light={on ? 0.55 : 0.12} beyond={<Beyond t={t} frame={frame} on={on} />} actors={[dimaActor(LEN - 150, -62, t, 0, 0, 1)]} />

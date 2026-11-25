@@ -5,7 +5,11 @@ import { clamp, ease, Svg, useT } from "../components/fx";
 import { Sfx } from "../components/audio";
 import { Wagon2, type Cam } from "./Wagon2";
 import { Atmos } from "./GostOld";
-import { cuesFor, type Cue, Face, Follow, Hook, Hud, MONT, ride, Slam, Subs, Vig, Watch } from "./Ep1Test";
+import { Beyond, cuesFor, type Cue, Face, Follow, Hook, Hud, MONT, ride, Slam, Subs, Vig, Watch } from "./Ep1Test";
+import { PovPhone, PovStandWalk, Sleeper } from "./Wake";
+import { LEN } from "./Wagon2";
+import { loadFont as loadStencil } from "@remotion/google-fonts/RussoOne";
+const { fontFamily: STENCIL } = loadStencil("normal", { weights: ["400"], subsets: ["latin", "cyrillic"] });
 
 /** «Последняя электричка», серия 1 «Без остановок». Сценарий одобрен; без мата. */
 const FPS = 30;
@@ -85,8 +89,16 @@ const Station = () => {
             </g>
             {/* смаз скорости */}
             {Array.from({ length: 12 }, (_, i) => <rect key={i} x={((random(`m${i}`) * 840 - t * 1800) % 1000 + 1000) % 1000 - 80} y={random(`n${i}`) * 900} width="160" height="3" fill="#cfd6dc" opacity="0.15" />)}
-            {/* отражение салона и лица в стекле */}
-            <ellipse cx="560" cy="520" rx="120" ry="150" fill="#e8c2a6" opacity="0.07" />
+            {/* отражение в стекле: лицо Димы и на мгновение — высокий силуэт позади */}
+            <ellipse cx="560" cy="520" rx="120" ry="150" fill="#e8c2a6" opacity="0.08" />
+            {t > 4.6 && t < 5.15 && (
+              <g opacity={0.22 * Math.sin(((t - 4.6) / 0.55) * Math.PI)}>
+                <ellipse cx="300" cy="300" rx="55" ry="70" fill="#d9d4c3" />
+                <path d="M255 360 C240 520 250 700 265 900 L335 900 C350 700 360 520 345 360 Z" fill="#d9d4c3" />
+                <circle cx="282" cy="292" r="6" fill="#000" />
+                <circle cx="318" cy="292" r="6" fill="#000" />
+              </g>
+            )}
           </svg>
         </g>
         {/* рама окна */}
@@ -99,39 +111,48 @@ const Station = () => {
   );
 };
 
-/** Карточка «ПРАВИЛО №N» в стиле листка/инфографики. */
+/** Карточка «ПРАВИЛО №N»: резкий вход (scale 0.15 с) + короткий глитч. */
 const RuleCard = ({ n, title, children }: { n: number; title: string; children: React.ReactNode }) => {
   const t = useT();
-  const pop = ease(t, 0, 0.25, 0.9, 1);
+  const pop = t < 0.15 ? 1.25 - (t / 0.15) * 0.25 : 1;
+  const g = t < 0.2 ? 1 : 0;
+  const gx = g ? (Math.floor(t * 60) % 2 ? 14 : -10) : 0;
   return (
     <AbsoluteFill style={{ background: "#0c0f13" }}>
-      <AbsoluteFill style={{ transform: `scale(${pop})`, opacity: ease(t, 0, 0.2, 0, 1) }}>
+      <AbsoluteFill style={{ transform: `scale(${pop}) translateX(${gx}px)`, filter: g ? "drop-shadow(8px 0 0 rgba(255,40,60,.7)) drop-shadow(-8px 0 0 rgba(40,200,255,.7))" : undefined }}>
         <div style={{ position: "absolute", top: 260, left: 0, right: 0, textAlign: "center", fontFamily: MONT, fontWeight: 900 }}>
           <span style={{ background: "#f2e6c8", color: "#1a120e", fontSize: 64, padding: "10px 30px", borderRadius: 12, border: "5px solid #1a120e" }}>ПРАВИЛО №{n}</span>
           <div style={{ marginTop: 50, color: "#fff", fontSize: 58, lineHeight: 1.15, padding: "0 80px" }}>{title}</div>
         </div>
         <Svg>{children}</Svg>
       </AbsoluteFill>
+      {g ? <AbsoluteFill style={{ background: "#fff", opacity: 0.25 }} /> : null}
     </AbsoluteFill>
   );
 };
 
-/** Схема поезда: первый вагон подсвечен, стрелка к машинисту. */
+/** Схема: 7 вагонов, машинист слева, первый вагон — цель, крайний правый (7-й) — «ТЫ ЗДЕСЬ». */
 const Rule1 = () => {
   const t = useT();
-  const hl = 0.6 + 0.4 * Math.abs(Math.sin(t * 3));
+  const hl = 0.65 + 0.35 * Math.abs(Math.sin(t * 3));
+  const W = 128;
   return (
-    <RuleCard n={1} title="Ночью — первый вагон">
-      <g transform="translate(60 820)">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <g key={i} transform={`translate(${i * 192} 0)`}>
-            <rect x="0" y="0" width="180" height="120" rx={i === 0 ? 50 : 14} fill={i === 0 ? `rgba(255,90,31,${hl})` : "#3a4450"} stroke="#f2e6c8" strokeWidth="5" />
-            {[0, 1, 2].map((w) => <rect key={w} x={24 + w * 48} y="26" width="34" height="34" rx="6" fill="#0c0f13" />)}
+    <RuleCard n={1} title="Ночью — первый вагон, ближе к машинисту">
+      <g transform="translate(46 860)">
+        {Array.from({ length: 7 }, (_, i) => (
+          <g key={i} transform={`translate(${i * (W + 8)} 0)`}>
+            <path d={i === 0 ? `M0 120 L0 40 C0 10 30 0 60 0 L${W} 0 L${W} 120 Z` : `M0 0 H${W} V120 H0 Z`} fill={i === 0 ? `rgba(255,90,31,${hl})` : i === 6 ? "#3e5a7a" : "#3a4450"} stroke="#f2e6c8" strokeWidth="5" />
+            {i === 0 && <path d="M8 36 C12 22 26 14 46 12 L46 46 L8 46 Z" fill="#0c0f13" />}
+            {[0, 1].map((w) => <rect key={w} x={(i === 0 ? 56 : 18) + w * (i === 0 ? 34 : 50)} y="24" width={i === 0 ? 26 : 40} height="34" rx="6" fill="#0c0f13" />)}
+            <text x={W / 2} y="104" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="30" fill="#f2e6c8">{i + 1}</text>
           </g>
         ))}
-        <text x="90" y="200" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="36" fill="#ff5a1f">ТЫ ЗДЕСЬ</text>
-        <path d="M90 -40 V-110 M70 -70 L90 -110 L110 -70" stroke="#ff5a1f" strokeWidth="10" fill="none" strokeLinecap="round" />
-        <text x="90" y="-130" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="34" fill="#f2e6c8">машинист</text>
+        <text x="60" y="-30" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="32" fill="#f2e6c8">машинист</text>
+        <path d="M30 -16 L10 10" stroke="#f2e6c8" strokeWidth="6" strokeLinecap="round" />
+        <text x={W / 2} y="180" textAnchor="middle" fontFamily={MONT} fontWeight="900" fontSize="34" fill="#ff5a1f">ЦЕЛЬ</text>
+        <text x={6 * (W + 8) + W / 2} y="180" textAnchor="middle" fontFamily={MONT} fontWeight="900" fontSize="34" fill="#8fc0ff">ТЫ ЗДЕСЬ</text>
+        <path d={`M${6 * (W + 8) + 20} 230 C${4 * (W + 8)} 300 ${2 * (W + 8)} 300 ${W / 2 + 20} 230`} stroke="#ff5a1f" strokeWidth="8" fill="none" strokeDasharray="18 14" />
+        <path d={`M${W / 2 + 40} 214 L${W / 2 + 14} 232 L${W / 2 + 44} 248`} stroke="#ff5a1f" strokeWidth="8" fill="none" strokeLinecap="round" />
       </g>
     </RuleCard>
   );
@@ -153,8 +174,11 @@ const IntercomPanel = ({ pressed = 0, glow = 0 }: { pressed?: number; glow?: num
 
 const Rule2 = () => (
   <RuleCard n={2} title="У каждых дверей — кнопка связи">
-    <g transform="translate(0 120)">
-      <IntercomPanel />
+    <g transform="translate(0 -160)">
+      <IntercomPanel glow={0.6} />
+      <path d="M880 1440 C820 1400 760 1360 660 1335" stroke="#ff5a1f" strokeWidth="14" fill="none" strokeLinecap="round" />
+      <path d="M690 1305 L650 1333 L695 1360" stroke="#ff5a1f" strokeWidth="14" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="880" y="1500" textAnchor="middle" fontFamily={MONT} fontWeight="900" fontSize="44" fill="#ff5a1f">ЖМИ</text>
     </g>
   </RuleCard>
 );
@@ -163,9 +187,9 @@ const Rule2 = () => (
 const Button = () => {
   const t = useT();
   const r = ride(t);
-  const press = t > 0.2 && t < 0.6 ? 1 : 0;
-  const fx = ease(t, 0, 0.2, 1500, 1300) + press * 20;
-  const glow = t > 0.6 ? 0.5 + 0.5 * Math.abs(Math.sin(t * 20)) * (t < 1.8 ? 1 : 0.4) : 0;
+  const press = 0;
+  const fx = ease(t, 0, 4.6, 1700, 1330) + Math.sin(t * 30) * 4; // рука медленно тянется, дрожит
+  const glow = t > 1.1 ? 0.4 + 0.6 * Math.abs(Math.sin(t * 20)) * (Math.sin(t * 3) > 0 ? 1 : 0.3) : 0;
   return (
     <AbsoluteFill style={{ background: "#151a1e", transform: `translateY(${r.y}px) rotate(${r.rot}deg) scale(1.05)` }}>
       <Svg>
@@ -186,91 +210,157 @@ const Button = () => {
   );
 };
 
-/** Выбор зрителя: два варианта, голосование в комментариях. */
-const Choice = () => {
+/** У двери: соседний вагон освещён, за стеклом едва проходит силуэт, щелчок — там гаснет свет. */
+const DoorWait = () => {
   const t = useT();
-  const opt = (n: string, text: string, col: string, d: number) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 28, background: "rgba(20,24,30,.9)", border: `5px solid ${col}`, borderRadius: 24, padding: "26px 36px", width: 820, opacity: ease(t, d, d + 0.2, 0, 1), transform: `translateX(${(1 - ease(t, d, d + 0.25, 0, 1)) * -60}px)` }}>
-      <div style={{ width: 110, height: 110, borderRadius: 55, background: col, color: "#0c0f13", fontSize: 76, display: "flex", alignItems: "center", justifyContent: "center" }}>{n}</div>
-      <div style={{ color: "#fff", fontSize: 64, lineHeight: 1.05 }}>{text}</div>
-    </div>
-  );
+  const r = ride(t);
+  const off = t > 4.5;
+  const cam = { x: -25, y: 190, z: LEN - 240 - ease(t, 0, 4.5, 80, 0), roll: r.rot, pitch: r.y - 120 };
   return (
-    <AbsoluteFill style={{ background: "#0a0c0f", alignItems: "center", justifyContent: "center", fontFamily: MONT, fontWeight: 900, gap: 44 }}>
-      <div style={{ color: "#f2e6c8", fontSize: 58, letterSpacing: 2, opacity: ease(t, 0, 0.2, 0, 1) }}>ЧТО ДЕЛАТЬ ДИМЕ?</div>
-      {opt("1", "Обернуться", "#ff5a1f", 0.3)}
-      {opt("2", "Не оборачиваться", "#4fa3ff", 0.6)}
-      <div style={{ color: "#9aa7b4", fontSize: 40, marginTop: 10, opacity: ease(t, 1.0, 1.3, 0, 1) }}>пиши 1 или 2 в комментариях ↓</div>
+    <AbsoluteFill>
+      <Wagon2 cam={cam} t={t} light={off ? 0.45 : 0.62} beyond={<Beyond t={t} frame={0} on={!off} creature={false} ghost={(t - 2.2) / 1.6} />} />
+      <Atmos t={t + 11} />
+      <Vig />
     </AbsoluteFill>
   );
 };
 
-// ── монтаж ─────────────────────────────────────────────────────────────
+/** Финальный выбор — старая металлическая панель связи электрички. */
+const Choice = () => {
+  const t = useT();
+  const rivet = (x: number, y: number) => (
+    <g key={`${x}${y}`}>
+      <circle cx={x} cy={y} r="16" fill="#8b9195" stroke="#1b1e21" strokeWidth="4" />
+      <circle cx={x - 4} cy={y - 4} r="5" fill="#c9ced1" />
+    </g>
+  );
+  const row = (y: number, n: string, text: string, led: string, d: number) => {
+    const on = t > d;
+    const blink = led === "red" ? (Math.floor(t * 4) % 2 ? 1 : 0.35) : 0.6;
+    return (
+      <g opacity={on ? 1 : 0} transform={`translate(${on ? 0 : -20} 0)`}>
+        <rect x="130" y={y - 70} width="820" height="140" rx="10" fill="#22272b" stroke="#5c6368" strokeWidth="4" />
+        <circle cx="210" cy={y} r="34" fill="#111" stroke="#5c6368" strokeWidth="5" />
+        <circle cx="210" cy={y} r="22" fill={led === "red" ? `rgba(255,40,40,${blink})` : `rgba(255,190,90,${blink})`} />
+        {led === "red" && <circle cx="210" cy={y} r="50" fill="#ff3030" opacity={0.15 * blink} />}
+        <text x="270" y={y + 15} fontFamily={STENCIL} fontWeight="400" fontSize="42" fill="#e9e4d4">{n} — {text}</text>
+      </g>
+    );
+  };
+  return (
+    <AbsoluteFill style={{ background: "#07090b" }}>
+      <Svg>
+        <defs>
+          <linearGradient id="chMetal" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#3a4044" />
+            <stop offset="0.5" stopColor="#2b3034" />
+            <stop offset="1" stopColor="#1f2326" />
+          </linearGradient>
+        </defs>
+        <rect x="70" y="520" width="940" height="900" rx="22" fill="url(#chMetal)" stroke="#9aa1a6" strokeWidth="8" />
+        <rect x="88" y="538" width="904" height="864" rx="16" fill="none" stroke="#141719" strokeWidth="4" />
+        {/* царапины */}
+        {Array.from({ length: 26 }, (_, i) => {
+          const x = 110 + random(`sc${i}`) * 860;
+          const y = 560 + random(`sd${i}`) * 820;
+          return <path key={i} d={`M${x} ${y} l${30 + random(`se${i}`) * 80} ${(random(`sf${i}`) - 0.5) * 20}`} stroke="#6b7278" strokeWidth="2" opacity="0.35" />;
+        })}
+        {rivet(118, 568)}
+        {rivet(962, 568)}
+        {rivet(118, 1372)}
+        {rivet(962, 1372)}
+        <text x="540" y="690" textAnchor="middle" fontFamily={STENCIL} fontWeight="400" fontSize="74" fill="#f2c94c" opacity={t > 0.15 ? 1 : 0}>ЧТО ДЕЛАТЬ ДИМЕ?</text>
+        <path d="M150 740 H930" stroke="#5c6368" strokeWidth="4" opacity={t > 0.15 ? 1 : 0} />
+        {row(880, "1", "НАЖАТЬ КНОПКУ СВЯЗИ", "red", 0.6)}
+        {row(1080, "2", "БЕЖАТЬ ОБРАТНО В ВАГОН", "amber", 1.1)}
+        <text x="540" y="1300" textAnchor="middle" fontFamily={STENCIL} fontWeight="400" fontSize="40" fill="#9aa1a6" opacity={t > 1.5 ? 1 : 0}>ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ</text>
+      </Svg>
+      <Vig k={0.8} />
+    </AbsoluteFill>
+  );
+};
+
+// ── монтаж (1:30) ─────────────────────────────────────────────────────
 const S = {
-  hook: [0, 1.0],
-  wake: [1.0, 7.2],
-  station: [7.2, 11.4],
-  rule1: [11.4, 17.2],
-  follow: [17.2, 22.7],
-  face: [22.7, 26.3],
-  watch: [26.3, 32.3],
-  rule2: [32.3, 38.3],
-  button: [38.3, 42.5],
-  slam: [42.5, 44.9],
-  question: [44.9, 49.5],
+  hook: [0, 2],
+  sleep: [2, 11],
+  pov: [11, 21],
+  station: [21, 29],
+  rule1: [29, 37],
+  walk: [37, 42],
+  follow: [42, 47],
+  door: [47, 56],
+  watch: [56, 66],
+  rule2: [66, 74],
+  button: [74, 79.4],
+  slam: [79.4, 81.8],
+  black: [81.8, 82.5],
+  choice: [82.5, 90],
 } as const;
 const fr = (s: number) => Math.round(s * FPS);
-export const EP1_FRAMES = fr(S.question[1]);
+export const EP1_FRAMES = fr(S.choice[1]);
 
-// реплики: [клип, старт, длительность, текст для субтитров]
+// реплики: [клип, старт, длительность, текст]
 const VO: [string, number, number, string][] = [
-  ["e1", 1.3, 5.4, "Ты проснулся. Электричка идёт сорок минут… без *остановок*."],
-  ["e2", 7.4, 3.6, "Мимо проносится станция. Ты её *не знаешь*."],
-  ["e3", 11.6, 5.1, "Правило первое. Ночью садись в *первый* вагон. Ближе к машинисту."],
-  ["e4", 17.6, 1.6, "Ты идёшь *вперёд*."],
-  ["e5", 23.0, 2.4, "В соседнем вагоне гаснет *свет*."],
-  ["e6", 26.6, 4.7, "Вспышка. Пусто. Вспышка… оно *ближе*."],
-  ["e7", 32.5, 5.5, "Правило второе. У каждых дверей есть *кнопка* связи с машинистом. Жми."],
-  ["e8", 38.9, 3.4, "Треск. Потом голос: не *смотри* на него."],
+  ["e1", 13.0, 5.4, "Ты проснулся. Электричка идёт сорок минут… без *остановок*."],
+  ["e2", 21.6, 3.6, "Мимо проносится станция. Ты её *не знаешь*."],
+  ["e3", 29.6, 5.1, "Правило первое. Ночью садись в *первый* вагон. Ближе к машинисту."],
+  ["e4", 38.6, 1.6, "Ты идёшь *вперёд*."],
+  ["e5", 51.8, 2.4, "В соседнем вагоне гаснет *свет*."],
+  ["e6", 57.0, 4.7, "Вспышка. Пусто. Вспышка… оно *ближе*."],
+  ["e7", 66.6, 5.5, "Правило второе. У каждых дверей есть *кнопка* связи с машинистом. Жми."],
+  ["e8", 75.4, 3.4, "Треск. Потом голос: не *смотри* на него."],
 ];
-const CUES: Cue[] = [{ from: 0, to: 1.0, text: "В этой электричке ты *не один*" }, ...VO.filter((v) => v[3]).flatMap(([, at, d, tx]) => cuesFor(at, d, tx))];
+const CUES: Cue[] = [{ from: 0, to: 2, text: "В этой электричке ты *не один*" }, ...VO.flatMap(([, at, d, tx]) => cuesFor(at, d, tx))];
 
 const seq = (k: keyof typeof S, el: React.ReactNode) => (
   <Sequence key={k} from={fr(S[k][0])} durationInFrames={fr(S[k][1]) - fr(S[k][0])}>
     {el}
   </Sequence>
 );
+const dur = (k: keyof typeof S) => S[k][1] - S[k][0];
 
 export const Ep1 = () => {
   const t = useT();
-  const cards = (t >= S.rule1[0] && t < S.rule1[1]) || (t >= S.rule2[0] && t < S.rule2[1]);
+  const inS = (k: keyof typeof S) => t >= S[k][0] && t < S[k][1];
+  const noHud = inS("rule1") || inS("rule2") || t >= S.slam[0];
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Audio src={staticFile("audio/train/ride.mp3")} loop volume={(f) => (f > fr(S.slam[0]) ? 0.08 : f > fr(S.watch[0]) ? 0.3 : 0.45)} />
-      {Array.from({ length: 46 }, (_, i) => (
-        <Sfx key={i} at={1 + i * 0.9} name="train/clack" vol={0.2} />
+      <Audio src={staticFile("audio/train/ride.mp3")} loop volume={(f) => (f > fr(S.black[0]) ? 0 : f > fr(S.slam[0]) ? 0.06 : f > fr(S.watch[0]) ? 0.28 : 0.42)} />
+      {Array.from({ length: 90 }, (_, i) => (
+        <Sfx key={i} at={2 + i * 0.9} name="train/clack" vol={0.18} />
       ))}
-      <Sfx at={0.05} name="train/sting" vol={0.55} dur={0.7} />
-      <Sfx at={7.4} name="train/pass" vol={0.6} />
-      <Sfx at={S.face[0]} name="train/breath" vol={0.7} />
-      <Sfx at={S.watch[0]} name="train/buzz" vol={0.4} dur={6} />
-      <Sfx at={S.button[0] + 0.2} name="train/press" vol={0.9} />
-      <Sfx at={S.button[0] + 0.65} name="train/static" vol={0.7} />
+      <Sfx at={0.05} name="train/sting" vol={0.5} dur={0.7} />
+      <Sfx at={2.2} name="train/breath" vol={0.35} dur={2.5} />
+      <Sfx at={4.4} name="train/seat" vol={0.7} />
+      <Sfx at={S.station[0] + 0.4} name="train/pass" vol={0.6} />
+      <Sfx at={S.walk[0] + 0.3} name="train/seat" vol={0.6} />
+      <Sfx at={S.walk[0] + 2.0} name="train/steps" vol={0.6} />
+      <Sfx at={S.follow[0]} name="train/steps" vol={0.5} dur={4} />
+      <Sfx at={S.door[0] + 4.5} name="train/lightsoff" vol={0.8} />
+      <Sfx at={S.door[0] + 4.6} name="train/drone" vol={0.5} />
+      <Sfx at={S.watch[0]} name="train/buzz" vol={0.4} dur={9} />
+      <Sfx at={S.watch[0] + 2} name="train/drone" vol={0.6} />
+      <Sfx at={S.button[0] + 1.0} name="train/static" vol={0.7} />
       <Sfx at={S.slam[0]} name="train/sting" vol={1} />
       <Sfx at={S.slam[0]} name="train/glass" vol={1} />
-      {VO.map(([k, at]) => <Sfx key={k} at={at} name={`train/${k}`} vol={1.15} />)}
+      {[0.15, 0.6, 1.1].map((d, i) => <Sfx key={`r${i}`} at={S.choice[0] + d} name="train/relay" vol={0.8} />)}
+      {VO.map(([k, at]) => <Sfx key={k} at={at} name={`train/${k}`} vol={1.2} />)}
       {seq("hook", <Hook />)}
-      {seq("wake", <Wake />)}
+      {seq("sleep", <Sleeper d={dur("sleep")} />)}
+      {seq("pov", <PovPhone d={dur("pov")} />)}
       {seq("station", <Station />)}
       {seq("rule1", <Rule1 />)}
+      {seq("walk", <PovStandWalk d={dur("walk")} />)}
       {seq("follow", <Follow />)}
-      {seq("face", <Face />)}
+      {seq("door", <DoorWait />)}
       {seq("watch", <Watch />)}
       {seq("rule2", <Rule2 />)}
       {seq("button", <Button />)}
       {seq("slam", <Slam />)}
-      {seq("question", <Choice />)}
-      {t < S.slam[0] && !cards && <Hud />}
+      {seq("black", <AbsoluteFill style={{ background: "#000" }} />)}
+      {seq("choice", <Choice />)}
+      {!noHud && <Hud />}
       {t < S.slam[0] && <Subs t={t} cues={CUES} />}
     </AbsoluteFill>
   );
