@@ -126,7 +126,7 @@ export const Sleeper = ({ d }: { d: number }) => {
         </Svg>
       </AbsoluteFill>
       {/* мягкий луч лампы сверху, без общего затемнения */}
-      <AbsoluteFill style={{ background: "radial-gradient(60% 45% at 50% 10%, rgba(255,236,200,.22) 0%, rgba(0,0,0,0) 70%)", mixBlendMode: "screen" }} />
+      <AbsoluteFill style={{ background: "radial-gradient(60% 45% at 50% 10%, rgba(235,196,116,.2) 0%, rgba(0,0,0,0) 70%)", mixBlendMode: "screen" }} />
       <AbsoluteFill style={{ background: "#000", opacity: (1 - L) * 0.35 }} />
       <Vig />
     </AbsoluteFill>
@@ -155,9 +155,15 @@ export const PovPhone = ({ d }: { d: number }) => {
           </g>
         </Svg>
       </AbsoluteFill>
-      {/* веки */}
-      <AbsoluteFill style={{ background: "#000", clipPath: `inset(0 0 ${100 - lids * 52}% 0 round 0 0 50% 50%)` }} />
-      <AbsoluteFill style={{ background: "#000", clipPath: `inset(${100 - lids * 52}% 0 0 0 round 50% 50% 0 0)` }} />
+      {/* веки от первого лица: мягкие размытые шторки по всей ширине — сверху 80%, снизу 20% */}
+      {lids > 0.01 && (
+        <>
+          <AbsoluteFill style={{ background: `radial-gradient(70% 55% at 50% 72%, rgba(0,0,0,0) 30%, rgba(0,0,0,${0.85 * lids}) 100%)` }} />
+          <div style={{ position: "absolute", left: "-15%", width: "130%", top: -160, height: `calc(${lids * 80}% + 160px)`, background: "#000", borderRadius: "0 0 50% 50% / 0 0 120px 120px", filter: "blur(32px)" }} />
+          <div style={{ position: "absolute", left: "-15%", width: "130%", bottom: -160, height: `calc(${lids * 20}% + 160px)`, background: "#000", borderRadius: "50% 50% 0 0 / 60px 60px 0 0", filter: "blur(32px)" }} />
+          {lids > 0.96 && <AbsoluteFill style={{ background: "#000", opacity: (lids - 0.96) / 0.04 }} />}
+        </>
+      )}
       <Vig k={1.1} />
     </AbsoluteFill>
   );

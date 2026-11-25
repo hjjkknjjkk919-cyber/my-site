@@ -9,6 +9,7 @@ import { Beyond, cuesFor, type Cue, Face, Follow, Hook, Hud, MONT, ride, Slam, S
 import { PovPhone, PovStandWalk, Sleeper } from "./Wake";
 import { lamp, lampDipsIn } from "./lamp";
 import { LEN } from "./Wagon2";
+import { Pov3D } from "./Pov3D";
 import { loadFont as loadStencil } from "@remotion/google-fonts/RussoOne";
 const { fontFamily: STENCIL } = loadStencil("normal", { weights: ["400"], subsets: ["latin", "cyrillic"] });
 
@@ -380,7 +381,7 @@ const bed = (base: number, start = 0) => (f: number) => {
   return voiceAt(g) ? base * 0.5 : base;
 };
 // треск лампы на её провалах (сцены пробуждения и прохода; там лампа = lamp(локальное t + сдвиг))
-const crackles = [...lampDipsIn(1, 10).map((x) => x + 1), ...lampDipsIn(3, 13).map((x) => x + 8), ...lampDipsIn(6, 11).map((x) => x + 31)];
+const crackles = [...lampDipsIn(1, 10).map((x) => x + 1), ...lampDipsIn(3, 13).map((x) => x + 8), ...lampDipsIn(6, 20).map((x) => x + 31)];
 
 export const Ep1 = () => {
   const t = useT();
@@ -412,10 +413,10 @@ export const Ep1 = () => {
       {/* подъём и проход */}
       <Sfx at={S.walk[0] + 0.3} name="train/seat" vol={0.55} />
       <Sfx at={S.walk[0] + 0.5} name="train/rustle" vol={0.5} />
-      <Sfx at={S.walk[0] + 2.0} name="train/steps2" vol={0.65} dur={3.0} />
-      <Sfx at={S.walk[0] + 3.25} name="train/whoosh" vol={0.6} />
-      <Sfx at={S.walk[0] + 4.35} name="train/whoosh" vol={0.5} />
-      <Sfx at={S.follow[0]} name="train/steps2" vol={0.55} dur={4.4} />
+      <Sfx at={S.walk[0] + 1.7} name="train/steps2" vol={0.65} dur={3.6} />
+      <Sfx at={S.walk[0] + 5.3} name="train/whoosh" vol={0.45} />
+      <Sfx at={S.walk[0] + 7.3} name="train/whoosh" vol={0.4} />
+      <Sfx at={S.walk[0] + 7.9} name="train/steps2" vol={0.55} dur={4.6} />
       {/* у двери: гаснет свет после тишины */}
       <Sfx at={S.door[0] + 4.5} name="train/lightsoff" vol={0.85} />
       <Sfx at={S.door[0] + 4.8} name="train/drone" vol={0.45} />
@@ -442,15 +443,22 @@ export const Ep1 = () => {
       {seq("pov", <PovPhone d={dur("pov")} />)}
       {seq("station", <Station />)}
       {seq("rule1", <Rule1 />)}
-      {seq("walk", <PovStandWalk d={dur("walk")} />)}
-      {seq("follow", <Follow />)}
-      {seq("door", <DoorWait />)}
-      {seq("watch", <Watch />)}
+      {/* 00:37–01:06 — один непрерывный POV в 3D: подъём, проход, оглядка, дверь, вспышки */}
+      <Sequence from={fr(S.walk[0])} durationInFrames={fr(S.watch[1]) - fr(S.walk[0])}>
+        <Pov3D />
+      </Sequence>
       {seq("rule2", <Rule2 />)}
       {seq("button", <Button />)}
       {seq("slam", <Slam />)}
       {seq("black", <AbsoluteFill style={{ background: "#000" }} />)}
       {seq("choice", <Choice />)}
+      {/* грязно-жёлтый тусклый свет старых ламп — на всём, что в вагоне (3D-проход уже освещён так сам) */}
+      {t < S.black[0] && !inS("rule1") && !inS("rule2") && !(t >= S.walk[0] && t < S.watch[1]) && (
+        <>
+          <AbsoluteFill style={{ background: "#d2b06a", mixBlendMode: "multiply", opacity: 0.55 }} />
+          <AbsoluteFill style={{ background: "rgba(30,22,8,.16)" }} />
+        </>
+      )}
       {!noHud && <Hud />}
       {t < S.slam[0] && <Subs t={t} cues={CUES} />}
     </AbsoluteFill>

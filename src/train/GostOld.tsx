@@ -44,11 +44,22 @@ export const DimaFace = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "clos
     const ph = (t * (0.15 + i * 0.05) + random(`ds${i}`)) % 1;
     return { x: i === 1 ? 810 : 268 + i * 6, y: 640 + ph * 420, a: sweat * Math.sin(ph * Math.PI) };
   });
+  // Глаз: контур фиксирован (шире только при испуге), веки — кожа внутри clipPath контура.
+  // Закрытие: верхнее веко опускается на 80% высоты, нижнее поднимается на 20%.
+  const E = clamp(eo, 1, 1.3);
+  const shut = clamp(1 - eo / 1.0, 0, 1);
+  const eyePath = (cx: number) => `M${cx - 98} 860 C${cx - 60} ${860 - 66 * E} ${cx + 60} ${860 - 66 * E} ${cx + 98} 860 C${cx + 60} ${860 + 52 * E} ${cx - 60} ${860 + 52 * E} ${cx - 98} 860 Z`;
+  const topY = 860 - 49.5 * E;
+  const botY = 860 + 39 * E;
+  const hgt = botY - topY;
+  const upY = topY + shut * 0.8 * hgt; // середина кромки верхнего века
+  const loY = botY - shut * 0.2 * hgt;
+  const ctl = (mid: number) => (mid - 0.25 * 860) / 0.75; // контрольная точка кривой, проходящей через mid
   const eye = (cx: number, side: -1 | 1) => (
     <g key={cx}>
       <defs>
         <clipPath id={`gE${cx}`}>
-          <path d={`M${cx - 98} 860 C${cx - 60} ${860 - 66 * eo} ${cx + 60} ${860 - 66 * eo} ${cx + 98} 860 C${cx + 60} ${860 + 52 * eo} ${cx - 60} ${860 + 52 * eo} ${cx - 98} 860 Z`} />
+          <path d={eyePath(cx)} />
         </clipPath>
         <radialGradient id={`gI${cx}`} cx="50%" cy="40%" r="60%">
           <stop offset="0" stopColor="#8fb1c8" />
@@ -57,25 +68,30 @@ export const DimaFace = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "clos
         </radialGradient>
       </defs>
       {/* тёмные круги под глазами от страха */}
-      <path d={`M${cx - 92} ${880 + 40 * eo} C${cx - 40} ${905 + 56 * eo} ${cx + 40} ${905 + 56 * eo} ${cx + 92} ${880 + 40 * eo}`} stroke="#b98c78" strokeWidth="10" fill="none" opacity={0.3 + fear * 0.4} />
-      <path d={`M${cx - 98} 860 C${cx - 60} ${860 - 66 * eo} ${cx + 60} ${860 - 66 * eo} ${cx + 98} 860 C${cx + 60} ${860 + 52 * eo} ${cx - 60} ${860 + 52 * eo} ${cx - 98} 860 Z`} fill="#fbf7f3" />
+      <path d={`M${cx - 92} ${880 + 40 * E} C${cx - 40} ${905 + 56 * E} ${cx + 40} ${905 + 56 * E} ${cx + 92} ${880 + 40 * E}`} stroke="#b98c78" strokeWidth="10" fill="none" opacity={0.3 + fear * 0.4} />
+      <path d={eyePath(cx)} fill="#fbf7f3" />
       <g clipPath={`url(#gE${cx})`}>
         <path d={`M${cx - 96} 860 l30 -4 l14 8 M${cx + 96} 862 l-28 2 l-12 -9`} stroke="#d06a6a" strokeWidth="2.5" fill="none" opacity={fear * 0.8} />
         <circle cx={cx + lx} cy={858 + ly} r="46" fill={`url(#gI${cx})`} stroke={LINE} strokeWidth="4" />
         <circle cx={cx + lx} cy={858 + ly} r={pupil} fill="#141010" />
         <circle cx={cx + lx - 16} cy={858 + ly - 16} r="11" fill="#fff" />
         <circle cx={cx + lx + 14} cy={858 + ly + 12} r="5" fill="#fff" opacity="0.8" />
-        {/* тень верхнего века */}
-        <path d={`M${cx - 100} 800 H${cx + 100} V${860 - 50 * eo} C${cx + 40} ${860 - 60 * eo} ${cx - 40} ${860 - 60 * eo} ${cx - 100} ${860 - 50 * eo} Z`} fill="#000" opacity="0.12" />
+        {/* верхнее веко (кожа) с мягкой тенью у кромки */}
+        <path d={`M${cx - 104} 780 H${cx + 104} V860 C${cx + 60} ${ctl(upY)} ${cx - 60} ${ctl(upY)} ${cx - 104} 860 Z`} fill={SKIN} />
+        <path d={`M${cx - 104} 860 C${cx - 60} ${ctl(upY)} ${cx + 60} ${ctl(upY)} ${cx + 104} 860 C${cx + 60} ${ctl(upY + 10)} ${cx - 60} ${ctl(upY + 10)} ${cx - 104} 860 Z`} fill="#000" opacity="0.14" />
+        {/* нижнее веко */}
+        <path d={`M${cx - 104} 940 H${cx + 104} V860 C${cx + 60} ${ctl(loY)} ${cx - 60} ${ctl(loY)} ${cx - 104} 860 Z`} fill={SKIN} />
       </g>
-      {/* верхнее веко с ресницами */}
-      <path d={`M${cx - 104} 862 C${cx - 62} ${858 - 70 * eo} ${cx + 62} ${858 - 70 * eo} ${cx + 104} 862`} fill="none" stroke={LINE} strokeWidth="9" strokeLinecap="round" />
-      {[-0.7, -0.35, 0, 0.35, 0.7].map((k, i) => (
-        <path key={i} d={`M${cx + k * 92} ${860 - 64 * eo * (1 - k * k * 0.5)} l${k * 10 + side * 4} -16`} stroke={LINE} strokeWidth="5" strokeLinecap="round" />
-      ))}
-      <path d={`M${cx - 86} ${866 + 44 * eo} C${cx - 40} ${872 + 54 * eo} ${cx + 40} ${872 + 54 * eo} ${cx + 86} ${866 + 44 * eo}`} fill="none" stroke={LINE} strokeWidth="4" opacity="0.7" />
+      {/* контур глаза (складка века) и кромка верхнего века с ресницами */}
+      <path d={`M${cx - 104} 862 C${cx - 62} ${858 - 70 * E} ${cx + 62} ${858 - 70 * E} ${cx + 104} 862`} fill="none" stroke={LINE} strokeWidth={shut > 0.5 ? 4 : 7} strokeLinecap="round" opacity={0.8} />
+      <path d={`M${cx - 98} 860 C${cx - 60} ${ctl(upY)} ${cx + 60} ${ctl(upY)} ${cx + 98} 860`} fill="none" stroke={LINE} strokeWidth="7" strokeLinecap="round" />
+      {[-0.7, -0.35, 0, 0.35, 0.7].map((k, i) => {
+        const yy = 860 + (upY - 860) * (1 - k * k);
+        return <path key={i} d={`M${cx + k * 92} ${yy} l${k * 10 + side * 4} ${shut > 0.6 ? 12 : -14}`} stroke={LINE} strokeWidth="4" strokeLinecap="round" />;
+      })}
+      <path d={`M${cx - 86} ${860 + (loY - 860) * 0.95 + 6} C${cx - 40} ${loY + 10} ${cx + 40} ${loY + 10} ${cx + 86} ${860 + (loY - 860) * 0.95 + 6}`} fill="none" stroke={LINE} strokeWidth="4" opacity="0.6" />
       {/* влажная кромка */}
-      <path d={`M${cx - 80} ${868 + 44 * eo} C${cx - 40} ${874 + 52 * eo} ${cx + 40} ${874 + 52 * eo} ${cx + 80} ${868 + 44 * eo}`} fill="none" stroke="#dff1ff" strokeWidth="5" opacity={tears} />
+      <path d={`M${cx - 80} ${868 + 44 * E} C${cx - 40} ${874 + 52 * E} ${cx + 40} ${874 + 52 * E} ${cx + 80} ${868 + 44 * E}`} fill="none" stroke="#dff1ff" strokeWidth="5" opacity={tears} />
       {/* бровь: внутренний край поднимается от страха */}
       <path d={side < 0 ? `M${cx - 110} ${752 + browY * 0.2} C${cx - 50} ${722 + browY * 0.6} ${cx + 30} ${716 + browY} ${cx + 96} ${738 + browY * 1.6}` : `M${cx + 110} ${752 + browY * 0.2} C${cx + 50} ${722 + browY * 0.6} ${cx - 30} ${716 + browY} ${cx - 96} ${738 + browY * 1.6}`} fill="none" stroke={HAIR} strokeWidth="26" strokeLinecap="round" />
     </g>

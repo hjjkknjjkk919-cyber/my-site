@@ -6,6 +6,7 @@ import { TrainTest, TRAIN_TEST_FRAMES } from "./train/TrainTest";
 import { GostTest, GOST_TEST_FRAMES } from "./train/Gost";
 import { Ep1Test, EP1_TEST_FRAMES } from "./train/Ep1Test";
 import { Ep1, EP1_FRAMES } from "./train/Ep1";
+import { Pov3D } from "./train/Pov3D";
 
 // Серия 1 «Улыбка»: длина = сумма сцен (~2:20)
 export const Root = () => (
@@ -21,6 +22,7 @@ export const Root = () => (
     <Composition id="TrainTest" component={TrainTest} width={1080} height={1920} fps={30} durationInFrames={TRAIN_TEST_FRAMES} />
     <Composition id="GostTest" component={GostTest} width={1080} height={1920} fps={30} durationInFrames={GOST_TEST_FRAMES} />
     <Composition id="Ep1Test" component={Ep1Test} width={1080} height={1920} fps={30} durationInFrames={EP1_TEST_FRAMES} />
+    <Composition id="Pov3DTest" component={Pov3D} width={1080} height={1920} fps={30} durationInFrames={870} defaultProps={{ post: true }} />
     <Composition id="Ep1" component={Ep1} width={1080} height={1920} fps={30} durationInFrames={EP1_FRAMES} />
   </>
 );

@@ -214,7 +214,7 @@ export const Face = () => {
 };
 
 /** Соседний вагон за стеклом: ряды сидений, плафоны; существо на потолке рывками, голова вывернута к нам. */
-export const Beyond = ({ t, frame, on, creature = true, ghost = -1 }: { t: number; frame: number; on: boolean; creature?: boolean; ghost?: number }) => {
+export const Beyond = ({ t, frame, on, creature = true, ghost = -1, bg = true }: { t: number; frame: number; on: boolean; creature?: boolean; ghost?: number; bg?: boolean }) => {
   // три появления: 15% → 30% → 55% высоты окна; рывок 2 кадра, стоп 4
   const step = frame < 50 ? 0 : frame < 110 ? 1 : 2;
   const scale = [0.15, 0.3, 0.55][step];
@@ -223,8 +223,8 @@ export const Beyond = ({ t, frame, on, creature = true, ghost = -1 }: { t: numbe
   const cy = [120, 140, 170][step];
   return (
     <g>
-      <rect width="400" height="600" fill={on ? "#1d2326" : "#030405"} />
-      {on && (
+      {bg && <rect width="400" height="600" fill={on ? "#1d2326" : "#030405"} />}
+      {bg && on && (
         <g>
           <path d="M0 0 L150 210 L250 210 L400 0 Z" fill="#4e5552" />
           <path d="M0 600 L150 340 L250 340 L400 600 Z" fill="#2f2924" />
