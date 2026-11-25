@@ -20,8 +20,11 @@ const W = 1080;
 const H = 1920;
 const FOV = 74;
 // грязно-жёлтый свет старых люминесцентных ламп
+// грязно-жёлтый тусклый свет старых люминесцентных ламп
 const LAMP = "#e6c27a";
-const LAMP_EMIT = "#f3d58e";
+const LAMP_EMIT = "#d9b062";
+// погасшие плафоны нашего вагона (индексы от заднего торца): свет бьёт пятнами
+const DEAD = [1, 3, 5];
 
 // геометрия вагона (метры)
 const CAR_L = 20;
@@ -257,7 +260,24 @@ export const useMonsterTexture = () => {
       const c = document.createElement("canvas");
       c.width = 1080;
       c.height = 1920;
-      c.getContext("2d")!.drawImage(img, 0, 0);
+      const g = c.getContext("2d")!;
+      g.drawImage(img, 0, 0);
+      // мягкая альфа-маска по краям, чтобы не читалась прямая граница полигона
+      g.globalCompositeOperation = "destination-in";
+      const gx = g.createLinearGradient(0, 0, 1080, 0);
+      gx.addColorStop(0, "rgba(0,0,0,0)");
+      gx.addColorStop(0.12, "rgba(0,0,0,1)");
+      gx.addColorStop(0.8, "rgba(0,0,0,1)");
+      gx.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gx;
+      g.fillRect(0, 0, 1080, 1920);
+      const gy = g.createLinearGradient(0, 0, 0, 1920);
+      gy.addColorStop(0, "rgba(0,0,0,0)");
+      gy.addColorStop(0.1, "rgba(0,0,0,1)");
+      gy.addColorStop(0.85, "rgba(0,0,0,1)");
+      gy.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gy;
+      g.fillRect(0, 0, 1080, 1920);
       const t = new THREE.CanvasTexture(c);
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = 4;
@@ -279,7 +299,7 @@ const useMats = () =>
       wallUp: new THREE.MeshStandardMaterial({ color: "#6d7365", roughness: 0.75, map: makeTex("grime", 3, 1) }),
       ceil: new THREE.MeshStandardMaterial({ color: "#a9a48d", roughness: 0.9, side: THREE.DoubleSide, map: makeTex("grime", 1, 10) }),
       seat: new THREE.MeshStandardMaterial({ color: "#7a4a33", roughness: 0.6, map: makeTex("fabric", 2, 1) }),
-      glow: new THREE.SpriteMaterial({ map: makeTex("glow"), color: "#f3cf86", blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }),
+      glow: new THREE.SpriteMaterial({ map: makeTex("glow"), color: "#e8c27a", blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }),
       seatDark: new THREE.MeshStandardMaterial({ color: "#3a2a22", roughness: 0.8 }),
       metal: new THREE.MeshStandardMaterial({ color: "#c9c3b3", metalness: 0.75, roughness: 0.28 }),
       glass: new THREE.MeshStandardMaterial({ color: "#05080b", roughness: 0.08, metalness: 0.5 }),
@@ -337,10 +357,12 @@ const EndWall = ({ z, m, facing }: { z: number; m: Mats; facing: 1 | -1 }) => {
 const Car = ({ z0, m, lights, lampK, pointCount }: { z0: number; m: Mats; lights: boolean; lampK: number; pointCount: number }) => {
   const rows = Math.floor(CAR_L / 1.8);
   const lampsZ = Array.from({ length: 8 }, (_, i) => z0 - 1.25 - i * 2.5);
-  const emit = useMemo(() => new THREE.MeshStandardMaterial({ color: "#fff2cf", emissive: new THREE.Color(LAMP_EMIT), emissiveIntensity: 1 }), []);
-  emit.emissiveIntensity = lights ? 2.4 * lampK : 0.02;
+  const emit = useMemo(() => new THREE.MeshStandardMaterial({ color: "#e8d6a8", emissive: new THREE.Color(LAMP_EMIT), emissiveIntensity: 1 }), []);
+  const deadMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#1b1f1b", roughness: 0.3, metalness: 0.2 }), []);
+  emit.emissiveIntensity = lights ? 1.05 * lampK : 0.02;
+  const dead = (i: number) => z0 === 0 && DEAD.includes(i);
   const glowMat = useMemo(() => m.glow.clone(), [m]);
-  glowMat.opacity = 0.55 * lampK;
+  glowMat.opacity = 0.32 * lampK;
   emit.color.set(lights ? "#fff2cf" : "#2a2a26");
   const zc = z0 - CAR_L / 2;
   return (
@@ -403,11 +425,11 @@ const Car = ({ z0, m, lights, lampK, pointCount }: { z0: number; m: Mats; lights
       {/* плафоны */}
       {lampsZ.map((z, i) => (
         <group key={i}>
-          <mesh position={[0, 2.575, z]} material={emit}>
+          <mesh position={[0, 2.575, z]} material={dead(i) ? deadMat : emit}>
             <boxGeometry args={[0.2, 0.04, 1.3]} />
           </mesh>
           <Box p={[0, 2.59, z]} s={[0.26, 0.02, 1.36]} m={m.frame} cast={false} ol />
-          {lights && (
+          {lights && !dead(i) && (
             <>
               <sprite position={[0, 2.5, z]} scale={[1.5, 1.5, 1]} material={glowMat} />
               <sprite position={[0, 2.52, z - 0.45]} scale={[0.9, 0.9, 1]} material={glowMat} />
@@ -417,7 +439,7 @@ const Car = ({ z0, m, lights, lampK, pointCount }: { z0: number; m: Mats; lights
         </group>
       ))}
       {lampsZ.slice(0, pointCount).map((z, i) => (
-        <pointLight key={i} position={[0, 2.3, z]} color={LAMP} intensity={lights ? 2.2 * lampK : 0} distance={7} decay={1.6} />
+        <pointLight key={i} position={[0, 2.3, z]} color={LAMP} intensity={lights && !dead(i) ? 2.4 * lampK : 0} distance={4.5} decay={2} />
       ))}
       <EndWall z={z0} m={m} facing={-1} />
       <EndWall z={z0 - CAR_L} m={m} facing={1} />
@@ -437,16 +459,16 @@ const Cone = ({ z, k }: { z: number; k: number }) => {
         position={[0, 2.5, z]}
         target={tgt}
         color={LAMP}
-        intensity={7 * k}
-        angle={1.05}
-        penumbra={0.9}
-        distance={6}
-        decay={1.4}
+        intensity={9 * k}
+        angle={0.78}
+        penumbra={0.85}
+        distance={5}
+        decay={2}
         attenuation={2.6}
         anglePower={4}
         radiusTop={0.25}
-        radiusBottom={2.2}
-        opacity={0.16 * k}
+        radiusBottom={1.6}
+        opacity={0.12 * k}
         castShadow
         shadow-mapSize-width={512}
         shadow-mapSize-height={512}
@@ -485,7 +507,7 @@ const Dust = ({ u, cz }: { u: number; cz: number }) => {
 const MON_FROM = 2.4; // с начала вспышек (≈58.4)
 const Tambour = ({ u, monster, m }: { u: number; monster: THREE.Texture | null; m: Mats }) => {
   const glassTex = useMemo(() => makeDirtyGlass(), []);
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.04, roughness: 0.85, color: "#8f8574" }), []);
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.01, roughness: 0.85, color: "#8f8574" }), []);
   if (monster && mat.map !== monster) {
     mat.map = monster;
     mat.needsUpdate = true;
@@ -501,7 +523,14 @@ const Tambour = ({ u, monster, m }: { u: number; monster: THREE.Texture | null; 
   const jerk = flash && watchF % 6 < 2 ? 0.015 : 0;
   // свет вспышки: 3D-источник в тамбуре сверху, и контровой из соседнего вагона
   const fl = flash ? 1 : 0;
-  mat.color.set(flash ? "#8f8574" : "#2e2a23"); // без вспышки — тонет в темноте тамбура
+  mat.color.set(flash ? "#a89c84" : "#0b0a08"); // без вспышки — тонет в черноте тамбура
+  // контур-«контровой свет»: чуть увеличенная копия силуэта позади, светится только на вспышке
+  const rim = useMemo(() => new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.2, color: "#f0d08e", depthWrite: false }), []);
+  if (monster && rim.map !== monster) {
+    rim.map = monster;
+    rim.needsUpdate = true;
+  }
+  rim.opacity = flash ? 0.85 : 0;
   return (
     <group>
       {/* грязное стекло нашей двери */}
@@ -515,12 +544,18 @@ const Tambour = ({ u, monster, m }: { u: number; monster: THREE.Texture | null; 
         <meshBasicMaterial color="#f3d58e" transparent opacity={0.035} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       {seen && monster && (
-        <mesh position={[-0.15 + jerk, 1.1, mz]} rotation={[0, 0, -0.05]} material={mat}>
-          <planeGeometry args={[1.65, 2.93]} />
-        </mesh>
+        <group position={[-0.15 + jerk, 1.1, mz]} rotation={[0, 0, -0.05]}>
+          <mesh material={mat}>
+            <planeGeometry args={[1.65, 2.93]} />
+          </mesh>
+          <mesh position={[0.005, 0.02, -0.03]} scale={[1.022, 1.014, 1]} material={rim}>
+            <planeGeometry args={[1.65, 2.93]} />
+          </mesh>
+        </group>
       )}
-      <pointLight position={[0.15, 2.05, mz + 0.35]} color={LAMP} intensity={fl * 2.6} distance={2.2} decay={1.5} />
-      <pointLight position={[0, 1.8, NEXT_Z - 0.6]} color={LAMP} intensity={fl * 1.6} distance={3} decay={1.5} />
+      <pointLight position={[0.1, 2.3, mz - 0.45]} color={LAMP} intensity={fl * 3.2} distance={2.6} decay={2} />
+      <pointLight position={[0.2, 2.35, mz + 0.3]} color={LAMP} intensity={fl * 0.9} distance={1.6} decay={2} />
+      <pointLight position={[0, 1.8, NEXT_Z - 0.6]} color={LAMP} intensity={fl * 1.6} distance={3} decay={2} />
       {/* лёгкий свет нашего вагона на стекле, чтобы оно читалось */}
       <pointLight position={[0, 1.9, DOOR_Z + 0.6]} color={LAMP} intensity={0.25} distance={1.2} decay={2} />
     </group>
@@ -540,9 +575,9 @@ const Scene = ({ u, pose, post, monster }: { u: number; pose: Pose; post: boolea
     <>
       <CamRig pose={pose} />
       <color attach="background" args={["#000"]} />
-      <fog attach="fog" args={["#0d0b07", 6, 26]} />
-      <ambientLight color="#8a7a55" intensity={0.22 * (0.6 + 0.4 * ourK)} />
-      <hemisphereLight args={["#d9c08a", "#2a2218", 0.25 * ourK]} />
+      <fog attach="fog" args={["#050403", 3, 15]} />
+      <ambientLight color="#8a7a55" intensity={0.04} />
+      <hemisphereLight args={["#d9c08a", "#0a0806", 0.05 * ourK]} />
       <Car z0={0} m={m} lights lampK={ourK} pointCount={8} />
       <Car z0={NEXT_Z} m={m} lights={nextOn} lampK={nextK} pointCount={3} />
       {/* переход между вагонами: тёмный тоннель-гармошка (стенки, пол, потолок) */}
@@ -558,7 +593,7 @@ const Scene = ({ u, pose, post, monster }: { u: number; pose: Pose; post: boolea
           </group>
         );
       })()}
-      {[-5.5, -11.5, -17.25].map((z) => (
+      {[-6.25, -11.25, -16.25].map((z) => (
         <Cone key={z} z={z} k={ourK} />
       ))}
       <Dust u={u} cz={pose.z} />
