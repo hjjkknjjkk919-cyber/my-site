@@ -1,21 +1,27 @@
-# Рендер серии на сервере GitHub: Actions → render → Run workflow, готовый MP4 — в Artifacts.
+# Рендер на сервере GitHub: Actions → render → Run workflow (выбери композицию), готовый MP4 — в Artifacts.
 name: render
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      composition:
+        description: "Какую композицию рендерить (Everest, Survival, Ep1Test …)"
+        default: "Ep1Test"
+        required: true
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      # библиотеки для headless Chrome, который рендерит кадры
       - run: sudo apt-get update && sudo apt-get install -y libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2
       - run: npm ci
-      - run: npx remotion render src/index.ts Everest out/everest_ep1.mp4 --codec h264 --crf 18
+      # concurrency=1: при нескольких потоках Chrome «размножает» картинку плиткой
+      - run: npx remotion render src/index.ts ${{ inputs.composition }} out/${{ inputs.composition }}.mp4 --codec h264 --crf 18 --concurrency=1
       - uses: actions/upload-artifact@v4
         with:
-          name: everest_ep1
-          path: out/everest_ep1.mp4
+          name: ${{ inputs.composition }}
+          path: out/${{ inputs.composition }}.mp4
