@@ -7,6 +7,7 @@ import { Wagon2, type Cam } from "./Wagon2";
 import { Atmos } from "./GostOld";
 import { Beyond, cuesFor, type Cue, Face, Follow, Hook, Hud, MONT, ride, Slam, Subs, Vig, Watch } from "./Ep1Test";
 import { PovPhone, PovStandWalk, Sleeper } from "./Wake";
+import { lamp, lampDipsIn } from "./lamp";
 import { LEN } from "./Wagon2";
 import { loadFont as loadStencil } from "@remotion/google-fonts/RussoOne";
 const { fontFamily: STENCIL } = loadStencil("normal", { weights: ["400"], subsets: ["latin", "cyrillic"] });
@@ -225,57 +226,97 @@ const DoorWait = () => {
   );
 };
 
-/** Финальный выбор — старая металлическая панель связи электрички. */
+/** Финальный выбор: старая металлическая панель связи, вмонтированная в тёмную стену вагона. */
 const Choice = () => {
   const t = useT();
+  const L = 0.82 + 0.18 * lamp(t + 40); // свет лампы над панелью слегка мигает
   const rivet = (x: number, y: number) => (
     <g key={`${x}${y}`}>
-      <circle cx={x} cy={y} r="16" fill="#8b9195" stroke="#1b1e21" strokeWidth="4" />
+      <circle cx={x} cy={y} r="15" fill="#7d8387" stroke="#1b1e21" strokeWidth="4" />
       <circle cx={x - 4} cy={y - 4} r="5" fill="#c9ced1" />
     </g>
   );
-  const row = (y: number, n: string, text: string, led: string, d: number) => {
+  const row = (y: number, n: string, text: string, led: "red" | "amber", d: number) => {
     const on = t > d;
-    const blink = led === "red" ? (Math.floor(t * 4) % 2 ? 1 : 0.35) : 0.6;
+    const blink = led === "red" ? (Math.floor(t * 4) % 2 ? 1 : 0.35) : 0.55 + 0.1 * Math.sin(t * 3);
     return (
-      <g opacity={on ? 1 : 0} transform={`translate(${on ? 0 : -20} 0)`}>
-        <rect x="130" y={y - 70} width="820" height="140" rx="10" fill="#22272b" stroke="#5c6368" strokeWidth="4" />
-        <circle cx="210" cy={y} r="34" fill="#111" stroke="#5c6368" strokeWidth="5" />
-        <circle cx="210" cy={y} r="22" fill={led === "red" ? `rgba(255,40,40,${blink})` : `rgba(255,190,90,${blink})`} />
-        {led === "red" && <circle cx="210" cy={y} r="50" fill="#ff3030" opacity={0.15 * blink} />}
-        <text x="270" y={y + 15} fontFamily={STENCIL} fontWeight="400" fontSize="42" fill="#e9e4d4">{n} — {text}</text>
+      <g opacity={on ? 1 : 0} transform={`translate(${on ? 0 : -16} 0)`}>
+        <rect x="150" y={y - 62} width="780" height="124" rx="10" fill="#1f2427" stroke="#596166" strokeWidth="4" />
+        <circle cx="222" cy={y} r="30" fill="#0e0f10" stroke="#596166" strokeWidth="5" />
+        <circle cx="222" cy={y} r="19" fill={led === "red" ? `rgba(255,40,40,${blink})` : `rgba(255,190,90,${blink})`} />
+        {led === "red" && <circle cx="222" cy={y} r="44" fill="#ff3030" opacity={0.14 * blink} />}
+        {/* текст целиком помещается: ширина подогнана под поле 600 px с отступами */}
+        <text x="276" y={y + 13} fontFamily={STENCIL} fontWeight="400" fontSize="37" fill="#e9e4d4" textLength={n === "2" ? 616 : 560} lengthAdjust="spacingAndGlyphs">
+          {n} — {text}
+        </text>
       </g>
     );
   };
   return (
-    <AbsoluteFill style={{ background: "#07090b" }}>
+    <AbsoluteFill style={{ background: "#0b0d0f" }}>
       <Svg>
         <defs>
+          <linearGradient id="chWall" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#2c3433" />
+            <stop offset="1" stopColor="#151a1a" />
+          </linearGradient>
           <linearGradient id="chMetal" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#3a4044" />
             <stop offset="0.5" stopColor="#2b3034" />
-            <stop offset="1" stopColor="#1f2326" />
+            <stop offset="1" stopColor="#1d2124" />
+          </linearGradient>
+          <linearGradient id="chCone" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#dfeaff" stopOpacity={0.26 * L} />
+            <stop offset="1" stopColor="#dfeaff" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <rect x="70" y="520" width="940" height="900" rx="22" fill="url(#chMetal)" stroke="#9aa1a6" strokeWidth="8" />
-        <rect x="88" y="538" width="904" height="864" rx="16" fill="none" stroke="#141719" strokeWidth="4" />
-        {/* царапины */}
+        {/* стена вагона: панели, швы, грязь */}
+        <rect width="1080" height="1920" fill="url(#chWall)" />
+        {[0, 1, 2].map((i) => <path key={i} d={`M0 ${420 + i * 520} H1080`} stroke="#0e1212" strokeWidth="6" />)}
+        <path d="M60 0 V1920 M1020 0 V1920" stroke="#0e1212" strokeWidth="5" />
+        {Array.from({ length: 40 }, (_, i) => (
+          <circle key={i} cx={random(`wd${i}`) * 1080} cy={random(`we${i}`) * 1920} r={6 + random(`wf${i}`) * 30} fill="#0b0e0e" opacity="0.18" />
+        ))}
+        {/* потолочная лампа и конус холодного света на панель */}
+        <rect x="380" y="0" width="320" height="34" rx="10" fill={`rgba(235,240,250,${0.5 + 0.5 * L})`} stroke="#141717" strokeWidth="5" />
+        <path d="M400 30 L680 30 L1060 1500 L20 1500 Z" fill="url(#chCone)" />
+        {Array.from({ length: 34 }, (_, i) => {
+          const y = ((random(`dy${i}`) + t * (0.02 + (i % 4) * 0.008)) % 1) * 1450 + 40;
+          const half = 140 + (y / 1500) * 380;
+          const x = 540 + (random(`dx${i}`) - 0.5) * 2 * half * 0.9;
+          return <circle key={i} cx={x} cy={y} r={1.3 + (i % 3)} fill="#eef3ff" opacity={(0.25 + 0.4 * Math.abs(Math.sin(t * 1.5 + i))) * L} />;
+        })}
+        {/* тень панели на стене (контакт) */}
+        <rect x="92" y="560" width="920" height="880" rx="24" fill="#000" opacity="0.45" transform="translate(14 22)" />
+        {/* корпус панели */}
+        <rect x="80" y="540" width="920" height="880" rx="22" fill="url(#chMetal)" stroke="#9aa1a6" strokeWidth="8" />
+        <rect x="98" y="558" width="884" height="844" rx="16" fill="none" stroke="#121517" strokeWidth="4" />
+        {/* свет сверху на корпусе */}
+        <rect x="80" y="540" width="920" height="300" rx="22" fill="#cfe0ff" opacity={0.07 * L} />
         {Array.from({ length: 26 }, (_, i) => {
-          const x = 110 + random(`sc${i}`) * 860;
-          const y = 560 + random(`sd${i}`) * 820;
+          const x = 120 + random(`sc${i}`) * 840;
+          const y = 580 + random(`sd${i}`) * 800;
           return <path key={i} d={`M${x} ${y} l${30 + random(`se${i}`) * 80} ${(random(`sf${i}`) - 0.5) * 20}`} stroke="#6b7278" strokeWidth="2" opacity="0.35" />;
         })}
-        {rivet(118, 568)}
-        {rivet(962, 568)}
-        {rivet(118, 1372)}
-        {rivet(962, 1372)}
-        <text x="540" y="690" textAnchor="middle" fontFamily={STENCIL} fontWeight="400" fontSize="74" fill="#f2c94c" opacity={t > 0.15 ? 1 : 0}>ЧТО ДЕЛАТЬ ДИМЕ?</text>
-        <path d="M150 740 H930" stroke="#5c6368" strokeWidth="4" opacity={t > 0.15 ? 1 : 0} />
-        {row(880, "1", "НАЖАТЬ КНОПКУ СВЯЗИ", "red", 0.6)}
-        {row(1080, "2", "БЕЖАТЬ ОБРАТНО В ВАГОН", "amber", 1.1)}
-        <text x="540" y="1300" textAnchor="middle" fontFamily={STENCIL} fontWeight="400" fontSize="40" fill="#9aa1a6" opacity={t > 1.5 ? 1 : 0}>ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ</text>
+        {/* немного запёкшейся крови на корпусе и у края красного индикатора */}
+        <path d="M940 600 C950 650 944 700 952 760" stroke="#3f0d10" strokeWidth="9" fill="none" strokeLinecap="round" opacity="0.65" />
+        <ellipse cx="190" cy="860" rx="14" ry="6" fill="#3f0d10" opacity="0.6" />
+        <path d="M180 868 C176 890 182 905 178 925" stroke="#3f0d10" strokeWidth="5" fill="none" opacity="0.55" />
+        {rivet(126, 586)}
+        {rivet(954, 586)}
+        {rivet(126, 1374)}
+        {rivet(954, 1374)}
+        <text x="540" y="706" textAnchor="middle" fontFamily={STENCIL} fontWeight="400" fontSize="68" fill="#f2c94c" opacity={t > 0.15 ? 1 : 0}>ЧТО ДЕЛАТЬ ДИМЕ?</text>
+        <path d="M160 756 H920" stroke="#596166" strokeWidth="4" opacity={t > 0.15 ? 1 : 0} />
+        {row(900, "1", "НАЖАТЬ КНОПКУ СВЯЗИ", "red", 0.6)}
+        {row(1100, "2", "БЕЖАТЬ ОБРАТНО В ВАГОН", "amber", 1.1)}
+        <text x="540" y="1306" textAnchor="middle" fontFamily={STENCIL} fontWeight="400" fontSize="36" fill="#9aa1a6" opacity={t > 1.5 ? 1 : 0}>ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ</text>
+        {/* провисшие провода внизу, кабель-канал сбоку */}
+        <rect x="1012" y="0" width="40" height="1920" fill="#202626" stroke="#0e1212" strokeWidth="4" />
+        <path d="M120 1420 C200 1620 380 1640 470 1520 M300 1420 C360 1700 600 1760 760 1600 C820 1540 880 1520 1012 1560" stroke="#111" strokeWidth="14" fill="none" strokeLinecap="round" />
+        <path d="M300 1420 C360 1700 600 1760 760 1600" stroke="#7a2a24" strokeWidth="5" fill="none" opacity="0.6" />
       </Svg>
-      <Vig k={0.8} />
+      <Vig k={0.85} />
     </AbsoluteFill>
   );
 };
@@ -302,10 +343,14 @@ export const EP1_FRAMES = fr(S.choice[1]);
 
 // реплики: [клип, старт, длительность, текст]
 const VO: [string, number, number, string][] = [
+  ["v1", 6.6, 1.8, "Ни одного *пассажира*."],
   ["e1", 13.0, 5.4, "Ты проснулся. Электричка идёт сорок минут… без *остановок*."],
   ["e2", 21.6, 3.6, "Мимо проносится станция. Ты её *не знаешь*."],
+  ["v2", 25.7, 3.2, "В стекле… только ты. *Почти*."],
   ["e3", 29.6, 5.1, "Правило первое. Ночью садись в *первый* вагон. Ближе к машинисту."],
   ["e4", 38.6, 1.6, "Ты идёшь *вперёд*."],
+  ["v3", 42.3, 3.3, "Позади — никого. *Пока*."],
+  ["v4", 48.6, 1.9, "Там кто-то *ходит*."],
   ["e5", 51.8, 2.4, "В соседнем вагоне гаснет *свет*."],
   ["e6", 57.0, 4.7, "Вспышка. Пусто. Вспышка… оно *ближе*."],
   ["e7", 66.6, 5.5, "Правило второе. У каждых дверей есть *кнопка* связи с машинистом. Жми."],
@@ -320,32 +365,78 @@ const seq = (k: keyof typeof S, el: React.ReactNode) => (
 );
 const dur = (k: keyof typeof S) => S[k][1] - S[k][0];
 
+// провалы в тишину перед пугающими моментами
+const SILENCE: [number, number][] = [
+  [50.9, 51.5],
+  [79.0, 79.4],
+  [81.8, 82.5],
+];
+const silentAt = (g: number) => SILENCE.some(([a, b]) => g >= a && g < b);
+const voiceAt = (g: number) => VO.some(([, at, d]) => g > at - 0.1 && g < at + d + 0.1);
+/** Фон: приглушается под голосом наполовину, в паузах тишины — ноль. */
+const bed = (base: number, start = 0) => (f: number) => {
+  const g = start + f / FPS;
+  if (silentAt(g)) return 0;
+  return voiceAt(g) ? base * 0.5 : base;
+};
+// треск лампы на её провалах (сцены пробуждения и прохода; там лампа = lamp(локальное t + сдвиг))
+const crackles = [...lampDipsIn(1, 10).map((x) => x + 1), ...lampDipsIn(3, 13).map((x) => x + 8), ...lampDipsIn(6, 11).map((x) => x + 31)];
+
 export const Ep1 = () => {
   const t = useT();
   const inS = (k: keyof typeof S) => t >= S[k][0] && t < S[k][1];
   const noHud = inS("rule1") || inS("rule2") || t >= S.slam[0];
+  const clacks = Array.from({ length: 90 }, (_, i) => 2 + i * 0.9).filter((g) => !silentAt(g) && g < S.slam[0]);
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Audio src={staticFile("audio/train/ride.mp3")} loop volume={(f) => (f > fr(S.black[0]) ? 0 : f > fr(S.slam[0]) ? 0.06 : f > fr(S.watch[0]) ? 0.28 : 0.42)} />
-      {Array.from({ length: 90 }, (_, i) => (
-        <Sfx key={i} at={2 + i * 0.9} name="train/clack" vol={0.18} />
+      {/* фон электрички */}
+      <Audio src={staticFile("audio/train/ride.mp3")} loop volume={(f) => (f > fr(S.slam[0]) ? 0 : bed(f > fr(S.watch[0]) ? 0.3 : 0.42)(f))} />
+      {clacks.map((g, i) => (
+        <Sfx key={`c${i}`} at={g} name="train/clack" vol={voiceAt(g) ? 0.1 : 0.2} />
       ))}
+      {[9.5, 24, 36.5, 46, 63, 72].map((g, i) => <Sfx key={`k${i}`} at={g} name="train/creak" vol={voiceAt(g) ? 0.2 : 0.4} />)}
+      {crackles.map((g, i) => <Sfx key={`l${i}`} at={g} name="train/crackle" vol={0.45} />)}
+      {/* крючок */}
       <Sfx at={0.05} name="train/sting" vol={0.5} dur={0.7} />
-      <Sfx at={2.2} name="train/breath" vol={0.35} dur={2.5} />
-      <Sfx at={4.4} name="train/seat" vol={0.7} />
-      <Sfx at={S.station[0] + 0.4} name="train/pass" vol={0.6} />
-      <Sfx at={S.walk[0] + 0.3} name="train/seat" vol={0.6} />
-      <Sfx at={S.walk[0] + 2.0} name="train/steps" vol={0.6} />
-      <Sfx at={S.follow[0]} name="train/steps" vol={0.5} dur={4} />
-      <Sfx at={S.door[0] + 4.5} name="train/lightsoff" vol={0.8} />
-      <Sfx at={S.door[0] + 4.6} name="train/drone" vol={0.5} />
-      <Sfx at={S.watch[0]} name="train/buzz" vol={0.4} dur={9} />
-      <Sfx at={S.watch[0] + 2} name="train/drone" vol={0.6} />
-      <Sfx at={S.button[0] + 1.0} name="train/static" vol={0.7} />
+      {/* пробуждение */}
+      <Sfx at={2.1} name="train/breath" vol={0.3} dur={2.6} />
+      <Sfx at={3.4} name="train/rustle" vol={0.6} />
+      <Sfx at={4.4} name="train/seat" vol={0.6} />
+      <Sfx at={6.5} name="train/inhale" vol={0.7} />
+      <Sfx at={8.4} name="train/phone" vol={0.7} />
+      <Sfx at={11.1} name="train/inhale" vol={0.4} dur={1.2} />
+      <Sfx at={S.station[0] + 0.4} name="train/pass" vol={0.55} />
+      {/* правила: цифровые сбои */}
+      <Sfx at={S.rule1[0]} name="train/glitch" vol={0.7} />
+      <Sfx at={S.rule2[0]} name="train/glitch" vol={0.7} />
+      {/* подъём и проход */}
+      <Sfx at={S.walk[0] + 0.3} name="train/seat" vol={0.55} />
+      <Sfx at={S.walk[0] + 0.5} name="train/rustle" vol={0.5} />
+      <Sfx at={S.walk[0] + 2.0} name="train/steps2" vol={0.65} dur={3.0} />
+      <Sfx at={S.walk[0] + 3.25} name="train/whoosh" vol={0.6} />
+      <Sfx at={S.walk[0] + 4.35} name="train/whoosh" vol={0.5} />
+      <Sfx at={S.follow[0]} name="train/steps2" vol={0.55} dur={4.4} />
+      {/* у двери: гаснет свет после тишины */}
+      <Sfx at={S.door[0] + 4.5} name="train/lightsoff" vol={0.85} />
+      <Sfx at={S.door[0] + 4.8} name="train/drone" vol={0.45} />
+      {/* монстр */}
+      <Sfx at={S.watch[0]} name="train/buzz" vol={0.35} dur={9} />
+      <Sfx at={S.watch[0] + 1.6} name="train/claws" vol={0.6} />
+      <Sfx at={S.watch[0] + 3.7} name="train/growl" vol={0.6} />
+      <Sfx at={S.watch[0] + 5.5} name="train/cbreath" vol={0.55} />
+      <Sfx at={S.watch[0] + 7.4} name="train/claws" vol={0.5} />
+      <Sfx at={S.button[0] + 0.4} name="train/cbreath" vol={0.45} />
+      <Sfx at={S.button[0] + 1.0} name="train/static" vol={0.6} />
       <Sfx at={S.slam[0]} name="train/sting" vol={1} />
       <Sfx at={S.slam[0]} name="train/glass" vol={1} />
+      <Sfx at={S.slam[0] + 0.15} name="train/vibrate" vol={0.7} />
+      <Sfx at={S.slam[0] + 0.3} name="train/growl" vol={0.8} dur={1.5} />
+      <Sfx at={S.slam[0] + 0.5} name="train/claws" vol={0.6} dur={1.3} />
+      {/* финальная панель: реле и потрескивание динамика */}
       {[0.15, 0.6, 1.1].map((d, i) => <Sfx key={`r${i}`} at={S.choice[0] + d} name="train/relay" vol={0.8} />)}
-      {VO.map(([k, at]) => <Sfx key={k} at={at} name={`train/${k}`} vol={1.2} />)}
+      <Sfx at={S.choice[0] + 0.2} name="train/speaker" vol={0.3} dur={7} />
+      {/* голос — всегда поверх */}
+      {VO.map(([k, at]) => <Sfx key={k} at={at} name={`train/${k}`} vol={1.25} />)}
       {seq("hook", <Hook />)}
       {seq("sleep", <Sleeper d={dur("sleep")} />)}
       {seq("pov", <PovPhone d={dur("pov")} />)}

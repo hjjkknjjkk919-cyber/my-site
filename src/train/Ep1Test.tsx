@@ -308,6 +308,13 @@ export const Slam = () => {
             </g>
           )}
           <Cracks x={560} y={820} p={crack} />
+          {/* кровавые мазки и царапины на стекле в зоне удара — тянутся за сползающими пальцами */}
+          <g opacity={crack * 0.8}>
+            {[[300, 820], [360, 790], [780, 780], [840, 820], [560, 760]].map(([x, y], i) => (
+              <path key={i} d={`M${x} ${y} C${x + 6} ${y + 40 + slide} ${x - 4} ${y + 90 + slide * 1.4} ${x + 3} ${y + 120 + slide * 1.6}`} stroke="#4a0f12" strokeWidth={10 - i} fill="none" strokeLinecap="round" opacity="0.7" />
+            ))}
+            <path d="M470 700 l60 34 M490 690 l52 40 M610 690 l-48 44" stroke="#e9eef0" strokeWidth="2" opacity="0.6" />
+          </g>
           <rect x="0" y="0" width="1080" height="1920" fill="none" stroke="#5f6e70" strokeWidth="90" />
         </Svg>
       )}

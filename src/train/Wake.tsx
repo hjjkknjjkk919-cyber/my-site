@@ -17,7 +17,8 @@ const ride = (t: number) => {
   return { rot: Math.sin((t / 1.4) * Math.PI * 2) * 0.6, y: ph < 0.1 ? Math.sin((ph / 0.1) * Math.PI) * 3 : 0 };
 };
 /** Мигающая лампа: в основном горит, иногда проваливается. */
-export const lampAt = (t: number) => ((t % 4.7) > 4.2 && Math.sin(t * 60) > 0 ? 0.35 : 1);
+import { lamp as lampAt } from "./lamp";
+export { lampAt };
 
 const Vig = ({ k = 1 }: { k?: number }) => (
   <AbsoluteFill style={{ background: `radial-gradient(75% 60% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,${0.72 * k}) 100%)` }} />
@@ -52,8 +53,14 @@ export const Sleeper = ({ d }: { d: number }) => {
   const L = lampAt(t + 1);
   // фазы
   const wake = ease(t, 2.4, 3.1, 0, 1); // голова поднимается
-  const openEyes = t < 3.0 ? 0.05 : t < 3.3 ? 0.4 : t < 3.45 ? 0.05 : t < 3.9 ? 0.75 : t < 4.0 ? 0.1 : 0.95; // открывает и моргает
-  const squint = L < 1 && t > 4 ? 0.55 : 1; // щурится от мигания
+  // медленно разлепляет глаза, тяжело моргает дважды, потом распахивает от испуга
+  const openEyes =
+    t < 2.9 ? 0.05 : t < 3.4 ? ease(t, 2.9, 3.4, 0.05, 0.4) : t < 3.75 ? ease(t, 3.4, 3.75, 0.4, 0.08) : t < 4.3 ? ease(t, 3.75, 4.3, 0.08, 0.55) : t < 4.55 ? ease(t, 4.3, 4.55, 0.55, 0.1) : ease(t, 4.55, 5.2, 0.1, 1.15);
+  // эмоция плавно: сонная хмурость (−0.35) → тревога (0.85)
+  const fearK = t < 4.6 ? -0.35 : ease(t, 4.6, 6.4, -0.35, 0.85);
+  const gape = t > 5.6 ? "o" : "closed";
+  const sheen = ease(t, 5.0, 7.0, 0, 1);
+  const squint = L < 0.6 && t > 4 ? 0.7 : 1; // щурится, когда лампа мигает
   const lookX = t < 4.4 ? 0 : t < 5.4 ? ease(t, 4.4, 5.0, 0, -0.9) : t < 6.3 ? ease(t, 5.4, 6.0, -0.9, 0.8) : ease(t, 6.3, 6.7, 0.8, 0.2);
   const headTurn = lookX * 10;
   const phoneUp = ease(t, 6.6, 7.8, 0, 1);
@@ -104,7 +111,15 @@ export const Sleeper = ({ d }: { d: number }) => {
           )}
           {/* голова: свешена, потом поднимается */}
           <g transform={`translate(${headTurn * 2} ${headDrop + breath * 0.4}) rotate(${headTilt + headTurn * 0.3} 540 1300) translate(540 880) scale(0.62) translate(-540 -900)`}>
-            <DimaFace t={t} fear={ease(t, 4.2, 6.5, 0.1, 0.45)} eyes={openEyes * squint} look={[lookX, phoneUp > 0.5 ? 0.6 : 0]} mouth="closed" />
+            <DimaFace t={t} fear={fearK} eyes={openEyes * squint} look={[lookX, phoneUp > 0.5 ? 0.6 : 0]} mouth={gape} tremble={sheen * 0.25} />
+            {/* лёгкая испарина: влажный блеск на лбу и висках, без крупных капель */}
+            <g opacity={sheen * 0.55}>
+              <ellipse cx="470" cy="660" rx="70" ry="14" fill="#fff" opacity="0.35" />
+              <ellipse cx="620" cy="645" rx="45" ry="10" fill="#fff" opacity="0.3" />
+              <ellipse cx="292" cy="780" rx="10" ry="24" fill="#fff" opacity="0.28" />
+              <ellipse cx="790" cy="790" rx="9" ry="22" fill="#fff" opacity="0.25" />
+              {[[420, 700], [560, 690], [650, 712], [330, 840], [760, 860]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="4" fill="#fff" opacity="0.55" />)}
+            </g>
           </g>
           {/* отсвет экрана на лице */}
           {phoneUp > 0.3 && <ellipse cx="560" cy="980" rx="260" ry="200" fill="#9fc3ff" opacity={0.12 * phoneUp} />}

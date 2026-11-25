@@ -3,6 +3,7 @@ import { AbsoluteFill, random, Sequence, staticFile } from "remotion";
 import { Audio } from "@remotion/media";
 import { Sfx } from "../components/audio";
 import { clamp, ease, Svg, useT } from "../components/fx";
+import { lamp } from "./lamp";
 
 /**
  * Новый стиль (как «Гость»): мягкие плоские цвета, тёмно-коричневый контур, детальные глаза,
@@ -284,11 +285,7 @@ const DoorGlass = ({ children, fogA = 0, crack = 0 }: { children?: React.ReactNo
 
 // ── атмосфера вагона: приглушённый свет, мигание, пыль, тряска, огни за окном ──
 /** Яркость лампы: приглушённо, иногда проваливается и мигает. */
-export const lampLevel = (t: number) => {
-  const burst = (t % 6.3) > 5.6; // раз в ~6 с короткая серия миганий
-  const f = burst ? (Math.sin(t * 70) > 0.2 ? 1 : 0.25) : 1;
-  return (0.78 + 0.06 * Math.sin(t * 3.1)) * f;
-};
+export const lampLevel = (t: number) => lamp(t);
 /** Покачивание вагона и толчок на стыке рельсов (раз в ~0.95 с). */
 export const ride = (t: number) => {
   const ph = (t % 0.95) / 0.95;

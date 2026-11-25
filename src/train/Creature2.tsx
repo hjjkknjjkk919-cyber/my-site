@@ -34,12 +34,16 @@ const Hand = ({ x, y, flip, spread, slide }: { x: number; y: number; flip: 1 | -
       {fingers.map((a, i) => {
         const ang = ((a * spread) * Math.PI) / 180;
         const len = [230, 300, 320, 290, 200][i];
-        const ex = Math.sin(ang) * len;
-        const ey = -110 - Math.cos(ang) * len;
-        const k1x = Math.sin(ang) * len * 0.38;
-        const k1y = -110 - Math.cos(ang) * len * 0.38;
-        const k2x = Math.sin(ang) * len * 0.7;
-        const k2y = -110 - Math.cos(ang) * len * 0.7;
+        const bend = 0.22; // фаланги загибаются, как когти, цепляющие стекло
+        const a1 = ang;
+        const a2 = ang - Math.sign(ang || 1) * bend * 0.5;
+        const a3 = ang - Math.sign(ang || 1) * bend;
+        const k1x = Math.sin(a1) * len * 0.38;
+        const k1y = -110 - Math.cos(a1) * len * 0.38;
+        const k2x = k1x + Math.sin(a2) * len * 0.32;
+        const k2y = k1y - Math.cos(a2) * len * 0.32;
+        const ex = k2x + Math.sin(a3) * len * 0.26;
+        const ey = k2y - Math.cos(a3) * len * 0.26 + 14;
         return (
           <g key={i}>
             <path d={`M${Math.sin(ang) * 20} -110 L${k1x} ${k1y} L${k2x} ${k2y} L${ex} ${ey}`} stroke={LINE} strokeWidth="26" strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -48,8 +52,9 @@ const Hand = ({ x, y, flip, spread, slide }: { x: number; y: number; flip: 1 | -
             <circle cx={k2x} cy={k2y} r="11" fill={SH} opacity="0.7" />
             {/* коготь 40–60 px */}
             <path d={`M${ex - 10} ${ey + 4} L${ex + Math.sin(ang) * 55} ${ey - Math.cos(ang) * 55} L${ex + 10} ${ey + 4} Z`} fill={CLAW} stroke={LINE} strokeWidth="3" />
-            {/* бледный отпечаток подушечки на стекле */}
+            {/* бледный отпечаток подушечки на стекле и запёкшаяся кровь на кончике */}
             <ellipse cx={ex} cy={ey + 10} rx="20" ry="14" fill="#efe9da" opacity="0.5" />
+            <path d={`M${ex - 9} ${ey + 2} C${ex - 6} ${ey - 10} ${ex + 6} ${ey - 10} ${ex + 9} ${ey + 2} Z`} fill="#4a0f12" opacity="0.75" />
           </g>
         );
       })}
@@ -149,21 +154,65 @@ export const CreatureGlass = ({ t, open = 1, tilt = 0, slide = 0 }: { t: number;
             </g>
           );
         })}
+        {/* дополнительные глаза: лоб, висок, скула — асимметрично, в своих тёмных глазницах */}
+        {([
+          [585, 520, 16, 10, 0.9],
+          [700, 600, 11, 7, 1.0],
+          [430, 860, 9, 6, 0.85],
+        ] as const).map(([cx, cy, rx, ry, o], i) => (
+          <g key={`x${i}`} opacity={o}>
+            <ellipse cx={cx} cy={cy} rx={rx * 2.1} ry={ry * 2.3} fill="#2e2620" />
+            <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="#b9b19b" stroke={LINE} strokeWidth="2.5" />
+            <circle cx={cx + (i === 1 ? -3 : 2)} cy={cy + 1} r={Math.max(2.2, rx * 0.22)} fill="#060404" />
+            <path d={`M${cx - rx - 3} ${cy - ry * 0.4} L${cx + rx + 3} ${cy - ry * 0.9}`} stroke={LINE} strokeWidth="3.5" strokeLinecap="round" />
+            <path d={`M${cx - rx} ${cy + ry + 4} q${rx} 6 ${rx * 2} 0`} stroke="#4a3f38" strokeWidth="3" fill="none" />
+          </g>
+        ))}
         <path d="M535 820 l-6 26 M565 820 l6 26" stroke={LINE} strokeWidth="5" strokeLinecap="round" />
         {/* рот, разорванный до ушей */}
         <path d={`M385 900 C440 ${905 + open * 20} 660 ${905 + open * 20} 715 900 C690 ${920 + jaw * 0.6} 620 ${930 + jaw} 550 ${930 + jaw} C480 ${930 + jaw} 410 ${920 + jaw * 0.6} 385 900 Z`} fill={GUM} stroke={LINE} strokeWidth="6" />
         <path d={`M430 ${930 + jaw * 0.4} C490 ${960 + jaw * 0.6} 610 ${960 + jaw * 0.6} 670 ${930 + jaw * 0.4}`} fill="#280808" opacity="0.8" />
         <path d="M385 900 L350 880 L330 890 M715 900 L750 880 L770 892" stroke="#7a2a2a" strokeWidth="5" fill="none" strokeLinecap="round" />
+        {/* тёмная запёкшаяся кровь вокруг пасти */}
+        <path d="M392 905 C380 930 384 960 376 990 M712 908 C724 940 718 970 728 1000" stroke="#4a0f12" strokeWidth="7" fill="none" strokeLinecap="round" opacity="0.8" />
+        <ellipse cx="470" cy={918 + jaw * 0.08} rx="28" ry="7" fill="#4a0f12" opacity="0.6" />
+        <ellipse cx="640" cy={1000 + jaw * 0.5} rx="22" ry="6" fill="#4a0f12" opacity="0.55" />
         {/* зубы сидят на дугах губ: 3 ряда сверху, 2 снизу */}
         {arcTeeth(15, 300, true, 50, "a")}
         <g opacity="0.85">{arcTeeth(12, 236, true, 40, "b", 12)}</g>
         <g opacity="0.7">{arcTeeth(9, 176, true, 32, "c", 24)}</g>
         {arcTeeth(13, 280, false, 46, "d")}
         <g opacity="0.8">{arcTeeth(10, 210, false, 36, "e", 14)}</g>
+        {Array.from({ length: 7 }, (_, i) => {
+          const x = 420 + i * 42 + random(`bt${i}`) * 10;
+          const u = (x - 550) / 165;
+          const y = 902 + (1 - u * u) * (6 + open * 14) + 30;
+          return <path key={`bt${i}`} d={`M${x - 4} ${y - 8} L${x} ${y + 4} L${x + 4} ${y - 8} Z`} fill="#4a0f12" opacity={0.55 + random(`bo${i}`) * 0.3} />;
+        })}
       </g>
       {/* ладони — самое крупное пятно кадра */}
       <Hand x={170} y={1180} flip={1} spread={1} slide={slide} />
       <Hand x={920} y={1140} flip={-1} spread={1.1} slide={slide * 0.7} />
+      {/* полумрак вагона: глубокая тень снизу, холодный контровой свет лампы сверху */}
+      <defs>
+        <linearGradient id="cgDark" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#0a0d12" stopOpacity="0.15" />
+          <stop offset="0.45" stopColor="#0a0d12" stopOpacity="0.35" />
+          <stop offset="0.75" stopColor="#05070a" stopOpacity="0.7" />
+          <stop offset="1" stopColor="#020304" stopOpacity="0.88" />
+        </linearGradient>
+        <radialGradient id="cgRim" cx="55%" cy="12%" r="55%">
+          <stop offset="0" stopColor="#bfd6ff" stopOpacity="0.28" />
+          <stop offset="1" stopColor="#bfd6ff" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="cgSide" cx="50%" cy="45%" r="65%">
+          <stop offset="0.55" stopColor="#000" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.6" />
+        </radialGradient>
+      </defs>
+      <rect width="1080" height="1920" fill="url(#cgDark)" />
+      <rect width="1080" height="1920" fill="url(#cgSide)" />
+      <rect width="1080" height="1920" fill="url(#cgRim)" style={{ mixBlendMode: "screen" }} />
     </g>
   );
 };
