@@ -28,7 +28,7 @@ const VO = voice as Record<string, V>;
  * Небо и горы. dawn 0 — глухая ночь, 1 — рассвет. fog — мгла метели.
  * aurora 0..1 — северное сияние; ночью ещё Млечный путь, падающие звёзды, дымка между хребтами, блики на снегу.
  */
-const Sky = ({ t, dawn = 0, fog = 0, cam = 0, aurora = 0.35 }: { t: number; dawn?: number; fog?: number; cam?: number; aurora?: number }) => {
+const Sky = ({ t, dawn = 0, fog = 0, cam = 0, aurora = 0 }: { t: number; dawn?: number; fog?: number; cam?: number; aurora?: number }) => {
   const mix = (a: number[], b: number[]) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * dawn)).join(",")})`;
   const top = mix([6, 12, 28], [46, 78, 140]);
   const mid = mix([22, 40, 72], [236, 150, 128]);
@@ -364,9 +364,9 @@ const Sub = ({ t, text, from, dur }: { t: number; text: string; from: number; du
   const sx = shout ? Math.sin(t * 70) * 8 : 0;
   const sy = shout ? Math.cos(t * 53) * 6 : 0;
   return (
-    <div style={{ position: "absolute", left: 50, right: 50, top: shout ? "58%" : "66%", textAlign: "center", fontFamily: MONT, fontWeight: 800, fontSize: shout ? 118 : 84, color: shout ? RED : "#fff", transform: `translate(${sx}px,${sy}px) rotate(${shout ? Math.sin(t * 9) * 2 : 0}deg)`, lineHeight: 1.12, WebkitTextStroke: "14px #000", paintOrder: "stroke fill", textShadow: "0 6px 18px rgba(0,0,0,.6)" }}>
+    <div style={{ position: "absolute", left: 50, right: 50, top: shout ? "68%" : "75%", textAlign: "center", fontFamily: MONT, fontWeight: 800, fontSize: shout ? 118 : 84, color: shout ? RED : "#fff", transform: `translate(${sx}px,${sy}px) rotate(${shout ? Math.sin(t * 9) * 2 : 0}deg)`, lineHeight: 1.12, WebkitTextStroke: "14px #000", paintOrder: "stroke fill", textShadow: "0 6px 18px rgba(0,0,0,.6)" }}>
       {words.map((w, i) => {
-        const a = clamp((t - from - i * step) / 0.08);
+        const a = t - from - i * step >= 0 ? 1 : 0;
         const pop = 1 + 0.15 * (1 - clamp((t - from - i * step) / 0.15));
         return (
           <span key={i} style={{ display: "inline-block", marginRight: "0.22em", opacity: a, transform: `scale(${a > 0 ? pop : 1})`, color: w.includes("_") ? RED : undefined }}>
@@ -433,7 +433,7 @@ const OLD: Record<string, React.FC<P>> = {
   p01: ({ t, d }) => (
     <AbsoluteFill>
       <Cam t={t} z={ease(t, 0, d, 1.25, 1.45)} cy={ease(t, 0, d, 700, 1150)} hand={4}>
-        <Sky t={t} fog={0.15} aurora={0.9} />
+        <Sky t={t} fog={0.15} />
         <Svg><Hero cfg={DIMA} x={540} y={fy(1500, 0.24)} s={0.24} t={t} emotion="fear" look={[Math.sin(t * 2) * 20, 0]} frost={0.8} full wind={1} /></Svg>
         <Snow t={t} n={120} opacity={0.85} speed={2.2} wind={1} />
       </Cam>
@@ -533,7 +533,7 @@ const OLD: Record<string, React.FC<P>> = {
       <Cam t={t} z={ease(t, 0, 1.6, 2.4, 1.8)} cy={830} hand={2}>
         <Sky t={t} fog={0.2} />
         <Svg>
-          <Bust t={t} emotion="calm" lid={ease(t, 0.2, 1.2, 0.1, 0.5)} seed="p07" energy={0.1} breath={2.2} />
+          <Bust t={t} emotion="calm" lid={ease(t, 0.2, 0.7, 0.1, 0.97)} seed="p07" energy={0.1} breath={2.6} />
           <Breath t={t + 1.1} x={600} y={1040} s={1.4} />
         </Svg>
         <Snow t={t} n={30} opacity={0.6} speed={0.6} wind={0.3} />
@@ -546,13 +546,13 @@ const OLD: Record<string, React.FC<P>> = {
     const drift = clamp(t / d) * 0.6;
     return (
       <AbsoluteFill>
-        <Cam t={t} z={ease(t, 0, d, 1.5, 1.8)} cx={560} cy={1620} rot={-6} hand={7}>
+        <Cam t={t} z={ease(t, 0, d, 1.5, 1.8)} cx={400} cy={1250} rot={-6} hand={7}>
           <Sky t={t} fog={0.3} />
           <Svg>
-            <g transform="translate(540 1640) rotate(-90) translate(-540 -1640)">
-              <Hero cfg={DIMA} x={540} y={fy(1870, 0.28)} s={0.28} t={t} emotion="fear" frost={1} full wind={1} />
+            <g transform="translate(540 1230) rotate(-90) translate(-540 -1230)">
+              <Hero cfg={DIMA} x={540} y={fy(1460, 0.28)} s={0.28} t={t} emotion="fear" frost={1} full wind={1} />
             </g>
-            <path d={`M240 1720 C320 ${1720 - 140 * drift} 760 ${1720 - 170 * drift} 860 1720 Z`} fill="#eef3f7" stroke={INK} strokeWidth="6" />
+            <path d={`M240 1310 C320 ${1310 - 140 * drift} 760 ${1310 - 170 * drift} 860 1310 Z`} fill="#eef3f7" stroke={INK} strokeWidth="6" />
           </Svg>
           <Snow t={t} n={70} opacity={0.9} speed={2.6} wind={1.2} />
         </Cam>
@@ -673,7 +673,7 @@ const OLD: Record<string, React.FC<P>> = {
     const on = SOS.some((q) => ts >= q.from && ts < q.to);
     return (
       <AbsoluteFill>
-        <Sky t={t} aurora={0.7} />
+        <Sky t={t} />
         <AbsoluteFill style={{ background: "#03060c", opacity: on ? 0.1 : 0.35 }} />
         <Svg>
           {on && <path d="M560 1180 L-200 -100 L1280 -100 Z" fill="#fff6c8" opacity="0.28" />}
@@ -698,7 +698,7 @@ const OLD: Record<string, React.FC<P>> = {
   p17: ({ t, d }) => (
     <AbsoluteFill>
       <Cam t={t} z={ease(t, 0, d, 1.35, 1)} cy={ease(t, 0, d, 650, 1000)} hand={1.5}>
-        <Sky t={t} aurora={1} />
+        <Sky t={t} />
         <Svg>
           <Burrow x={330} y={1560} s={0.6} />
           <path d="M360 1480 L1100 1050 L1100 1250 Z" fill="#fff6c8" opacity={Math.floor(t * 3) % 2 ? 0.25 : 0.05} />
@@ -730,7 +730,7 @@ const OLD: Record<string, React.FC<P>> = {
   p19: ({ t, d }) => (
     <AbsoluteFill>
       <Cam t={t} z={ease(t, 0, d, 1.15, 1.35)} cy={ease(t, 0, d, 1000, 640)} hand={1.2}>
-        <Sky t={t} aurora={1} />
+        <Sky t={t} aurora={1.6} />
         <Svg>
           <Burrow x={540} y={1560} s={0.8} />
           <ellipse cx="540" cy="1545" rx="60" ry="45" fill="#ffb760" opacity={0.25 + 0.1 * Math.sin(t * 3)} />
@@ -819,6 +819,22 @@ const Shout = ({ t }: { t: number }) => (
 );
 
 const NEW: Record<string, React.FC<P>> = {
+  // выжил: лицо в рассветном свете, усталая улыбка; на «Ну… почти» морщится
+  s34: ({ t, d }) => {
+    const wince = t > d * 0.7;
+    return (
+      <AbsoluteFill>
+        <Cam t={t} z={ease(t, 0, d, 1.5, 1.9)} cy={830} hand={2}>
+          <Sky t={t} dawn={1} />
+          <Svg>
+            <Bust t={t} emotion={wince ? "fear" : "smile"} lid={wince ? 0.6 : 0.25} frost={0.35} seed="s34" energy={0.3} flinch={wince ? d * 0.7 : undefined} />
+          </Svg>
+          <Snow t={t} n={14} opacity={0.5} speed={0.4} wind={0.3} />
+        </Cam>
+        <Sfx name="survival/heli" vol={0.35} />
+      </AbsoluteFill>
+    );
+  },
   // орёт в камеру: лицо во весь экран, сильная тряска
   s04: ({ t }) => (
     <AbsoluteFill>
@@ -840,7 +856,7 @@ const NEW: Record<string, React.FC<P>> = {
     return (
       <AbsoluteFill>
         <Cam t={t} z={ease(t, 0, d, 1.1, 1.35)} cy={1150} hand={3}>
-          <Sky t={t} fog={0.2} aurora={0.3} />
+          <Sky t={t} fog={0.2} />
           <Svg>
             <g opacity={1 - fog}>
               {g(STAS, 600, 1)}
@@ -861,7 +877,7 @@ const NEW: Record<string, React.FC<P>> = {
   s07: ({ t, d }) => (
     <AbsoluteFill>
       <Cam t={t} z={ease(t, 0, d, 2.2, 1)} cy={ease(t, 0, d, 1380, 1050)} hand={2}>
-        <Sky t={t} fog={0.25} aurora={0.6} />
+        <Sky t={t} fog={0.25} />
         <Svg><Hero cfg={DIMA} x={540} y={fy(1420, 0.08)} s={0.08} t={t} emotion="fear" frost={0.8} full wind={1} /></Svg>
         <Snow t={t} n={80} opacity={0.7} speed={1.6} wind={1} />
       </Cam>
@@ -876,7 +892,7 @@ const NEW: Record<string, React.FC<P>> = {
         <Cam t={t} z={1.6 + fall * 0.6} cy={1100} rot={spin} hand={fall > 0 ? 18 : 6}>
           <Sky t={t} fog={0.2} />
           <Svg>
-            <Hero cfg={DIMA} x={540 + fall * 200} y={fy(1560, 0.32) + fall * 300} s={0.32} t={t} emotion="fear" walk={fall > 0 ? undefined : t * 2} frost={0.7} full wind={1} />
+            <Hero cfg={DIMA} x={300 + Math.min(t, d * 0.35) * 160 + fall * 200} y={fy(1560, 0.32) + fall * 300} s={0.32} flip={1} t={t} emotion="fear" walk={fall > 0 ? undefined : t * 2} look={[22, 0]} frost={0.7} full wind={1} />
           </Svg>
           <Snow t={t} n={120} opacity={0.9} speed={3} wind={1.5} />
         </Cam>
@@ -916,12 +932,12 @@ const NEW: Record<string, React.FC<P>> = {
             <rect x="666" y="598" width={8 + 4 * Math.abs(Math.sin(t * 6))} height="28" fill={RED} />
             <text x="705" y="660" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="28" fill={RED}>2%</text>
             <g transform="translate(0 0)">
-              <rect x="310" y="1050" width="400" height="170" rx="30" fill="#2f6fe0" />
-              <text x="335" y="1110" fontFamily={MONT} fontWeight="800" fontSize="36" fill="#fff">Мам, я тебя</text>
-              <text x="335" y="1160" fontFamily={MONT} fontWeight="800" fontSize="36" fill="#fff">люблю. Прости.</text>
-              {sent && <circle cx="740" cy="1135" r="30" fill={RED} />}
-              {sent && <text x="740" y="1149" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="40" fill="#fff">!</text>}
-              {sent && <text x="705" y="1270" textAnchor="end" fontFamily={MONT} fontWeight="800" fontSize="28" fill={RED}>Не доставлено</text>}
+              <rect x="295" y="1020" width="490" height="220" rx="34" fill="#2f6fe0" />
+              <text x="320" y="1105" fontFamily={MONT} fontWeight="800" fontSize="50" fill="#fff">Мам, я тебя</text>
+              <text x="320" y="1175" fontFamily={MONT} fontWeight="800" fontSize="50" fill="#fff">люблю. Прости.</text>
+              {sent && <circle cx="770" cy="1030" r="34" fill={RED} />}
+              {sent && <text x="770" y="1046" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="40" fill="#fff">!</text>}
+              {sent && <text x="780" y="1300" textAnchor="end" fontFamily={MONT} fontWeight="800" fontSize="40" fill={RED}>Не доставлено</text>}
             </g>
           </g>
           <Mitt wx={880} wy={1450} ang={-12} from={1} />
@@ -991,7 +1007,7 @@ const NEW: Record<string, React.FC<P>> = {
       <Cam t={t} z={ease(t, 0, d, 1.8, 2.2)} cy={840} rot={-2} hand={1.2}>
         <AbsoluteFill style={{ background: "#1a2738" }} />
         <Svg>
-          <Bust t={t} emotion="calm" lid={0.55} frost={1} seed="s29" energy={0.1} breath={1.8} />
+          <Bust t={t} emotion="calm" lid={0.95} frost={1} seed="s29" energy={0.1} breath={2} />
           <Breath t={t} x={600} y={1040} s={1.3} />
         </Svg>
       </Cam>
@@ -1008,7 +1024,7 @@ const NEW: Record<string, React.FC<P>> = {
           <Sky t={t} dawn={0.85} />
           <Svg>
             <Burrow x={760} y={1560} s={0.8} />
-            <Heli t={t} x={880 - t * 30} y={330} s={0.45} />
+            <Heli t={t} x={300 + t * 25} y={640} s={0.62} />
             <Hero cfg={DIMA} x={460} y={fy(1600, 0.34)} s={0.34} t={t} emotion="fear" arm={218 + Math.sin(t * 14) * 22} look={[18, -20]} frost={0.6} full wind={0.6} />
           </Svg>
           <Snow t={t} n={30} opacity={0.6} speed={0.8} wind={0.8} />
@@ -1026,7 +1042,7 @@ const NEW: Record<string, React.FC<P>> = {
         <Cam t={t} z={ease(t, 0, d, 1.2, 1.4)} cy={1000} hand={5}>
           <Sky t={t} dawn={0.9} />
           <Svg>
-            <path d="M560 420 L360 1600 L720 1600 Z" fill="#fff6c8" opacity={0.4 * on} />
+            <path d="M560 540 L360 1600 L720 1600 Z" fill="#fff6c8" opacity={0.4 * on} />
             <ellipse cx="540" cy="1600" rx="200" ry="50" fill="#fff6c8" opacity={0.5 * on} />
             <Hero cfg={DIMA} x={540} y={fy(1600, 0.3)} s={0.3} t={t} emotion="smile" arm={212 + Math.sin(t * 10) * 15} look={[0, -22]} frost={0.5} full wind={0.8} />
             {/* снежный вихрь от винта */}
@@ -1035,7 +1051,7 @@ const NEW: Record<string, React.FC<P>> = {
               const a = (i / 24) * Math.PI * 2;
               return <circle key={i} cx={540 + Math.cos(a) * ph * 520} cy={1600 + Math.sin(a) * ph * 90 - ph * 60} r={10 + ph * 26} fill="#fff" opacity={(1 - ph) * 0.6} />;
             })}
-            <Heli t={t} x={560 + Math.sin(t * 1.2) * 10} y={380} s={0.75} />
+            <Heli t={t} x={560 + Math.sin(t * 1.2) * 10} y={480} s={0.75} />
           </Svg>
           <Snow t={t} n={60} opacity={0.7} speed={1.4} wind={1.4} />
         </Cam>
@@ -1051,7 +1067,7 @@ const SHOTS: Record<string, React.FC<P>> = {
   s08: OLD.p05, s09: OLD.p06, s10: NEW.s10, s11: NEW.s11, s12: OLD.p07, s13: OLD.p08, s14: OLD.p09,
   s15: OLD.p09, s16: OLD.p10, s17: OLD.p11, s18: OLD.p12, s19: NEW.s19, s20: OLD.p13, s21: NEW.s21,
   s22: OLD.p14, s23: OLD.p15, s24: NEW.s24, s25: NEW.s25, s26: OLD.p16, s27: OLD.p17, s28: OLD.p18,
-  s29: NEW.s29, s30: OLD.p19, s31: OLD.p20, s32: NEW.s32, s33: NEW.s33, s34: OLD.p21, s35: OLD.p22,
+  s29: NEW.s29, s30: OLD.p19, s31: OLD.p20, s32: NEW.s32, s33: NEW.s33, s34: NEW.s34, s35: OLD.p22,
 };
 
 // ── сборка ─────────────────────────────────────────────────────────────
@@ -1091,19 +1107,32 @@ const Hud = () => {
   const tag: React.CSSProperties = { fontFamily: MONT, fontWeight: 800, background: "rgba(0,0,0,.55)", borderRadius: 10, padding: "8px 16px" };
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
-      <AbsoluteFill style={{ background: `radial-gradient(75% 60% at 50% 50%, rgba(0,0,0,0) 55%, rgba(220,240,255,${0.15 + cold * 0.35}) 100%)` }} />
-      {cold > 0.4 && !saved && <AbsoluteFill style={{ boxShadow: `inset 0 0 160px rgba(255,30,40,${0.3 * (blink ? 1 : 0.5)})` }} />}
-      <div style={{ ...tag, position: "absolute", top: 70, left: 50, color: RED, fontSize: 40, display: "flex", alignItems: "center", gap: 12 }}>
+      <AbsoluteFill style={{ background: `radial-gradient(75% 60% at 50% 50%, rgba(0,0,0,0) 55%, rgba(200,225,255,${0.08 + cold * 0.22}) 100%)` }} />
+      
+      <div style={{ ...tag, position: "absolute", top: 70, left: 50, color: RED, fontSize: 54, display: "flex", alignItems: "center", gap: 12 }}>
         <span style={{ width: 22, height: 22, borderRadius: 11, background: RED, opacity: blink ? 1 : 0.25 }} /> 6000 м
       </div>
       <div style={{ ...tag, position: "absolute", top: 64, right: 50, textAlign: "right", color: "#fff" }}>
-        <div style={{ fontSize: 22, opacity: 0.75 }}>{saved ? "" : "ДО РАССВЕТА"}</div>
-        <div style={{ fontSize: 40, color: saved ? GREEN : "#fff" }}>{saved ? "СПАСЁН" : `${hh}:${mm}:${ss}`}</div>
+        <div style={{ fontSize: 30, opacity: 0.8 }}>{saved ? "" : "ДО РАССВЕТА"}</div>
+        <div style={{ fontSize: 56, color: saved ? GREEN : "#fff" }}>{saved ? "СПАСЁН" : `${hh}:${mm}:${ss}`}</div>
       </div>
-      <div style={{ ...tag, position: "absolute", top: 160, right: 50, fontSize: 36, color: saved ? GREEN : cold > 0.4 ? RED : cold > 0 ? ORANGE : "#7fd1ff" }}>
+      <div style={{ ...tag, position: "absolute", top: 200, right: 50, fontSize: 48, color: saved ? GREEN : cold > 0.4 ? RED : cold > 0 ? ORANGE : "#7fd1ff" }}>
         тело {temp.toFixed(1).replace(".", ",")}°
       </div>
     </AbsoluteFill>
+  );
+};
+
+const HookTitle = () => {
+  const t = useT();
+  const lines = ["6000 М.", "НОЧЬ.", "ОДИН."];
+  const step = 0.3;
+  return (
+    <div style={{ position: "absolute", top: "30%", left: 0, right: 0, textAlign: "center", fontFamily: MONT, fontWeight: 800, fontSize: 150, lineHeight: 1.0, color: "#fff", WebkitTextStroke: "16px #000", paintOrder: "stroke fill", opacity: clamp((1.3 - t) / 0.15) }}>
+      {lines.map((l, i) => (
+        <div key={i} style={{ opacity: t > i * step ? 1 : 0, transform: `scale(${1 + 0.2 * clamp(1 - (t - i * step) / 0.15)})`, color: i === 2 ? RED : "#fff" }}>{l}</div>
+      ))}
+    </div>
   );
 };
 
@@ -1146,6 +1175,12 @@ export const Survival = ({ layer = "all" }: { layer?: Layer }) => {
         <Audio src={staticFile("audio/survival/mono.mp3")} volume={1.2} />
       </Sequence>
       {layer !== "world" && <Hud />}
+      {/* крючок в первые секунды: крупный текст, пока он ещё ничего не сказал */}
+      {layer !== "world" && (
+        <Sequence durationInFrames={40} layout="none">
+          <HookTitle />
+        </Sequence>
+      )}
     </AbsoluteFill>
   );
 };
