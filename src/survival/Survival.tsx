@@ -3,7 +3,10 @@ import { AbsoluteFill, interpolate, random, Sequence, staticFile, useCurrentFram
 import { Audio } from "@remotion/media";
 import { loadFont } from "@remotion/google-fonts/Montserrat";
 import { clamp, ease, Finish, INK, shake, Snow, Svg, useT } from "../components/fx";
-import { DIMA, GENA, Hero, LERA, onGround, STAS } from "../components/Hero";
+import { DIMA as DIMA_BASE, GENA, Hero, LERA, onGround, STAS } from "../components/Hero";
+
+// Дима здесь выше ростом: длиннее ноги
+const DIMA: typeof DIMA_BASE = { ...DIMA_BASE, legs: 1.45 };
 import { Sfx } from "../components/audio";
 import voice from "./voice.json";
 
