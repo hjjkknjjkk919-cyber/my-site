@@ -438,7 +438,7 @@ const OLD: Record<string, React.FC<P>> = {
         <Snow t={t} n={120} opacity={0.85} speed={2.2} wind={1} />
       </Cam>
       <NearSnow t={t} wind={1.2} />
-      <Sfx name="sfx/gust" vol={0.6} />
+      <Sfx name="survival/gust" vol={0.6} />
     </AbsoluteFill>
   ),
   // лицо вплотную
@@ -512,7 +512,7 @@ const OLD: Record<string, React.FC<P>> = {
           <Snow t={t} n={90} opacity={0.8} speed={1.8} wind={0.9} />
         </Cam>
         <NearSnow t={t} wind={1} />
-        <Sfx name="sfx/steps" vol={0.6} />
+        <Sfx name="survival/steps" vol={0.6} />
       </AbsoluteFill>
     );
   },
@@ -524,7 +524,7 @@ const OLD: Record<string, React.FC<P>> = {
         <Svg><Bust t={t} emotion="fear" trem={3} seed="p06" energy={1.2} flinch={0.35} /></Svg>
       </Cam>
       <AbsoluteFill style={{ boxShadow: `inset 0 0 220px rgba(255,30,40,${0.35 + 0.2 * Math.sin(t * 12)})` }} />
-      <Sfx name="sfx/heartbeat" vol={0.6} />
+      <Sfx name="survival/heartbeat" vol={0.6} />
     </AbsoluteFill>
   ),
   // стоп, дышу
@@ -538,7 +538,7 @@ const OLD: Record<string, React.FC<P>> = {
         </Svg>
         <Snow t={t} n={30} opacity={0.6} speed={0.6} wind={0.3} />
       </Cam>
-      <Sfx name="sfx/breath" vol={0.6} />
+      <Sfx name="survival/breath" vol={0.6} />
     </AbsoluteFill>
   ),
   // лежит, заметает, заваленный горизонт
@@ -557,7 +557,7 @@ const OLD: Record<string, React.FC<P>> = {
           <Snow t={t} n={70} opacity={0.9} speed={2.6} wind={1.2} />
         </Cam>
         <NearSnow t={t} wind={1.4} n={11} />
-        <Sfx name="sfx/gust" vol={0.7} />
+        <Sfx name="survival/gust" vol={0.7} />
       </AbsoluteFill>
     );
   },
@@ -577,7 +577,7 @@ const OLD: Record<string, React.FC<P>> = {
           <Mitt wx={380 + a * 60} wy={1250 - a * 120} ang={20 + a * 15} from={-1} />
           <Mitt wx={700 - a * 60} wy={1250 + a * 120} ang={-20 - a * 15} from={1} />
         </Svg>
-        <Sfx name="sfx/rustle" vol={0.8} />
+        <Sfx name="survival/dig" vol={0.8} />
       </AbsoluteFill>
     );
   },
@@ -636,7 +636,7 @@ const OLD: Record<string, React.FC<P>> = {
         <Svg><Bust t={t} emotion="calm" lid={ease(t, 0, d, 0.3, 0.97)} frost={0.9} seed="p13" energy={0.05} droop={ease(t, 0.1, d, 0, 1) - (t > d * 0.55 && t < d * 0.7 ? 0.25 * Math.sin(((t - d * 0.55) / (d * 0.15)) * Math.PI) : 0)} /></Svg>
       </Cam>
       <AbsoluteFill style={{ background: "#000", opacity: ease(t, 0, d, 0, 0.8) }} />
-      <Sfx name="sfx/heartbeat" vol={0.5} />
+      <Sfx name="survival/heartbeat" vol={0.5} />
     </AbsoluteFill>
   ),
   // рывок: спать нельзя
@@ -648,7 +648,7 @@ const OLD: Record<string, React.FC<P>> = {
         <CaveFrame glow={0.4} />
       </Cam>
       <AbsoluteFill style={{ background: "#fff", opacity: clamp(0.5 - t * 3) }} />
-      <Sfx name="sfx/gust" vol={0.7} dur={1} />
+      <Sfx name="survival/gust" vol={0.7} dur={1} />
     </AbsoluteFill>
   ),
   // сжимает кулаки — вид из глаз
@@ -738,7 +738,7 @@ const OLD: Record<string, React.FC<P>> = {
         </Svg>
         <Snow t={t} n={25} opacity={0.5} speed={0.4} wind={0.2} />
       </Cam>
-      <Sfx name="sfx/breath" vol={0.5} />
+      <Sfx name="survival/breath" vol={0.5} />
     </AbsoluteFill>
   ),
   // утро: вертолёт
@@ -828,7 +828,7 @@ const NEW: Record<string, React.FC<P>> = {
       </Cam>
       <AbsoluteFill style={{ boxShadow: "inset 0 0 260px rgba(255,20,30,.55)" }} />
       <Shout t={t} />
-      <Sfx name="sfx/gust" vol={0.8} dur={1} />
+      <Sfx name="survival/gust" vol={0.8} dur={1} />
     </AbsoluteFill>
   ),
   // группа уходит в метель и пропадает
@@ -853,7 +853,7 @@ const NEW: Record<string, React.FC<P>> = {
           <Svg><Hero cfg={DIMA} x={230} y={fy(1900, 0.42)} s={0.42} t={t} emotion="fear" look={[22, -4]} frost={0.8} full wind={1} arm={ease(t, 0, 1, 40, 215)} /></Svg>
         </Cam>
         <NearSnow t={t} wind={1.4} n={10} />
-        <Sfx name="sfx/blizzard" vol={0.6} />
+        <Sfx name="survival/blizzard" vol={0.6} />
       </AbsoluteFill>
     );
   },
@@ -881,9 +881,9 @@ const NEW: Record<string, React.FC<P>> = {
           <Snow t={t} n={120} opacity={0.9} speed={3} wind={1.5} />
         </Cam>
         {fall > 0 && <AbsoluteFill style={{ background: "#fff", opacity: fall > 0.92 ? (1 - fall) * 10 : fall * 0.15 }} />}
-        <Sfx name="sfx/steps" vol={0.6} dur={d * 0.35} />
-        <Sfx at={d * 0.35} name="sfx/rustle" vol={1} />
-        <Sfx at={d * 0.88} name="sfx/boom" vol={0.6} dur={0.8} />
+        <Sfx name="survival/steps" vol={0.6} dur={d * 0.35} />
+        <Sfx at={d * 0.35} name="survival/whoosh" vol={0.8} />
+        <Sfx at={d * 0.88} name="survival/thud" vol={0.6} dur={0.8} />
       </AbsoluteFill>
     );
   },
@@ -897,7 +897,7 @@ const NEW: Record<string, React.FC<P>> = {
           <Breath t={t * 1.6} x={600} y={1040} s={1.3} />
         </Svg>
       </Cam>
-      <Sfx name="sfx/breath" vol={0.8} />
+      <Sfx name="survival/breath" vol={0.8} />
     </AbsoluteFill>
   ),
   // телефон: сообщение маме не уходит
@@ -962,8 +962,8 @@ const NEW: Record<string, React.FC<P>> = {
           </Svg>
           <AbsoluteFill style={{ background: "radial-gradient(40% 30% at 50% 47%, rgba(0,0,0,0) 60%, #05080c 100%)" }} />
         </Cam>
-        <Sfx name="sfx/heartbeat" vol={0.7} />
-        <Sfx at={d * 0.3} name="sfx/steps" vol={0.5} dur={1.5} />
+        <Sfx name="survival/heartbeat" vol={0.7} />
+        <Sfx at={d * 0.3} name="survival/crunch" vol={0.8} />
       </AbsoluteFill>
     );
   },
@@ -982,7 +982,7 @@ const NEW: Record<string, React.FC<P>> = {
         </Svg>
         <AbsoluteFill style={{ background: "radial-gradient(40% 30% at 50% 47%, rgba(0,0,0,0) 60%, #05080c 100%)" }} />
       </Cam>
-      <Sfx name="sfx/gust" vol={0.6} />
+      <Sfx name="survival/gust" vol={0.6} />
     </AbsoluteFill>
   ),
   // темнота: лицо, только пар изо рта
@@ -996,7 +996,7 @@ const NEW: Record<string, React.FC<P>> = {
         </Svg>
       </Cam>
       <AbsoluteFill style={{ background: "#000", opacity: 0.55 }} />
-      <Sfx name="sfx/breath" vol={0.5} />
+      <Sfx name="survival/breath" vol={0.5} />
     </AbsoluteFill>
   ),
   // вылезает и орёт, машет руками вертолёту
@@ -1131,7 +1131,7 @@ export const Survival = () => {
   const dawnAt = PLAN.find((p) => p.id === "s31")!.start;
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Audio src={staticFile("audio/sfx/wind_strong.mp3")} loop volume={(f) => (f < dawnAt ? 0.3 : Math.max(0.05, 0.3 - (f - dawnAt) / 90))} />
+      <Audio src={staticFile("audio/survival/wind.mp3")} loop volume={(f) => (f < dawnAt ? 0.3 : Math.max(0.05, 0.3 - (f - dawnAt) / 90))} />
       <Audio src={staticFile("audio/music/drone.mp3")} loop volume={(f) => (f < dawnAt ? 0.25 : 0)} />
       {PLAN.map((p) => (
         <Sequence key={p.id} from={p.start} durationInFrames={p.frames}>
