@@ -24,11 +24,74 @@ const Vig = ({ k = 1 }: { k?: number }) => (
   <AbsoluteFill style={{ background: `radial-gradient(75% 60% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,${0.72 * k}) 100%)` }} />
 );
 
+const SKIN_SH = "#cf9f84";
+const NAIL = "#f3dccd";
+const DENIM = "#2c3a52";
+const DENIM_SH = "#1f2a3d";
+
+/** Палец: фаланги (две складки), ноготь; dir — угол в градусах (0 — вниз). */
+export const Finger = ({ x, y, len, w, dir = 0, curl = 0 }: { x: number; y: number; len: number; w: number; dir?: number; curl?: number }) => {
+  const L = len * (1 - 0.35 * curl);
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${dir})`}>
+      <rect x={-w / 2} y={-6} width={w} height={L + 6} rx={w / 2} fill={SKIN} stroke={LINE} strokeWidth="5" />
+      {/* тень по краю */}
+      <rect x={w / 2 - 8} y={2} width={6} height={L - 10} rx={3} fill={SKIN_SH} opacity="0.55" />
+      {/* сгибы фаланг */}
+      <path d={`M${-w / 2 + 5} ${L * 0.36} q${w / 2 - 5} 5 ${w - 10} 0`} stroke={LINE} strokeWidth="2.5" fill="none" opacity="0.6" />
+      <path d={`M${-w / 2 + 6} ${L * 0.68} q${w / 2 - 6} 4 ${w - 12} 0`} stroke={LINE} strokeWidth="2.5" fill="none" opacity="0.6" />
+      {/* ноготь */}
+      <rect x={-w / 2 + 6} y={L - w * 0.62} width={w - 12} height={w * 0.5} rx={w * 0.22} fill={NAIL} stroke={LINE} strokeWidth="2.5" />
+      <path d={`M${-w / 2 + 9} ${L - w * 0.56} h${w - 18}`} stroke="#fff" strokeWidth="2" opacity="0.6" />
+    </g>
+  );
+};
+
+/**
+ * Кисть сверху (тыльная сторона): рукав, манжета-резинка, запястье, сухожилия, костяшки,
+ * четыре пальца с фалангами и ногтями, большой палец. Пальцы направлены вниз (+y).
+ */
+export const HandTop = ({ x, y, rot = 0, s = 1, flip = 1, curl = 0, twitch = 0 }: { x: number; y: number; rot?: number; s?: number; flip?: 1 | -1; curl?: number; twitch?: number }) => {
+  const lens = [64, 78, 74, 58];
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${flip * s} ${s})`}>
+      {/* рукав куртки со складками */}
+      <path d="M-100 -240 C-104 -170 -96 -110 -84 -66 L84 -66 C96 -110 104 -170 100 -240 Z" fill={JK} stroke={LINE} strokeWidth="7" />
+      <path d="M-70 -200 C-40 -186 -10 -190 14 -206 M-60 -140 C-30 -128 10 -132 40 -150" stroke={JK_SH} strokeWidth="6" fill="none" strokeLinecap="round" />
+      <path d="M60 -230 C80 -170 84 -120 76 -70" stroke={JK_SH} strokeWidth="14" fill="none" opacity="0.7" />
+      {/* манжета-резинка */}
+      <path d="M-86 -80 L86 -80 L80 -46 L-80 -46 Z" fill={JK_SH} stroke={LINE} strokeWidth="6" />
+      {Array.from({ length: 11 }, (_, i) => <path key={i} d={`M${-72 + i * 14.4} -76 V-50`} stroke={LINE} strokeWidth="2" opacity="0.45" />)}
+      {/* большой палец */}
+      <Finger x={-64} y={-6} len={62} w={30} dir={38 - curl * 10} curl={curl * 0.5} />
+      {/* запястье и тыльная сторона ладони */}
+      <path d="M-62 -48 C-70 -12 -78 30 -74 74 C-40 84 40 84 74 74 C78 30 70 -12 62 -48 Z" fill={SKIN} stroke={LINE} strokeWidth="6" />
+      <path d="M44 -40 C60 0 66 40 64 72" stroke={SKIN_SH} strokeWidth="14" fill="none" opacity="0.5" strokeLinecap="round" />
+      {/* сухожилия и вены */}
+      {[-36, -12, 12, 36].map((dx) => <path key={dx} d={`M${dx * 0.45} -26 L${dx} 62`} stroke={SKIN_SH} strokeWidth="4" opacity="0.5" strokeLinecap="round" />)}
+      <path d="M-20 -40 C-30 -10 -10 10 -22 40" stroke="#9fb4c8" strokeWidth="3" fill="none" opacity="0.35" />
+      {/* пальцы */}
+      {lens.map((l, i) => (
+        <Finger key={i} x={-54 + i * 36} y={70} len={l} w={i === 3 ? 28 : 32} dir={(i - 1.5) * -3 + (i === 1 ? twitch : 0)} curl={curl} />
+      ))}
+      {/* костяшки */}
+      {lens.map((_, i) => <path key={i} d={`M${-66 + i * 36} 74 q12 -9 24 0`} stroke={LINE} strokeWidth="3" fill="none" opacity="0.55" />)}
+    </g>
+  );
+};
+
 /** Телефон в руке: только 00:47 и «Нет сети». */
 export const PhoneInHand = ({ glow = 1 }: { glow?: number }) => (
   <g>
-    <path d="M300 1920 C320 1700 360 1560 420 1480 L700 1480 C760 1560 790 1700 800 1920 Z" fill={SKIN} stroke={LINE} strokeWidth="8" />
-    <path d="M260 1920 C250 1760 280 1650 330 1600 L380 1920 Z" fill={JK} stroke={LINE} strokeWidth="8" />
+    {/* рукав с манжетой */}
+    <path d="M250 1920 C262 1800 300 1720 350 1690 L760 1690 C810 1730 836 1820 840 1920 Z" fill={JK} stroke={LINE} strokeWidth="8" />
+    <path d="M330 1700 L780 1700 L790 1752 L320 1752 Z" fill={JK_SH} stroke={LINE} strokeWidth="6" />
+    {Array.from({ length: 22 }, (_, i) => <path key={i} d={`M${334 + i * 20.5} 1704 V1748`} stroke={LINE} strokeWidth="2" opacity="0.4" />)}
+    <path d="M300 1800 C380 1780 470 1790 520 1830 M640 1820 C700 1790 760 1800 810 1830" stroke={JK_SH} strokeWidth="7" fill="none" strokeLinecap="round" />
+    {/* ладонь под телефоном */}
+    <path d="M350 1700 C340 1600 350 1520 400 1460 L700 1460 C750 1520 770 1600 760 1700 Z" fill={SKIN} stroke={LINE} strokeWidth="8" />
+    <path d="M690 1480 C730 1540 748 1610 744 1690" stroke={SKIN_SH} strokeWidth="18" fill="none" opacity="0.5" strokeLinecap="round" />
+    <path d="M420 1560 C480 1590 560 1596 640 1580" stroke={SKIN_SH} strokeWidth="5" fill="none" opacity="0.6" />
     <rect x="330" y="760" width="420" height="820" rx="56" fill="#0d1014" stroke={LINE} strokeWidth="12" />
     <rect x="350" y="780" width="380" height="780" rx="44" fill="#111a24" />
     <rect x="350" y="780" width="380" height="780" rx="44" fill="#9fc3ff" opacity={0.06 * glow} />
@@ -38,7 +101,21 @@ export const PhoneInHand = ({ glow = 1 }: { glow?: number }) => (
       <path d="M-74 -86 L66 22" stroke="#e53935" strokeWidth="10" strokeLinecap="round" />
     </g>
     <text x="540" y="1270" textAnchor="middle" fontFamily={MONT_FALLBACK} fontWeight="800" fontSize="50" fill="#e9eef3">Нет сети</text>
-    <path d="M700 1500 C760 1430 790 1380 780 1330 C770 1300 740 1300 720 1330 L660 1440 Z" fill={SKIN} stroke={LINE} strokeWidth="8" />
+    {/* четыре пальца обхватывают левый край корпуса: видны кончики с ногтями */}
+    {[1110, 1220, 1330, 1430].map((y, i) => (
+      <g key={i} transform={`translate(330 ${y})`}>
+        <path d={`M-40 ${-30 + i * 2} C-10 -40 28 -34 36 -12 C40 6 30 26 6 30 C-20 32 -40 24 -40 ${14 + i * 2} Z`} fill={SKIN} stroke={LINE} strokeWidth="6" />
+        <path d="M6 -22 C22 -22 30 -10 30 2 C30 14 20 20 8 20 Z" fill={NAIL} stroke={LINE} strokeWidth="3" />
+        <path d="M-30 -6 q10 4 0 14" stroke={LINE} strokeWidth="2.5" fill="none" opacity="0.5" />
+      </g>
+    ))}
+    {/* большой палец справа: фаланга, сгиб, ноготь */}
+    <g transform="translate(748 1330) rotate(-8)">
+      <path d="M-30 190 C-34 120 -30 40 -14 -20 C-6 -46 30 -46 36 -18 C42 20 40 120 34 190 Z" fill={SKIN} stroke={LINE} strokeWidth="7" />
+      <path d="M-18 70 q22 8 44 0" stroke={LINE} strokeWidth="3" fill="none" opacity="0.55" />
+      <path d="M-6 -24 C-2 -40 26 -40 28 -22 L26 14 C14 20 2 20 -6 14 Z" fill={NAIL} stroke={LINE} strokeWidth="3" />
+      <path d="M22 -10 V120" stroke={SKIN_SH} strokeWidth="8" opacity="0.5" strokeLinecap="round" />
+    </g>
   </g>
 );
 
@@ -47,8 +124,8 @@ export const PhoneInHand = ({ glow = 1 }: { glow?: number }) => (
  * щурится от лампы → осматривает вагон → берёт телефон с сиденья и поднимает к лицу.
  * Длительность ≈ 9 с. Камера медленно наезжает к глазам (перед переходом в POV).
  */
-export const Sleeper = ({ d }: { d: number }) => {
-  const t = useT();
+export const Sleeper = ({ d, lead = 0 }: { d: number; lead?: number }) => {
+  const t = useT() - lead;
   const r = ride(t);
   const L = lampAt(t + 1);
   // фазы
@@ -63,6 +140,7 @@ export const Sleeper = ({ d }: { d: number }) => {
   const squint = L < 0.6 && t > 4 ? 0.7 : 1; // щурится, когда лампа мигает
   const lookX = t < 4.4 ? 0 : t < 5.4 ? ease(t, 4.4, 5.0, 0, -0.9) : t < 6.3 ? ease(t, 5.4, 6.0, -0.9, 0.8) : ease(t, 6.3, 6.7, 0.8, 0.2);
   const headTurn = lookX * 10;
+  const reach = ease(t, 6.0, 6.6, 0, 1) * (1 - ease(t, 6.6, 7.0, 0, 1));
   const phoneUp = ease(t, 6.6, 7.8, 0, 1);
   const finger = t > 1.4 && t < 2.3 ? Math.sin((t - 1.4) * 18) * 5 : 0;
   const breath = Math.sin(t * 1.9) * (t < 2.5 ? 6 : 9);
@@ -86,24 +164,28 @@ export const Sleeper = ({ d }: { d: number }) => {
           <path d="M800 610 C900 640 960 700 960 760 L980 1500 H860 Z" fill="#4e2f24" opacity="0.6" />
           {/* тело: куртка, дыхание грудной клетки */}
           <g transform={`translate(0 ${breath * 0.3})`}>
-            <path d={`M140 1920 C150 1600 230 1400 360 ${1330 + breath} L720 ${1330 + breath} C850 1400 930 1600 940 1920 Z`} fill={JK} stroke={LINE} strokeWidth="9" />
-            <path d="M720 1340 C850 1410 930 1600 940 1920 H820 C830 1700 810 1500 720 1340 Z" fill={JK_SH} />
-            <path d="M540 1350 V1920" stroke={LINE} strokeWidth="6" />
+            <path d={`M110 1920 C120 1560 190 1280 370 ${1170 + breath} L710 ${1170 + breath} C890 1280 960 1560 970 1920 Z`} fill={JK} stroke={LINE} strokeWidth="9" />
+            <path d="M710 1180 C880 1280 960 1560 970 1920 H840 C850 1680 820 1400 710 1180 Z" fill={JK_SH} />
+            <path d="M540 1220 V1920" stroke={LINE} strokeWidth="6" />
+            {/* молния, бегунок, воротник-стойка, складки, карман */}
+            <path d="M540 1220 V1920" stroke="#9aa6b2" strokeWidth="3" strokeDasharray="6 6" opacity="0.6" />
+            <rect x="530" y="1260" width="20" height="40" rx="5" fill="#9aa6b2" stroke={LINE} strokeWidth="3" />
+            <path d={`M380 ${1190 + breath} C420 ${1150 + breath} 470 ${1140 + breath} 540 ${1146 + breath} C610 ${1140 + breath} 660 ${1150 + breath} 700 ${1190 + breath} L690 ${1230 + breath} C640 ${1202 + breath} 600 ${1196 + breath} 540 ${1198 + breath} C480 ${1196 + breath} 440 ${1202 + breath} 390 ${1230 + breath} Z`} fill={JK_SH} stroke={LINE} strokeWidth="6" />
+            <path d="M260 1520 C320 1560 360 1620 380 1700 M820 1520 C770 1560 730 1630 712 1700 M300 1640 C360 1660 400 1700 420 1760" stroke={JK_SH} strokeWidth="9" fill="none" strokeLinecap="round" />
+            <path d="M600 1560 L720 1548 L728 1600 L606 1612 Z" fill="none" stroke={LINE} strokeWidth="4" opacity="0.55" />
           </g>
-          {/* рука на коленях с пальцами + телефон на сиденье рядом */}
-          <g transform={`translate(${phoneUp * -40} ${-phoneUp * 520})`}>
-            <path d="M600 1920 C620 1820 660 1770 720 1750 L860 1750 C900 1770 910 1820 900 1920 Z" fill={JK_SH} stroke={LINE} strokeWidth="8" />
-            <ellipse cx="790" cy="1735" rx="90" ry="56" fill={SKIN} stroke={LINE} strokeWidth="7" />
-            {[0, 1, 2, 3].map((i) => (
-              <path key={i} d={`M${740 + i * 30} 1720 q${i === 1 ? finger : 0} 30 0 54`} stroke={LINE} strokeWidth="5" fill="none" />
-            ))}
-            {phoneUp > 0 && (
-              <g transform="translate(770 1660) rotate(-12)">
-                <rect x="-60" y="-110" width="120" height="220" rx="18" fill="#0d1014" stroke={LINE} strokeWidth="6" />
-                <rect x="-50" y="-100" width="100" height="200" rx="12" fill="#9fc3ff" opacity="0.35" />
-              </g>
-            )}
+          {/* колени в джинсах: швы, потёртости, складки */}
+          <g>
+            <path d="M120 1920 C130 1800 190 1720 300 1700 C390 1690 470 1720 520 1780 L530 1920 Z" fill={DENIM} stroke={LINE} strokeWidth="8" />
+            <path d="M960 1920 C950 1800 890 1720 780 1700 C690 1690 610 1720 560 1780 L550 1920 Z" fill={DENIM} stroke={LINE} strokeWidth="8" />
+            <path d="M440 1730 C490 1770 512 1840 516 1920 M640 1730 C590 1770 568 1840 564 1920" stroke={DENIM_SH} strokeWidth="16" fill="none" opacity="0.8" />
+            <path d="M200 1760 C260 1730 340 1722 410 1740 M870 1760 C810 1730 740 1722 670 1740" stroke="#c9a640" strokeWidth="2.5" strokeDasharray="7 6" fill="none" opacity="0.6" />
+            <ellipse cx="300" cy="1800" rx="70" ry="34" fill="#5a6d8c" opacity="0.35" />
+            <ellipse cx="780" cy="1800" rx="70" ry="34" fill="#5a6d8c" opacity="0.35" />
+            <path d="M230 1850 C280 1836 330 1840 370 1860 M700 1860 C750 1838 800 1836 850 1850" stroke={DENIM_SH} strokeWidth="5" fill="none" />
           </g>
+          {/* левая рука лежит на колене */}
+          <HandTop x={310} y={1660} rot={-16} s={0.95} curl={0.25} twitch={finger * 0.8} />
           {phoneUp === 0 && (
             <g transform="translate(900 1560) rotate(78)">
               <rect x="-60" y="-110" width="120" height="220" rx="18" fill="#0d1014" stroke={LINE} strokeWidth="6" />
@@ -111,7 +193,14 @@ export const Sleeper = ({ d }: { d: number }) => {
           )}
           {/* голова: свешена, потом поднимается */}
           <g transform={`translate(${headTurn * 2} ${headDrop + breath * 0.4}) rotate(${headTilt + headTurn * 0.3} 540 1300) translate(540 880) scale(0.62) translate(-540 -900)`}>
+            <defs>
+              <clipPath id="slHead">
+                <rect x="-200" y="-200" width="1480" height="1520" />
+              </clipPath>
+            </defs>
+            <g clipPath="url(#slHead)">
             <DimaFace t={t} fear={fearK} eyes={openEyes * squint} look={[lookX, phoneUp > 0.5 ? 0.6 : 0]} mouth={gape} tremble={sheen * 0.25} />
+            </g>
             {/* лёгкая испарина: влажный блеск на лбу и висках, без крупных капель */}
             <g opacity={sheen * 0.55}>
               <ellipse cx="470" cy="660" rx="70" ry="14" fill="#fff" opacity="0.35" />
@@ -120,6 +209,29 @@ export const Sleeper = ({ d }: { d: number }) => {
               <ellipse cx="790" cy="790" rx="9" ry="22" fill="#fff" opacity="0.25" />
               {[[420, 700], [560, 690], [650, 712], [330, 840], [760, 860]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="4" fill="#fff" opacity="0.55" />)}
             </g>
+          </g>
+          {/* правая рука: лежит на колене → тянется к телефону на сиденье → поднимает к лицу */}
+          <g transform={`translate(${phoneUp * -60} ${-phoneUp * 560})`}>
+            {phoneUp < 0.15 && <HandTop x={770} y={1660} rot={14 - reach * 30} s={0.95} flip={-1} curl={0.2 + reach * 0.5} twitch={finger} />}
+            {phoneUp > 0 && (
+              <g transform="translate(770 1760) rotate(-12) scale(1.25)">
+                {/* предплечье в рукаве и ладонь за телефоном */}
+                <path d="M-70 640 C-66 420 -52 260 -40 150 L60 150 C74 260 90 420 96 640 Z" fill={JK} stroke={LINE} strokeWidth="5" />
+                <path d="M30 170 C50 300 64 460 70 640" stroke={JK_SH} strokeWidth="16" fill="none" opacity="0.7" />
+                <path d="M-46 150 L66 150 L62 182 L-42 182 Z" fill={JK_SH} stroke={LINE} strokeWidth="4" />
+                <path d="M-40 160 C-50 110 -60 60 -56 10 L64 10 C68 60 62 110 58 160 Z" fill={SKIN} stroke={LINE} strokeWidth="5" />
+                <rect x="-60" y="-110" width="120" height="220" rx="18" fill="#0d1014" stroke={LINE} strokeWidth="6" />
+                <rect x="-50" y="-100" width="100" height="200" rx="12" fill="#9fc3ff" opacity="0.35" />
+                {/* кончики пальцев поверх корпуса */}
+                {[-70, -25, 20, 62].map((yy, i) => (
+                  <g key={i}>
+                    <ellipse cx="-58" cy={yy} rx="16" ry="19" fill={SKIN} stroke={LINE} strokeWidth="4" />
+                    <ellipse cx="-52" cy={yy} rx="7" ry="10" fill={NAIL} stroke={LINE} strokeWidth="2" />
+                  </g>
+                ))}
+                <ellipse cx="60" cy="-20" rx="14" ry="30" fill={SKIN} stroke={LINE} strokeWidth="4" />
+              </g>
+            )}
           </g>
           {/* отсвет экрана на лице */}
           {phoneUp > 0.3 && <ellipse cx="560" cy="980" rx="260" ry="200" fill="#9fc3ff" opacity={0.12 * phoneUp} />}

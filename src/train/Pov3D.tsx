@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AbsoluteFill, continueRender, delayRender, useCurrentFrame } from "remotion";
 import { CreatureGlass } from "./Creature2";
+import { DimaFace } from "./GostOld";
 import { ThreeCanvas } from "@remotion/three";
 import { useThree } from "@react-three/fiber";
 import { SpotLight, Outlines } from "@react-three/drei";
@@ -31,6 +32,19 @@ const CAR_L = 20;
 const HW = 1.45; // полуширина
 const DOOR_Z = -20; // передняя торцевая дверь нашего вагона
 const NEXT_Z = -21.1; // задний торец соседнего вагона
+
+/** Лампа «подмигивает» в ключевые моменты: два быстрых провала (≈0.3 с). Под каждый ставится треск. */
+export const BLINK_WALK = [5.75, 7.35]; // разворот назад и обратно (локальное время прохода)
+export const BLINK_STATION = [4.55]; // силуэт в отражении
+export const blink = (u: number, at: number[]) => {
+  for (const b of at) {
+    const k = u - b;
+    if (k < 0 || k > 0.3) continue;
+    if (k < 0.06 || (k > 0.12 && k < 0.22)) return 0.12;
+    return 0.85;
+  }
+  return 1;
+};
 
 // ── хореография камеры ────────────────────────────────────────────────
 const T_STAND = 2.0;
@@ -245,14 +259,14 @@ const makeDirtyGlass = () => {
   return t;
 };
 
-/** Монстр (CreatureGlass) как текстура: SVG → картинка → CanvasTexture, рендер ждёт загрузки. */
-export const useMonsterTexture = () => {
+/** SVG-элемент → CanvasTexture (рендер ждёт загрузки). mask — мягкие края по альфе. */
+const useSvgTexture = (label: string, el: React.ReactElement, mask: boolean) => {
   const [tex, setTex] = useState<THREE.Texture | null>(null);
-  const [handle] = useState(() => delayRender("monster texture"));
+  const [handle] = useState(() => delayRender(label));
   useEffect(() => {
     const svg = renderToStaticMarkup(
       <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
-        <CreatureGlass t={0.3} open={0.55} tilt={-8} bare />
+        {el}
       </svg>,
     );
     const img = new Image();
@@ -262,22 +276,24 @@ export const useMonsterTexture = () => {
       c.height = 1920;
       const g = c.getContext("2d")!;
       g.drawImage(img, 0, 0);
-      // мягкая альфа-маска по краям, чтобы не читалась прямая граница полигона
-      g.globalCompositeOperation = "destination-in";
-      const gx = g.createLinearGradient(0, 0, 1080, 0);
-      gx.addColorStop(0, "rgba(0,0,0,0)");
-      gx.addColorStop(0.12, "rgba(0,0,0,1)");
-      gx.addColorStop(0.8, "rgba(0,0,0,1)");
-      gx.addColorStop(1, "rgba(0,0,0,0)");
-      g.fillStyle = gx;
-      g.fillRect(0, 0, 1080, 1920);
-      const gy = g.createLinearGradient(0, 0, 0, 1920);
-      gy.addColorStop(0, "rgba(0,0,0,0)");
-      gy.addColorStop(0.1, "rgba(0,0,0,1)");
-      gy.addColorStop(0.85, "rgba(0,0,0,1)");
-      gy.addColorStop(1, "rgba(0,0,0,0)");
-      g.fillStyle = gy;
-      g.fillRect(0, 0, 1080, 1920);
+      if (mask) {
+        // мягкая альфа-маска по краям, чтобы не читалась прямая граница полигона
+        g.globalCompositeOperation = "destination-in";
+        const gx = g.createLinearGradient(0, 0, 1080, 0);
+        gx.addColorStop(0, "rgba(0,0,0,0)");
+        gx.addColorStop(0.12, "rgba(0,0,0,1)");
+        gx.addColorStop(0.8, "rgba(0,0,0,1)");
+        gx.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = gx;
+        g.fillRect(0, 0, 1080, 1920);
+        const gy = g.createLinearGradient(0, 0, 0, 1920);
+        gy.addColorStop(0, "rgba(0,0,0,0)");
+        gy.addColorStop(0.1, "rgba(0,0,0,1)");
+        gy.addColorStop(0.85, "rgba(0,0,0,1)");
+        gy.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = gy;
+        g.fillRect(0, 0, 1080, 1920);
+      }
       const t = new THREE.CanvasTexture(c);
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = 4;
@@ -286,9 +302,13 @@ export const useMonsterTexture = () => {
     };
     img.onerror = () => continueRender(handle);
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle]);
   return tex;
 };
+
+/** Монстр (CreatureGlass) как текстура. */
+export const useMonsterTexture = () => useSvgTexture("monster texture", <CreatureGlass t={0.3} open={0.55} tilt={-8} bare />, true);
 
 // ── материалы ─────────────────────────────────────────────────────────
 const useMats = () =>
@@ -302,7 +322,7 @@ const useMats = () =>
       glow: new THREE.SpriteMaterial({ map: makeTex("glow"), color: "#e8c27a", blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }),
       seatDark: new THREE.MeshStandardMaterial({ color: "#3a2a22", roughness: 0.8 }),
       metal: new THREE.MeshStandardMaterial({ color: "#c9c3b3", metalness: 0.75, roughness: 0.28 }),
-      glass: new THREE.MeshStandardMaterial({ color: "#05080b", roughness: 0.08, metalness: 0.5 }),
+      glass: new THREE.MeshStandardMaterial({ color: "#0a0e10", roughness: 0.08, metalness: 0.4, transparent: true, opacity: 0.42, depthWrite: false }),
       frame: new THREE.MeshStandardMaterial({ color: "#8a8a7c", roughness: 0.5, metalness: 0.3 }),
       door: new THREE.MeshStandardMaterial({ color: "#5c6457", roughness: 0.6, metalness: 0.2 }),
       dark: new THREE.MeshStandardMaterial({ color: "#0c0d0d", roughness: 1 }),
@@ -568,7 +588,7 @@ const Scene = ({ u, pose, post, monster }: { u: number; pose: Pose; post: boolea
   const watch = u >= T_WATCH;
   const flash = watch && flickerOn(frame);
   // наш вагон: мигание неисправной лампы; во время вспышек в соседнем — наш свет проседает
-  const ourK = (u < T_LIGHTS_OFF ? 1 : watch ? (flash ? 0.75 : 0.42) : 0.7) * lamp(u + 6);
+  const ourK = (u < T_LIGHTS_OFF ? 1 : watch ? (flash ? 0.75 : 0.42) : 0.7) * lamp(u + 6) * blink(u, BLINK_WALK);
   const nextOn = u < T_LIGHTS_OFF ? true : watch ? flash : false;
   const nextK = 0.9 * lamp(u + 20);
   return (
@@ -638,6 +658,506 @@ export const Pov3D = ({ post = true }: { post?: boolean }) => {
       </AbsoluteFill>
       {/* виньетка (EffectComposer в headless Remotion даёт чёрный кадр; свечение ламп — аддитивными спрайтами в 3D) */}
       <AbsoluteFill style={{ background: "radial-gradient(80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(8,6,2,.78) 100%)" }} />
+    </AbsoluteFill>
+  );
+};
+
+// ═════════════════════════════════════════════════════════════════════
+// 00:21–00:29 — станция в 3D: Дима сидит у окна (на том же месте, откуда потом встанет),
+// за стеклом проносится пустая платформа без названия; свет фонарей бежит по вагону;
+// в тёмном стекле — его отражение, и на «Почти» за плечом на миг проступает высокий силуэт.
+// ═════════════════════════════════════════════════════════════════════
+const V_OUT = 17; // м/с — скорость, с которой мимо летит станция
+const PLAT_L = 84;
+const ST_IN = 0.6; // когда передний край платформы входит в кадр
+const SIL_A = 4.6; // силуэт в отражении (00:25.6–00:26.1, «В стекле… только ты. Почти»)
+const SIL_B = 5.1;
+
+// сидит у окна, смотрит вперёд-влево вдоль стекла: станция «налетает» спереди
+const ST_YAW = Math.PI / 2 - 0.5;
+const ST_X = -0.75;
+const GX = -(HW + 0.05) + 0.012;
+const ST_FACE_Z = -9.9; // центр окна между простенками
+const ST_Z = ST_FACE_Z + ((ST_X - GX) / Math.cos(0.5)) * Math.sin(0.5);
+const stationPose = (u: number): Pose => {
+  const z0 = ST_Z;
+  const push = ease(u, 4.6, 8, 0, 1);
+  const roll = Math.sin((u / 1.4) * Math.PI * 2) * 0.45 + (u % 0.9 < 0.09 ? Math.sin(((u % 0.9) / 0.09) * Math.PI) * 0.25 : 0);
+  return {
+    x: ST_X - push * 0.08,
+    y: 1.2 + Math.sin(u * 1.7) * 0.004,
+    z: z0,
+    yaw: ST_YAW + Math.sin(u * 0.6) * 0.015 + push * 0.12,
+    pitch: -0.08,
+    roll: (roll * Math.PI) / 180,
+    yawVel: 0,
+  };
+};
+
+/** Силуэт для отражения: высокая бледная фигура (рисуется в canvas). */
+const makeSilhouette = () => {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 640;
+  const g = c.getContext("2d")!;
+  const body = (col: string, grow: number) => {
+    g.fillStyle = col;
+    g.beginPath();
+    g.ellipse(128, 80, 40 + grow, 52 + grow, 0, 0, Math.PI * 2);
+    g.fill();
+    g.beginPath();
+    g.moveTo(96 - grow, 130);
+    g.bezierCurveTo(78 - grow, 260, 84 - grow, 460, 96 - grow, 640);
+    g.lineTo(160 + grow, 640);
+    g.bezierCurveTo(172 + grow, 460, 178 + grow, 260, 160 + grow, 130);
+    g.closePath();
+    g.fill();
+    g.fillRect(68 - grow, 150, 16 + grow * 2, 380);
+    g.fillRect(172 - grow, 150, 16 + grow * 2, 380);
+  };
+  body("rgba(214,196,150,.55)", 4); // бледная кромка — отсвет станции
+  body("#070605", 0); // сам силуэт тёмный
+  g.fillStyle = "#e9dcb6";
+  g.beginPath();
+  g.arc(114, 78, 6, 0, Math.PI * 2);
+  g.arc(142, 78, 6, 0, Math.PI * 2);
+  g.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+};
+
+/** Снаружи (слева от вагона, x < −1.5): платформа, фонари, пустая табличка, опоры, лес, звёзды. Всё едет в +z. */
+const Outside = ({ u, camZ, m }: { u: number; camZ: number; m: Mats }) => {
+  const mats = useMemo(
+    () => ({
+      plat: new THREE.MeshStandardMaterial({ color: "#7d7c74", roughness: 0.9, map: makeTex("grime", 6, 1) }),
+      platSide: new THREE.MeshStandardMaterial({ color: "#3a3b37", roughness: 0.95 }),
+      edge: new THREE.MeshStandardMaterial({ color: "#c9a640", roughness: 0.7 }),
+      pole: new THREE.MeshStandardMaterial({ color: "#2c2f2e", roughness: 0.6, metalness: 0.4 }),
+      head: new THREE.MeshStandardMaterial({ color: "#ffe6b0", emissive: new THREE.Color("#ffcf7a"), emissiveIntensity: 2.2 }),
+      sign: new THREE.MeshStandardMaterial({ color: "#2c5aa0", roughness: 0.5, emissive: new THREE.Color("#2c5aa0"), emissiveIntensity: 0.55 }),
+      signFrame: new THREE.MeshStandardMaterial({ color: "#e9eef3", roughness: 0.5 }),
+      wall: new THREE.MeshStandardMaterial({ color: "#6a675c", roughness: 0.95, map: makeTex("grime", 8, 1) }),
+      ground: new THREE.MeshStandardMaterial({ color: "#0c0d0b", roughness: 1 }),
+      tree: new THREE.MeshStandardMaterial({ color: "#070907", roughness: 1 }),
+      glow: new THREE.SpriteMaterial({ map: makeTex("glow"), color: "#ffcf7a", blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }),
+    }),
+    [],
+  );
+  const stars = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(300 * 3);
+    for (let i = 0; i < 300; i++) {
+      pos[i * 3] = -60 - rnd(i + 900) * 20;
+      pos[i * 3 + 1] = 6 + rnd(i + 901) * 40;
+      pos[i * 3 + 2] = -60 + rnd(i + 902) * 120;
+    }
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    return geo;
+  }, []);
+  const lead = camZ - 7 + V_OUT * (u - ST_IN); // передний (+z) край платформы
+  const pc = lead - PLAT_L / 2;
+  const lamps = Array.from({ length: 10 }, (_, i) => lead - 4 - i * 8.5);
+  const wrap = (base: number, span: number) => {
+    const v = (((base + V_OUT * u) % span) + span) % span;
+    return camZ - span / 2 + v;
+  };
+  return (
+    <group>
+      <points geometry={stars}>
+        <pointsMaterial color="#cfd6dc" size={0.18} sizeAttenuation transparent opacity={0.6} depthWrite={false} fog={false} />
+      </points>
+      {/* земля и насыпь */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-40, -1.25, camZ]} material={mats.ground}>
+        <planeGeometry args={[80, 400]} />
+      </mesh>
+      {/* платформа */}
+      <Box p={[-4.2, -0.4, pc]} s={[4.9, 1.4, PLAT_L]} m={mats.platSide} cast={false} />
+      <Box p={[-4.2, 0.31, pc]} s={[4.9, 0.02, PLAT_L]} m={mats.plat} cast={false} />
+      <Box p={[-1.9, 0.325, pc]} s={[0.12, 0.02, PLAT_L]} m={mats.edge} cast={false} />
+      {/* стена вокзала с тёмными окнами */}
+      <Box p={[-6.9, 1.2, pc]} s={[0.3, 2.8, PLAT_L - 6]} m={mats.wall} cast={false} ol />
+      {Array.from({ length: 12 }, (_, i) => (
+        <Box key={i} p={[-6.74, 1.4, pc - 33 + i * 6]} s={[0.02, 1.0, 1.4]} m={m.dark} cast={false} ol />
+      ))}
+      {/* фонари */}
+      {lamps.map((z, i) => (
+        <group key={i}>
+          <mesh position={[-3.0, 1.6, z]} material={mats.pole}>
+            <cylinderGeometry args={[0.06, 0.08, 3.5, 8]} />
+            <Outlines thickness={OL} color={INK} />
+          </mesh>
+          <Box p={[-2.7, 3.35, z]} s={[0.7, 0.06, 0.14]} m={mats.pole} cast={false} ol />
+          <Box p={[-2.4, 3.28, z]} s={[0.28, 0.08, 0.22]} m={mats.head} cast={false} />
+          <sprite position={[-2.4, 3.2, z]} scale={[3.8, 3.8, 1]} material={mats.glow} />
+          <pointLight position={[-2.4, 3.1, z]} color="#ffcf7a" intensity={Math.abs(z - camZ) < 18 ? 26 : 0} distance={18} decay={2} />
+        </group>
+      ))}
+      {/* табличка без названия */}
+      <group position={[-2.8, 0, pc + 6]}>
+        <mesh position={[0, 0.9, -1.0]} material={mats.pole}>
+          <cylinderGeometry args={[0.04, 0.04, 2.1, 8]} />
+        </mesh>
+        <mesh position={[0, 0.9, 1.0]} material={mats.pole}>
+          <cylinderGeometry args={[0.04, 0.04, 2.1, 8]} />
+        </mesh>
+        <Box p={[0.02, 1.85, 0]} s={[0.06, 0.62, 2.5]} m={mats.signFrame} cast={false} ol />
+        <Box p={[0.06, 1.85, 0]} s={[0.04, 0.5, 2.36]} m={mats.sign} cast={false} />
+        {/* своя лампочка над табличкой — чтобы читалась с телефона */}
+        <pointLight position={[0.6, 2.5, 0]} color="#ffcf7a" intensity={6} distance={4} decay={2} />
+      </group>
+      {/* опоры контактной сети: мелькают у самого окна */}
+      {Array.from({ length: 4 }, (_, i) => (
+        <mesh key={i} position={[-2.1, 2.2, wrap(i * 55, 220)]} material={mats.pole}>
+          <boxGeometry args={[0.18, 6.5, 0.18]} />
+        </mesh>
+      ))}
+      {/* лес */}
+      {Array.from({ length: 70 }, (_, i) => (
+        <mesh key={i} position={[-13 - rnd(i + 700) * 22, 1.2 + rnd(i + 701) * 2, wrap(rnd(i + 702) * 260, 260)]} material={mats.tree}>
+          <coneGeometry args={[1.4 + rnd(i + 703), 6 + rnd(i + 704) * 5, 6]} />
+        </mesh>
+      ))}
+      {/* свет ближайшего фонаря через окно — с тенями от простенков, бежит по вагону */}
+      {(() => {
+        const near = lamps.reduce((a, b) => (Math.abs(b - camZ) < Math.abs(a - camZ) ? b : a), lamps[0]);
+        const k = clamp(1 - Math.abs(near - camZ) / 8);
+        return <StationBeam z={near} k={k} camZ={camZ} />;
+      })()}
+    </group>
+  );
+};
+
+const StationBeam = ({ z, k, camZ }: { z: number; k: number; camZ: number }) => {
+  const tgt = useMemo(() => new THREE.Object3D(), []);
+  tgt.position.set(0.8, 0.6, camZ + (z - camZ) * 0.3);
+  tgt.updateMatrixWorld();
+  return (
+    <>
+      <primitive object={tgt} />
+      <spotLight position={[-2.4, 3.1, z]} target={tgt} color="#ffcf7a" intensity={40 * k} angle={0.9} penumbra={0.5} distance={9} decay={2} castShadow shadow-mapSize-width={512} shadow-mapSize-height={512} shadow-bias={-0.0005} />
+    </>
+  );
+};
+
+const StationScene = ({ u, pose, dima, sil }: { u: number; pose: Pose; dima: THREE.Texture | null; sil: THREE.Texture }) => {
+  const m = useMats();
+  const ourK = lamp(u + 14) * blink(u, BLINK_STATION);
+  const dark = 1 - clamp((u - 4.2) / 0.8) * 0 - (u > ST_IN && u < 4.6 ? 0.45 : 0); // на фоне освещённой платформы отражение слабее
+  const gx = GX;
+  return (
+    <>
+      <CamRig pose={pose} />
+      <color attach="background" args={["#03050a"]} />
+      <fog attach="fog" args={["#03050a", 8, 60]} />
+      <ambientLight color="#8a7a55" intensity={0.04} />
+      <hemisphereLight args={["#d9c08a", "#0a0806", 0.05 * ourK]} />
+      <Car z0={0} m={m} lights lampK={ourK} pointCount={8} />
+      {[-6.25, -11.25, -16.25].map((z) => (
+        <Cone key={z} z={z} k={ourK} />
+      ))}
+      <Outside u={u} camZ={pose.z} m={m} />
+      {/* отражение в стекле: лицо Димы + на миг высокий силуэт за плечом */}
+      {dima && (
+        <mesh position={[gx, 1.22, ST_FACE_Z]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[0.5, 0.89]} />
+          <meshBasicMaterial map={dima} transparent opacity={0.075 * dark} blending={THREE.AdditiveBlending} depthWrite={false} fog={false} />
+        </mesh>
+      )}
+      <Dust u={u} cz={pose.z} />
+    </>
+  );
+};
+
+export const Station3D = () => {
+  const frame = useCurrentFrame();
+  const u = frame / FPS;
+  const pose = stationPose(u);
+  const dima = useSvgTexture("dima reflection", <DimaFace t={1} fear={0.45} eyes={1} look={[-0.3, 0]} mouth="closed" />, true);
+  const sil = useMemo(() => makeSilhouette(), []);
+  return (
+    <AbsoluteFill style={{ background: "#000" }}>
+      <ThreeCanvas width={W} height={H} shadows dpr={1} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.4, preserveDrawingBuffer: true }}>
+        <StationScene u={u} pose={pose} dima={dima} sil={sil} />
+      </ThreeCanvas>
+      <AbsoluteFill style={{ background: "radial-gradient(80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(8,6,2,.78) 100%)" }} />
+    </AbsoluteFill>
+  );
+};
+
+// ═════════════════════════════════════════════════════════════════════
+// 01:22.5–01:30 — финальный выбор: объёмная панель связи на стене у торцевой двери (3D).
+// Текст рисуется в canvas шрифтом-трафаретом и подгоняется по ширине — всегда целиком в рамке.
+// ═════════════════════════════════════════════════════════════════════
+const PW = 0.92; // ширина панели, м
+const PH = 0.88;
+const CW = 1024; // разрешение текстуры лицевой стороны (по ширине)
+const CH = Math.round((CW * PH) / PW);
+
+type ChoiceTex = { face: THREE.Texture; header: THREE.Texture; row1: THREE.Texture; row2: THREE.Texture; footer: THREE.Texture };
+
+const fitText = (g: CanvasRenderingContext2D, text: string, font: string, size: number, maxW: number) => {
+  let s = size;
+  g.font = `${s}px ${font}`;
+  while (g.measureText(text).width > maxW && s > 10) {
+    s -= 1;
+    g.font = `${s}px ${font}`;
+  }
+  return s;
+};
+
+const textTex = (w: number, h: number, draw: (g: CanvasRenderingContext2D) => void) => {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  draw(c.getContext("2d")!);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+};
+
+const useChoiceTextures = (font: string) => {
+  const [tex, setTex] = useState<ChoiceTex | null>(null);
+  const [handle] = useState(() => delayRender("choice textures"));
+  useEffect(() => {
+    const F = `"${font.replace(/"/g, "")}"`;
+    document.fonts
+      .load(`40px ${F}`)
+      .catch(() => null)
+      .then(() => {
+        // лицевая сторона: металл, царапины, швы, запёкшаяся кровь
+        const face = textTex(CW, CH, (g) => {
+          const gr = g.createLinearGradient(0, 0, CW, CH);
+          gr.addColorStop(0, "#5a5f5e");
+          gr.addColorStop(0.5, "#45494a");
+          gr.addColorStop(1, "#2f3233");
+          g.fillStyle = gr;
+          g.fillRect(0, 0, CW, CH);
+          for (let i = 0; i < 6000; i++) {
+            g.fillStyle = `rgba(0,0,0,${rnd(i + 1200) * 0.12})`;
+            g.fillRect(rnd(i + 1201) * CW, rnd(i + 1202) * CH, 2, 2);
+          }
+          g.strokeStyle = "rgba(190,195,190,.22)";
+          for (let i = 0; i < 60; i++) {
+            g.lineWidth = 0.8 + rnd(i + 1300) * 1.4;
+            const x = rnd(i + 1301) * CW;
+            const y = rnd(i + 1302) * CH;
+            g.beginPath();
+            g.moveTo(x, y);
+            g.lineTo(x + 30 + rnd(i + 1303) * 120, y + (rnd(i + 1304) - 0.5) * 30);
+            g.stroke();
+          }
+          for (let i = 0; i < 30; i++) {
+            g.fillStyle = `rgba(70,50,20,${0.05 + rnd(i + 1400) * 0.1})`;
+            g.beginPath();
+            g.ellipse(rnd(i + 1401) * CW, rnd(i + 1402) * CH, 20 + rnd(i + 1403) * 80, 10 + rnd(i + 1404) * 40, 0, 0, Math.PI * 2);
+            g.fill();
+          }
+          g.strokeStyle = "#141617";
+          g.lineWidth = 6;
+          g.strokeRect(22, 22, CW - 44, CH - 44);
+          // кровь: потёк справа и мазок у красного индикатора
+          g.strokeStyle = "rgba(70,12,14,.8)";
+          g.lineCap = "round";
+          g.lineWidth = 11;
+          g.beginPath();
+          g.moveTo(CW - 70, 60);
+          g.bezierCurveTo(CW - 60, 140, CW - 74, 220, CW - 64, 300);
+          g.stroke();
+          g.lineWidth = 6;
+          g.beginPath();
+          g.moveTo(100, CH * 0.43);
+          g.bezierCurveTo(94, CH * 0.47, 102, CH * 0.5, 96, CH * 0.54);
+          g.stroke();
+          g.fillStyle = "rgba(70,12,14,.7)";
+          g.beginPath();
+          g.ellipse(108, CH * 0.42, 22, 9, 0.2, 0, Math.PI * 2);
+          g.fill();
+        });
+        const header = textTex(1024, 180, (g) => {
+          const s = fitText(g, "ЧТО ДЕЛАТЬ ДИМЕ?", F, 92, 860);
+          g.font = `${s}px ${F}`;
+          g.fillStyle = "#f2c94c";
+          g.textAlign = "center";
+          g.textBaseline = "middle";
+          g.fillText("ЧТО ДЕЛАТЬ ДИМЕ?", 512, 80);
+          g.fillStyle = "#6b7276";
+          g.fillRect(70, 160, 884, 5);
+        });
+        const row = (text: string) =>
+          textTex(1024, 170, (g) => {
+            g.fillStyle = "#1c2022";
+            g.strokeStyle = "#6b7276";
+            g.lineWidth = 5;
+            g.beginPath();
+            g.roundRect(14, 14, 996, 142, 14);
+            g.fill();
+            g.stroke();
+            // поле текста: от 150 до 960 px (безопасные поля слева от индикатора и справа от рамки)
+            const s = fitText(g, text, F, 60, 790);
+            g.font = `${s}px ${F}`;
+            g.fillStyle = "#ece6d4";
+            g.textBaseline = "middle";
+            g.fillText(text, 160, 88);
+          });
+        const footer = textTex(1024, 120, (g) => {
+          const s = fitText(g, "ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ", F, 54, 860);
+          g.font = `${s}px ${F}`;
+          g.fillStyle = "#b9b4a6";
+          g.textAlign = "center";
+          g.textBaseline = "middle";
+          g.fillText("ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ", 512, 60);
+        });
+        setTex({ face, header, row1: row("1 — НАЖАТЬ КНОПКУ СВЯЗИ"), row2: row("2 — БЕЖАТЬ ОБРАТНО В ВАГОН"), footer });
+        continueRender(handle);
+      });
+  }, [font, handle]);
+  return tex;
+};
+
+const Wire = ({ pts, r, color }: { pts: [number, number, number][]; r: number; color: string }) => {
+  const geo = useMemo(() => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p))), 40, r, 8, false), [pts, r]);
+  return (
+    <mesh geometry={geo} castShadow receiveShadow>
+      <meshStandardMaterial color={color} roughness={0.6} />
+      <Outlines thickness={OL * 0.5} color={INK} />
+    </mesh>
+  );
+};
+
+const WIRES: [number, number, number][][] = [
+  [[-0.44, 1.0, 0.04], [-0.3, 0.72, 0.07], [0.0, 0.66, 0.08], [0.2, 0.8, 0.05], [0.42, 1.0, 0.03]],
+  [[-0.2, 1.0, 0.04], [-0.05, 0.58, 0.1], [0.3, 0.55, 0.09], [0.55, 0.7, 0.05], [0.62, 0.9, 0.02]],
+];
+
+const ChoiceScene = ({ u, tex }: { u: number; tex: ChoiceTex | null }) => {
+  const m = useMats();
+  const L = 0.78 + 0.22 * lamp(u + 40);
+  const breathe = Math.sin(u * 2 * Math.PI * 0.45);
+  const pose: Pose = {
+    x: Math.sin(u * 0.7) * 0.01,
+    y: 1.43 + breathe * 0.008,
+    z: 1.42 - breathe * 0.006,
+    yaw: Math.sin(u * 0.5) * 0.006,
+    pitch: -0.02 + breathe * 0.004,
+    roll: (Math.sin(u * 0.9) * 0.4 * Math.PI) / 180,
+    yawVel: 0,
+  };
+  const tgt = useMemo(() => new THREE.Object3D(), []);
+  tgt.position.set(0, 1.35, 0);
+  tgt.updateMatrixWorld();
+  const on = (d: number) => u > d;
+  const ledRed = Math.floor(u * 4) % 2 ? 1 : 0.3;
+  const ledAmb = 0.6 + 0.15 * Math.sin(u * 3);
+  const PY = 1.4; // центр панели
+  const fz = 0.072; // лицевая плоскость
+  const rowY = (k: number) => PY + PH / 2 - PH * k;
+  const panelMat = useMemo(() => new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.45 }), []);
+  if (tex && panelMat.map !== tex.face) {
+    panelMat.map = tex.face;
+    panelMat.needsUpdate = true;
+  }
+  const plane = (t: THREE.Texture | undefined, w: number, h: number, y: number, vis: boolean, emissive = 0) =>
+    t && vis ? (
+      <mesh position={[0, y, fz + 0.002]}>
+        <planeGeometry args={[w, h]} />
+        <meshStandardMaterial map={t} transparent roughness={0.6} emissive={new THREE.Color("#ffffff")} emissiveMap={t} emissiveIntensity={emissive} />
+      </mesh>
+    ) : null;
+  return (
+    <>
+      <CamRig pose={pose} />
+      <color attach="background" args={["#000"]} />
+      <fog attach="fog" args={["#050403", 2, 7]} />
+      <ambientLight color="#8a7a55" intensity={0.04} />
+      {/* стена тамбура и край торцевой двери справа */}
+      <Box p={[0, 1.3, -0.04]} s={[3, 2.8, 0.08]} m={m.wallUp} cast={false} />
+      <Box p={[0, 0.25, 0.0]} s={[3, 0.5, 0.02]} m={m.wallLow} cast={false} />
+      <Box p={[0.88, 1.1, 0.02]} s={[0.06, 2.2, 0.05]} m={m.dark} ol />
+      <Box p={[1.2, 1.1, 0.0]} s={[0.6, 2.2, 0.04]} m={m.door} ol />
+      {/* кабель-канал слева */}
+      <Box p={[-0.72, 1.4, 0.03]} s={[0.07, 2.8, 0.05]} m={m.frame} ol />
+      {/* корпус панели с толщиной */}
+      <mesh position={[0, PY, 0.035]} castShadow receiveShadow material={panelMat}>
+        <boxGeometry args={[PW, PH, 0.07]} />
+        <Outlines thickness={OL} color={INK} />
+      </mesh>
+      {/* заклёпки */}
+      {[[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sy], i) => (
+        <mesh key={i} position={[sx * (PW / 2 - 0.04), PY + sy * (PH / 2 - 0.04), fz + 0.006]} rotation={[Math.PI / 2, 0, 0]} castShadow material={m.metal}>
+          <cylinderGeometry args={[0.016, 0.018, 0.012, 16]} />
+          <Outlines thickness={OL * 0.5} color={INK} />
+        </mesh>
+      ))}
+      {plane(tex?.header, 0.8, 0.8 * (180 / 1024), rowY(0.17), on(0.15), 0.15)}
+      {plane(tex?.row1, 0.8, 0.8 * (170 / 1024), rowY(0.43), on(0.6), 0.08)}
+      {plane(tex?.row2, 0.8, 0.8 * (170 / 1024), rowY(0.65), on(1.1), 0.08)}
+      {plane(tex?.footer, 0.8, 0.8 * (120 / 1024), rowY(0.86), on(1.6), 0.05)}
+      {/* индикаторы: красный мигает, янтарный тлеет */}
+      {[
+        { y: rowY(0.43), d: 0.6, c: "#ff2a22", k: ledRed },
+        { y: rowY(0.65), d: 1.1, c: "#ffb54a", k: ledAmb },
+      ].map((l, i) =>
+        on(l.d) ? (
+          <group key={i} position={[-0.4 + 0.07, l.y, fz + 0.012]}>
+            <mesh rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.024, 0.024, 0.014, 20]} />
+              <meshStandardMaterial color="#111" emissive={new THREE.Color(l.c)} emissiveIntensity={2.5 * l.k} />
+              <Outlines thickness={OL * 0.4} color={INK} />
+            </mesh>
+            <sprite scale={[0.16, 0.16, 1]} position={[0, 0, 0.01]}>
+              <spriteMaterial map={m.glow.map} color={l.c} blending={THREE.AdditiveBlending} transparent opacity={0.55 * l.k} depthWrite={false} />
+            </sprite>
+            <pointLight color={l.c} intensity={0.25 * l.k} distance={0.5} decay={2} position={[0, 0, 0.05]} />
+          </group>
+        ) : null,
+      )}
+      {/* провисшие провода под панелью */}
+      {WIRES.map((w, i) => (
+        <Wire key={i} pts={w} r={0.012} color={i ? "#2a1212" : "#141414"} />
+      ))}
+      {/* лампа сверху и тёплый конус на панель (с тенями) */}
+      <mesh position={[0, 2.55, 0.5]}>
+        <boxGeometry args={[0.5, 0.04, 0.16]} />
+        <meshStandardMaterial color="#e8d6a8" emissive={new THREE.Color(LAMP_EMIT)} emissiveIntensity={1.1 * L} />
+      </mesh>
+      <primitive object={tgt} />
+      <SpotLight
+        position={[0, 2.5, 0.55]}
+        target={tgt}
+        color={LAMP}
+        intensity={9 * L}
+        angle={0.6}
+        penumbra={0.85}
+        distance={4}
+        decay={2}
+        attenuation={2.2}
+        anglePower={4}
+        radiusTop={0.1}
+        radiusBottom={1.0}
+        opacity={0.14 * L}
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-bias={-0.0004}
+      />
+      <Dust u={u} cz={1.1} />
+    </>
+  );
+};
+
+export const Choice3D = ({ font }: { font: string }) => {
+  const frame = useCurrentFrame();
+  const u = frame / FPS;
+  const tex = useChoiceTextures(font);
+  return (
+    <AbsoluteFill style={{ background: "#000" }}>
+      <ThreeCanvas width={W} height={H} shadows dpr={1} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15, preserveDrawingBuffer: true }}>
+        <ChoiceScene u={u} tex={tex} />
+      </ThreeCanvas>
+      <AbsoluteFill style={{ background: "radial-gradient(80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(8,6,2,.8) 100%)" }} />
     </AbsoluteFill>
   );
 };

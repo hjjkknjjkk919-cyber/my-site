@@ -5,11 +5,11 @@ import { clamp, ease, Svg, useT } from "../components/fx";
 import { Sfx } from "../components/audio";
 import { Wagon2, type Cam } from "./Wagon2";
 import { Atmos } from "./GostOld";
-import { Beyond, cuesFor, type Cue, Face, Follow, Hook, Hud, MONT, ride, Slam, Subs, Vig, Watch } from "./Ep1Test";
-import { PovPhone, PovStandWalk, Sleeper } from "./Wake";
+import { Beyond, cuesFor, type Cue, Face, flickerOn, Follow, Hook, Hud, MONT, ride, Slam, Subs, Vig, Watch } from "./Ep1Test";
+import { Finger, PovPhone, PovStandWalk, Sleeper } from "./Wake";
 import { lamp, lampDipsIn } from "./lamp";
 import { LEN } from "./Wagon2";
-import { Pov3D } from "./Pov3D";
+import { BLINK_STATION, BLINK_WALK, Choice3D, Pov3D, Station3D } from "./Pov3D";
 import { loadFont as loadStencil } from "@remotion/google-fonts/RussoOne";
 const { fontFamily: STENCIL } = loadStencil("normal", { weights: ["400"], subsets: ["latin", "cyrillic"] });
 
@@ -149,8 +149,8 @@ const Rule1 = () => {
             <text x={W / 2} y="104" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="30" fill="#f2e6c8">{i + 1}</text>
           </g>
         ))}
-        <text x="60" y="-30" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="32" fill="#f2e6c8">машинист</text>
-        <path d="M30 -16 L10 10" stroke="#f2e6c8" strokeWidth="6" strokeLinecap="round" />
+        <text x="60" y="-30" textAnchor="middle" fontFamily={MONT} fontWeight="900" fontSize="34" fill="#ff5a1f">МАШИНИСТ</text>
+        <path d="M30 -16 L10 10" stroke="#ff5a1f" strokeWidth="6" strokeLinecap="round" />
         <text x={W / 2} y="180" textAnchor="middle" fontFamily={MONT} fontWeight="900" fontSize="34" fill="#ff5a1f">ЦЕЛЬ</text>
         <text x={6 * (W + 8) + W / 2} y="180" textAnchor="middle" fontFamily={MONT} fontWeight="900" fontSize="34" fill="#8fc0ff">ТЫ ЗДЕСЬ</text>
         <path d={`M${6 * (W + 8) + 20} 230 C${4 * (W + 8)} 300 ${2 * (W + 8)} 300 ${W / 2 + 20} 230`} stroke="#ff5a1f" strokeWidth="8" fill="none" strokeDasharray="18 14" />
@@ -200,10 +200,26 @@ const Button = () => {
           <IntercomPanel pressed={press} glow={glow} />
         </g>
         {/* палец */}
-        <g transform={`translate(560 ${fx})`}>
-          <path d="M-60 0 C-62 -60 -40 -90 0 -92 C40 -90 62 -60 60 0 L70 700 H-70 Z" fill="#e8c2a6" stroke={LINE} strokeWidth="9" />
-          <path d="M-36 -60 C-30 -80 30 -80 36 -60 L30 -20 H-30 Z" fill="#f3d9c6" stroke={LINE} strokeWidth="4" />
-          <path d="M-60 260 C-20 250 20 250 60 260" stroke={LINE} strokeWidth="5" fill="none" opacity="0.5" />
+        {/* рука: указательный палец вытянут к кнопке, остальные поджаты, дрожит */}
+        <g transform={`translate(520 ${fx + 210}) scale(1.6)`}>
+          <path d="M-110 520 C-104 400 -96 300 -86 200 L94 200 C104 300 112 400 118 520 Z" fill="#3b4d63" stroke={LINE} strokeWidth="6" />
+          <path d="M50 220 C70 320 84 420 90 520" stroke="#2a384a" strokeWidth="18" fill="none" opacity="0.7" />
+          <path d="M-92 196 L98 196 L94 232 L-88 232 Z" fill="#2a384a" stroke={LINE} strokeWidth="5" />
+          {Array.from({ length: 12 }, (_, i) => <path key={i} d={`M${-80 + i * 15} 200 V228`} stroke={LINE} strokeWidth="2" opacity="0.45" />)}
+          <path d="M-84 196 C-96 140 -96 60 -78 10 L80 10 C96 60 96 140 84 196 Z" fill="#e9c4a8" stroke={LINE} strokeWidth="6" />
+          <path d="M56 30 C70 80 74 140 70 190" stroke="#cf9f84" strokeWidth="14" fill="none" opacity="0.5" strokeLinecap="round" />
+          {/* поджатые пальцы: костяшки и ногти снизу */}
+          {[-50, -14, 22].map((x, i) => (
+            <g key={i}>
+              <rect x={x - 18} y={-14} width="36" height="60" rx="17" fill="#e9c4a8" stroke={LINE} strokeWidth="5" />
+              <path d={`M${x - 12} 14 q12 5 24 0`} stroke={LINE} strokeWidth="2.5" fill="none" opacity="0.6" />
+              <rect x={x - 10} y={30} width="20" height="14" rx="6" fill="#f3dccd" stroke={LINE} strokeWidth="2" />
+            </g>
+          ))}
+          {/* большой палец прижат сбоку */}
+          <Finger x={-80} y={110} len={86} w={36} dir={140} curl={0.2} />
+          {/* указательный палец вытянут вверх к кнопке */}
+          <Finger x={58} y={20} len={170} w={40} dir={180} />
         </g>
       </Svg>
       <Atmos t={t + 9} beam={false} />
@@ -346,6 +362,7 @@ export const EP1_FRAMES = fr(S.choice[1]);
 const VO: [string, number, number, string][] = [
   ["v1", 6.6, 1.8, "Ни одного *пассажира*."],
   ["e1", 13.0, 5.4, "Ты проснулся. Электричка идёт сорок минут… без *остановок*."],
+  ["v5", 19.0, 1.8, "Вагон совсем *пустой*."],
   ["e2", 21.6, 3.6, "Мимо проносится станция. Ты её *не знаешь*."],
   ["v2", 25.7, 3.2, "В стекле… только ты. *Почти*."],
   ["e3", 29.6, 5.1, "Правило первое. Ночью садись в *первый* вагон. Ближе к машинисту."],
@@ -356,6 +373,7 @@ const VO: [string, number, number, string][] = [
   ["e6", 57.0, 4.7, "Вспышка. Пусто. Вспышка… оно *ближе*."],
   ["e7", 66.6, 5.5, "Правило второе. У каждых дверей есть *кнопка* связи с машинистом. Жми."],
   ["e8", 75.4, 3.4, "Треск. Потом голос: не *смотри* на него."],
+  ["v6", 86.4, 1.5, "Решай *быстрее*."],
 ];
 const CUES: Cue[] = [{ from: 0, to: 2, text: "В этой электричке ты *не один*" }, ...VO.flatMap(([, at, d, tx]) => cuesFor(at, d, tx))];
 
@@ -368,7 +386,7 @@ const dur = (k: keyof typeof S) => S[k][1] - S[k][0];
 
 // провалы в тишину перед пугающими моментами
 const SILENCE: [number, number][] = [
-  [50.9, 51.5],
+  [50.0, 51.5],
   [79.0, 79.4],
   [81.8, 82.5],
 ];
@@ -378,10 +396,23 @@ const voiceAt = (g: number) => VO.some(([, at, d]) => g > at - 0.1 && g < at + d
 const bed = (base: number, start = 0) => (f: number) => {
   const g = start + f / FPS;
   if (silentAt(g)) return 0;
-  return voiceAt(g) ? base * 0.5 : base;
+  return voiceAt(g) ? base * 0.4 : base;
 };
 // треск лампы на её провалах (сцены пробуждения и прохода; там лампа = lamp(локальное t + сдвиг))
-const crackles = [...lampDipsIn(1, 10).map((x) => x + 1), ...lampDipsIn(3, 13).map((x) => x + 8), ...lampDipsIn(6, 20).map((x) => x + 31)];
+const crackles = [...lampDipsIn(1, 10).map((x) => x + 1), ...lampDipsIn(3, 13).map((x) => x + 8), ...lampDipsIn(14, 22).map((x) => x + 7), ...lampDipsIn(6, 25).map((x) => x + 31)];
+
+// низкий рык на вспышках, когда существо уже в тамбуре (со 2.4 с вспышек), не чаще раза в 1.5 с
+const growlAt = (() => {
+  const out: number[] = [];
+  for (let f = 1; f < 10 * FPS; f++) {
+    const w = f / FPS;
+    if (w < 2.4 || !flickerOn(f) || flickerOn(f - 1)) continue;
+    if (out.length && w - out[out.length - 1] < 1.5) continue;
+    if (Math.abs(w - 3.7) < 0.8) continue;
+    out.push(w);
+  }
+  return out.map((w) => S.watch[0] + w);
+})();
 
 export const Ep1 = () => {
   const t = useT();
@@ -397,8 +428,14 @@ export const Ep1 = () => {
       ))}
       {[9.5, 24, 36.5, 46, 63, 72].map((g, i) => <Sfx key={`k${i}`} at={g} name="train/creak" vol={voiceAt(g) ? 0.2 : 0.4} />)}
       {crackles.map((g, i) => <Sfx key={`l${i}`} at={g} name="train/crackle" vol={0.45} />)}
+      {/* лампа подмигивает на развороте камеры и на силуэте — громкий треск с гулом */}
+      {[...BLINK_WALK.map((b) => S.walk[0] + b), ...BLINK_STATION.map((b) => S.station[0] + b)].map((g, i) => (
+        <React.Fragment key={`bl${i}`}>
+          <Sfx at={g} name="train/ballast" vol={0.9} />
+          <Sfx at={g + 0.12} name="train/buzz" vol={0.35} dur={0.5} />
+        </React.Fragment>
+      ))}
       {/* крючок */}
-      <Sfx at={0.05} name="train/sting" vol={0.5} dur={0.7} />
       {/* пробуждение */}
       <Sfx at={2.1} name="train/breath" vol={0.3} dur={2.6} />
       <Sfx at={3.4} name="train/rustle" vol={0.6} />
@@ -418,12 +455,14 @@ export const Ep1 = () => {
       <Sfx at={S.walk[0] + 7.3} name="train/whoosh" vol={0.4} />
       <Sfx at={S.walk[0] + 7.9} name="train/steps2" vol={0.55} dur={4.6} />
       {/* у двери: гаснет свет после тишины */}
-      <Sfx at={S.door[0] + 4.5} name="train/lightsoff" vol={0.85} />
+      <Sfx at={50.0} name="train/breath" vol={0.55} dur={1.5} />
+      <Sfx at={S.door[0] + 4.5} name="train/lightsoff" vol={0.9} />
       <Sfx at={S.door[0] + 4.8} name="train/drone" vol={0.45} />
       {/* монстр */}
       <Sfx at={S.watch[0]} name="train/buzz" vol={0.35} dur={9} />
       <Sfx at={S.watch[0] + 1.6} name="train/claws" vol={0.6} />
       <Sfx at={S.watch[0] + 3.7} name="train/growl" vol={0.6} />
+      {growlAt.map((g, i) => <Sfx key={`gr${i}`} at={g} name="train/growl" vol={0.45} dur={1.0} />)}
       <Sfx at={S.watch[0] + 5.5} name="train/cbreath" vol={0.55} />
       <Sfx at={S.watch[0] + 7.4} name="train/claws" vol={0.5} />
       <Sfx at={S.button[0] + 0.4} name="train/cbreath" vol={0.45} />
@@ -434,14 +473,15 @@ export const Ep1 = () => {
       <Sfx at={S.slam[0] + 0.3} name="train/growl" vol={0.8} dur={1.5} />
       <Sfx at={S.slam[0] + 0.5} name="train/claws" vol={0.6} dur={1.3} />
       {/* финальная панель: реле и потрескивание динамика */}
-      {[0.15, 0.6, 1.1].map((d, i) => <Sfx key={`r${i}`} at={S.choice[0] + d} name="train/relay" vol={0.8} />)}
+      {[0.15, 0.6, 1.1, 1.6].map((d, i) => <Sfx key={`r${i}`} at={S.choice[0] + d} name="train/relay" vol={0.8} />)}
       <Sfx at={S.choice[0] + 0.2} name="train/speaker" vol={0.3} dur={7} />
       {/* голос — всегда поверх */}
       {VO.map(([k, at]) => <Sfx key={k} at={at} name={`train/${k}`} vol={1.25} />)}
-      {seq("hook", <Hook />)}
-      {seq("sleep", <Sleeper d={dur("sleep")} />)}
+      <Sequence from={0} durationInFrames={fr(S.sleep[1])}>
+        <Sleeper d={dur("sleep")} lead={S.sleep[0]} />
+      </Sequence>
       {seq("pov", <PovPhone d={dur("pov")} />)}
-      {seq("station", <Station />)}
+      {seq("station", <Station3D />)}
       {seq("rule1", <Rule1 />)}
       {/* 00:37–01:06 — один непрерывный POV в 3D: подъём, проход, оглядка, дверь, вспышки */}
       <Sequence from={fr(S.walk[0])} durationInFrames={fr(S.watch[1]) - fr(S.walk[0])}>
@@ -451,7 +491,7 @@ export const Ep1 = () => {
       {seq("button", <Button />)}
       {seq("slam", <Slam />)}
       {seq("black", <AbsoluteFill style={{ background: "#000" }} />)}
-      {seq("choice", <Choice />)}
+      {seq("choice", <Choice3D font={STENCIL} />)}
       {/* грязно-жёлтый тусклый свет старых ламп — на всём, что в вагоне (3D-проход уже освещён так сам) */}
       {t < S.black[0] && !inS("rule1") && !inS("rule2") && !(t >= S.walk[0] && t < S.watch[1]) && (
         <>
