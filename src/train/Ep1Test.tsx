@@ -11,19 +11,19 @@ import { Atmos, DimaBack as DimaBackOld, DimaFace as DimaFaceOld } from "./GostO
 import { Cracks, CreatureGlass } from "./Creature2";
 
 /** Пробный монтаж v2 (по ревью): крючок → идём за Димой → лицо → вспышки в окне → скример. */
-const { fontFamily: MONT } = loadFont("normal", { weights: ["800", "900"], subsets: ["cyrillic", "latin"] });
+export const { fontFamily: MONT } = loadFont("normal", { weights: ["800", "900"], subsets: ["cyrillic", "latin"] });
 const FPS = 30;
 
 // ── ритм поезда ───────────────────────────────────────────────────────
 /** Покачивание ±0.6° с периодом 1.4 с и толчок 3 px на стыке каждые 0.9 с. */
-const ride = (t: number) => {
+export const ride = (t: number) => {
   const ph = (t % 0.9) / 0.9;
   const bump = ph < 0.1 ? Math.sin((ph / 0.1) * Math.PI) * 3 : 0;
   return { rot: Math.sin((t / 1.4) * Math.PI * 2) * 0.6, y: bump };
 };
 /** Неравномерное мигание (в кадрах): 6 вкл, 2 выкл, 1 вкл, 8 выкл, 3 вкл, 1 выкл, 2 вкл … */
 const PATTERN = [12, 2, 2, 5, 9, 1, 3, 6];
-const flickerOn = (frame: number) => {
+export const flickerOn = (frame: number) => {
   const total = PATTERN.reduce((a, b) => a + b, 0);
   let f = frame % total;
   for (let i = 0; i < PATTERN.length; i++) {
@@ -34,7 +34,7 @@ const flickerOn = (frame: number) => {
 };
 
 // ── оформление как в референсе ────────────────────────────────────────
-const Hud = () => (
+export const Hud = () => (
   <div style={{ position: "absolute", top: 70, left: 40, right: 40, display: "flex", justifyContent: "space-between", fontFamily: MONT, fontWeight: 800 }}>
     <div style={{ display: "flex", gap: 14 }}>
       <div style={{ background: "#1a1a1a", border: "3px solid #3a3a3a", borderRadius: 10, padding: "8px 18px", color: "#f2e6c8", fontSize: 40, display: "flex", alignItems: "center", gap: 12 }}>
@@ -49,9 +49,9 @@ const Hud = () => (
   </div>
 );
 
-type Cue = { from: number; to: number; text: string };
+export type Cue = { from: number; to: number; text: string };
 /** Субтитры: жирный, белый, тёмная обводка, ключевое слово (в *звёздочках*) оранжевым. */
-const Subs = ({ t, cues }: { t: number; cues: Cue[] }) => {
+export const Subs = ({ t, cues }: { t: number; cues: Cue[] }) => {
   const c = cues.find((q) => t >= q.from && t < q.to);
   if (!c) return null;
   return (
@@ -65,7 +65,7 @@ const Subs = ({ t, cues }: { t: number; cues: Cue[] }) => {
   );
 };
 /** Слова фразы по 2–3, равномерно по длительности клипа. */
-const cuesFor = (at: number, dur: number, text: string): Cue[] => {
+export const cuesFor = (at: number, dur: number, text: string): Cue[] => {
   const w = text.split(" ");
   const chunks: string[] = [];
   for (let i = 0; i < w.length; i += 3) chunks.push(w.slice(i, i + 3).join(" "));
@@ -78,7 +78,7 @@ const CUES: Cue[] = [
   ...cuesFor(10.2, 4.8, "Вспышка. Пусто. Вспышка… оно *ближе*."),
 ];
 
-const Vig = ({ k = 1 }: { k?: number }) => <AbsoluteFill style={{ background: `radial-gradient(75% 60% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,${0.72 * k}) 100%)` }} />;
+export const Vig = ({ k = 1 }: { k?: number }) => <AbsoluteFill style={{ background: `radial-gradient(75% 60% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,${0.72 * k}) 100%)` }} />;
 /** Пыль: дрейфует наискосок, ярче в луче (центр сверху). */
 const Dust = ({ t, l }: { t: number; l: number }) => (
   <Svg>
@@ -98,7 +98,7 @@ const Dust = ({ t, l }: { t: number; l: number }) => (
  * walk — фаза цикла (1 = два шага); moving 0..1 — идёт или стоит (у двери переносит вес).
  * Масштаб: 20 единиц рисунка = 1 см; макушка (960) = 182 см, пол = 4600.
  */
-const dimaActor = (z: number, x: number, t: number, walk: number, _turn = 0, dark = 0, moving = 1) => ({
+export const dimaActor = (z: number, x: number, t: number, walk: number, _turn = 0, dark = 0, moving = 1) => ({
   z,
   draw: (cam: Cam) => {
     const p = proj(cam, x, 182, z);
@@ -151,7 +151,7 @@ const dimaActor = (z: number, x: number, t: number, walk: number, _turn = 0, dar
 
 // ── кадры ─────────────────────────────────────────────────────────────
 /** 0. Крючок: 6 кадров в тёмном окне видна рука с когтями. */
-const Hook = () => {
+export const Hook = () => {
   const t = useT();
   const show = t > 0.1 && t < 0.3;
   return (
@@ -171,7 +171,7 @@ const Hook = () => {
 };
 
 /** 1. Идём за Димой по проходу; на 3.5 с он оглядывается через плечо. */
-const Follow = () => {
+export const Follow = () => {
   const t = useT();
   const D = 5.5;
   // шаги: скорость толчками (≈1.8 шага/с), к двери замедляется и встаёт
@@ -194,7 +194,7 @@ const Follow = () => {
 };
 
 /** 2. Лицо крупно (дизайн из первого теста): полумрак, луч сверху, пыль. */
-const Face = () => {
+export const Face = () => {
   const t = useT();
   const r = ride(t);
   return (
@@ -258,7 +258,7 @@ const Beyond = ({ t, frame, on }: { t: number; frame: number; on: boolean }) => 
 };
 
 /** 3. Через плечо: Дима тёмным силуэтом слева (25–30%), дверь в правой трети, наезд 100→130%. */
-const Watch = () => {
+export const Watch = () => {
   const t = useT();
   const frame = Math.round(t * FPS);
   const on = flickerOn(frame);
@@ -274,7 +274,7 @@ const Watch = () => {
 };
 
 /** 4. Скример: вспышка, удар с перелётом масштаба, затухающая тряска, трещины, сползающие ладони, наклон головы, в конце — чёрный. */
-const Slam = () => {
+export const Slam = () => {
   const t = useT();
   const f = t * FPS;
   const sc = f < 2 ? 1.4 - 0.44 * (f / 2) : f < 4 ? 0.96 + 0.04 * ((f - 2) / 2) : 1;
