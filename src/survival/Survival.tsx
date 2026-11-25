@@ -19,7 +19,7 @@ const RED = "#ff2b3a";
 const JACKET = "#2f5f9e";
 const MITT = "#2a2f35";
 const L = { strokeLinecap: "round", strokeLinejoin: "round" } as const;
-type V = { text: string; dur: number; voiced?: boolean };
+type V = { text: string; start: number; end: number };
 const VO = voice as Record<string, V>;
 /** Небо и горы. dawn 0 — глухая ночь, 1 — рассвет. fog — белая мгла метели. */
 const Sky = ({ t, dawn = 0, fog = 0, cam = 0 }: { t: number; dawn?: number; fog?: number; cam?: number }) => {
@@ -464,9 +464,10 @@ const SHOTS: Record<string, React.FC<P>> = {
     );
   },
   // фонарик: SOS в ночь
-  p16: ({ t, v }) => {
-    const s0 = v + 0.9;
-    const ts = t - s0;
+  p16: ({ t, d, v }) => {
+    const s0 = v + 0.5;
+    const k = Math.min(1, (d - 0.15 - s0) / SOS_LEN);
+    const ts = (t - s0) / k;
     const on = SOS.some((q) => ts >= q.from && ts < q.to);
     return (
       <AbsoluteFill>
@@ -487,7 +488,7 @@ const SHOTS: Record<string, React.FC<P>> = {
           </g>
         </Svg>
         <Snow t={t} n={40} opacity={0.6} speed={0.8} wind={0.3} />
-        {SOS.map((q, i) => <Sfx key={i} at={s0 + q.from} name="survival/click" vol={0.6} />)}
+        {SOS.map((q, i) => <Sfx key={i} at={s0 + q.from * k} name="survival/click" vol={0.6} />)}
       </AbsoluteFill>
     );
   },
@@ -605,19 +606,22 @@ const SOS = (() => {
     return s;
   });
 })();
+const SOS_LEN = SOS[SOS.length - 1].to;
 
 // ── сборка ─────────────────────────────────────────────────────────────
 const FPS = 30;
-const GAP = 0.12;
-const EXTRA: Record<string, number> = { p01: 0.4, p03: 0.3, p08: 0.3, p13: 0.2, p16: 3.6, p17: 0.4, p18: 0.4, p20: 0.9, p21: 0.5, p22: 1.2 };
+// весь текст — один монолог (mono.mp3); кадр меняется чуть раньше начала своей фразы
+const LEAD = 0.3;
+const IDS = Object.keys(SHOTS);
 const PLAN = (() => {
-  let at = 0;
-  return Object.keys(SHOTS).map((id) => {
-    const v = VO[id];
-    const frames = Math.round((GAP + v.dur + 0.3 + (EXTRA[id] ?? 0)) * FPS);
-    const p = { id, start: at, frames, d: frames / FPS };
-    at += frames;
-    return p;
+  const cut = IDS.map((id, i) => (i === 0 ? 0 : Math.round((LEAD + VO[id].start - 0.08) * FPS)));
+  const endF = Math.round((LEAD + VO[IDS[IDS.length - 1]].end + 1.5) * FPS);
+  return IDS.map((id, i) => {
+    const start = cut[i];
+    const frames = (i + 1 < IDS.length ? cut[i + 1] : endF) - start;
+    // через сколько секунд от начала кадра звучит фраза и сколько длится
+    const v = LEAD + VO[id].start - start / FPS;
+    return { id, start, frames, d: frames / FPS, v, dur: VO[id].end - VO[id].start };
   });
 })();
 export const SURVIVAL_FRAMES = PLAN.reduce((s, p) => s + p.frames, 0);
@@ -657,17 +661,17 @@ const Hud = () => {
   );
 };
 
-const Shot = ({ id, d }: { id: string; d: number }) => {
+const Shot = ({ id, d, v, dur }: { id: string; d: number; v: number; dur: number }) => {
   const t = useT();
   const C = SHOTS[id];
-  const v = VO[id];
+  const vo = VO[id];
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
       <AbsoluteFill>
-        <C t={t} d={d} v={GAP} />
+        <C t={t} d={d} v={v} />
       </AbsoluteFill>
       <Finish vig={0.8} tint="#2a5a85" tintOpacity={0.08} grain={1} bigSnow={false} />
-      <Sub t={t} text={v.text} from={GAP} dur={v.dur} />
+      <Sub t={t} text={vo.text} from={v} dur={dur} />
       {/* вспышка на склейке */}
       <AbsoluteFill style={{ background: "#fff", opacity: clamp(0.12 - t * 1.2) }} />
     </AbsoluteFill>
@@ -682,14 +686,12 @@ export const Survival = () => {
       <Audio src={staticFile("audio/music/drone.mp3")} loop volume={(f) => (f < dawnAt ? 0.25 : 0)} />
       {PLAN.map((p) => (
         <Sequence key={p.id} from={p.start} durationInFrames={p.frames}>
-          <Shot id={p.id} d={p.d} />
-          {VO[p.id].voiced && (
-            <Sequence from={Math.round(GAP * FPS)} layout="none">
-              <Audio src={staticFile(`audio/survival/${p.id}.mp3`)} volume={1.15} />
-            </Sequence>
-          )}
+          <Shot id={p.id} d={p.d} v={p.v} dur={p.dur} />
         </Sequence>
       ))}
+      <Sequence from={Math.round(LEAD * FPS)} layout="none">
+        <Audio src={staticFile("audio/survival/mono.mp3")} volume={1.2} />
+      </Sequence>
       <Hud />
     </AbsoluteFill>
   );
