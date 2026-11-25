@@ -150,13 +150,13 @@ export const poseAt = (u: number): Pose => {
   return { x, y, z: zz, yaw, pitch, roll: (roll * Math.PI) / 180, yawVel, fov };
 };
 
-const applyPose = (cam: THREE.PerspectiveCamera, p: Pose) => {
+export const applyPose = (cam: THREE.PerspectiveCamera, p: Pose) => {
   cam.position.set(p.x, p.y, p.z);
   cam.rotation.set(p.pitch, p.yaw, p.roll, "YXZ");
   cam.updateMatrixWorld(true);
 };
 
-const CamRig = ({ pose }: { pose: Pose }) => {
+export const CamRig = ({ pose }: { pose: Pose }) => {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   camera.fov = pose.fov ?? FOV;
   camera.near = 0.03;
@@ -167,11 +167,11 @@ const CamRig = ({ pose }: { pose: Pose }) => {
 };
 
 // ── процедурные текстуры (детерминированные) ─────────────────────────
-const rnd = (i: number) => {
+export const rnd = (i: number) => {
   const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
 };
-const makeTex = (kind: "grime" | "fabric" | "glow", rx = 1, ry = 1) => {
+export const makeTex = (kind: "grime" | "fabric" | "glow", rx = 1, ry = 1) => {
   const S = 256;
   const c = document.createElement("canvas");
   c.width = S;
@@ -230,7 +230,7 @@ const makeTex = (kind: "grime" | "fabric" | "glow", rx = 1, ry = 1) => {
 };
 
 /** Грязное стекло: прозрачное, с разводами, пылью и потёками (RGBA). */
-const makeDirtyGlass = () => {
+export const makeDirtyGlass = () => {
   const S = 512;
   const c = document.createElement("canvas");
   c.width = S;
@@ -277,7 +277,7 @@ const makeDirtyGlass = () => {
 };
 
 /** SVG-элемент → CanvasTexture (рендер ждёт загрузки). mask — мягкие края по альфе. */
-const useSvgTexture = (label: string, el: React.ReactElement, mask: boolean) => {
+export const useSvgTexture = (label: string, el: React.ReactElement, mask: boolean) => {
   const [tex, setTex] = useState<THREE.Texture | null>(null);
   const [handle] = useState(() => delayRender(label));
   useEffect(() => {
@@ -328,7 +328,7 @@ const useSvgTexture = (label: string, el: React.ReactElement, mask: boolean) => 
 export const useMonsterTexture = () => useSvgTexture("monster texture", <CreatureGlass t={0.3} open={0.55} tilt={-8} bare />, true);
 
 // ── материалы ─────────────────────────────────────────────────────────
-const useMats = () =>
+export const useMats = () =>
   useMemo(
     () => ({
       floor: new THREE.MeshStandardMaterial({ color: "#3a2f26", roughness: 0.85, map: makeTex("grime", 2, 12) }),
@@ -347,11 +347,11 @@ const useMats = () =>
     }),
     [],
   );
-type Mats = ReturnType<typeof useMats>;
+export type Mats = ReturnType<typeof useMats>;
 
-const INK = "#0e0e0e";
-const OL = 0.012;
-const Box = ({ p, s, m, cast = true, recv = true, ol = false }: { p: [number, number, number]; s: [number, number, number]; m: THREE.Material; cast?: boolean; recv?: boolean; ol?: boolean }) => (
+export const INK = "#0e0e0e";
+export const OL = 0.012;
+export const Box = ({ p, s, m, cast = true, recv = true, ol = false }: { p: [number, number, number]; s: [number, number, number]; m: THREE.Material; cast?: boolean; recv?: boolean; ol?: boolean }) => (
   <mesh position={p} castShadow={cast} receiveShadow={recv} material={m}>
     <boxGeometry args={s} />
     {ol && <Outlines thickness={OL} color={INK} />}
@@ -530,7 +530,7 @@ const Cone = ({ z, k }: { z: number; k: number }) => {
 };
 
 /** Пылинки: детерминированно от кадра, ярче рядом с лампами. */
-const Dust = ({ u, cz }: { u: number; cz: number }) => {
+export const Dust = ({ u, cz }: { u: number; cz: number }) => {
   const dustTex = useMemo(() => makeTex("glow"), []);
   const N = 360;
   const geo = useMemo(() => new THREE.BufferGeometry(), []);
@@ -558,7 +558,7 @@ const Dust = ({ u, cz }: { u: number; cz: number }) => {
  */
 const MON_FROM = 2.4; // с начала вспышек (≈58.4)
 /** Трещины и тёмная кровь на стекле (canvas). */
-const makeCracks = (level = 2) => {
+export const makeCracks = (level = 2) => {
   const S = 512;
   const c = document.createElement("canvas");
   c.width = S;
@@ -1250,7 +1250,9 @@ const textTex = (w: number, h: number, draw: (g: CanvasRenderingContext2D) => vo
   return t;
 };
 
-const useChoiceTextures = (font: string) => {
+export type ChoiceTexts = { header: string; row1: string; row2: string; footer: string; note: string };
+const EP1_TEXTS: ChoiceTexts = { header: "ЧТО ДЕЛАТЬ ДИМЕ?", row1: "1 — НАЖАТЬ КНОПКУ СВЯЗИ", row2: "2 — БЕЖАТЬ ОБРАТНО В ВАГОН", footer: "ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ", note: "ПРОДОЛЖЕНИЕ СНИМЕМ ПО ВЫБОРУ БОЛЬШИНСТВА" };
+const useChoiceTextures = (font: string, T: ChoiceTexts = EP1_TEXTS) => {
   const [tex, setTex] = useState<ChoiceTex | null>(null);
   const [handle] = useState(() => delayRender("choice textures"));
   useEffect(() => {
@@ -1309,12 +1311,12 @@ const useChoiceTextures = (font: string) => {
           g.fill();
         });
         const header = textTex(1024, 180, (g) => {
-          const s = fitText(g, "ЧТО ДЕЛАТЬ ДИМЕ?", F, 92, 860);
+          const s = fitText(g, T.header, F, 92, 860);
           g.font = `${s}px ${F}`;
           g.fillStyle = "#f2c94c";
           g.textAlign = "center";
           g.textBaseline = "middle";
-          g.fillText("ЧТО ДЕЛАТЬ ДИМЕ?", 512, 80);
+          g.fillText(T.header, 512, 80);
           g.fillStyle = "#6b7276";
           g.fillRect(70, 160, 884, 5);
         });
@@ -1335,15 +1337,15 @@ const useChoiceTextures = (font: string) => {
             g.fillText(text, 160, 88);
           });
         const footer = textTex(1024, 120, (g) => {
-          const s = fitText(g, "ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ", F, 54, 860);
+          const s = fitText(g, T.footer, F, 54, 860);
           g.font = `${s}px ${F}`;
           g.fillStyle = "#b9b4a6";
           g.textAlign = "center";
           g.textBaseline = "middle";
-          g.fillText("ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ", 512, 60);
+          g.fillText(T.footer, 512, 60);
         });
         const note = textTex(1024, 90, (g) => {
-          const t = "ПРОДОЛЖЕНИЕ СНИМЕМ ПО ВЫБОРУ БОЛЬШИНСТВА";
+          const t = T.note;
           const s2 = fitText(g, t, F, 40, 840);
           g.font = `${s2}px ${F}`;
           g.fillStyle = "#8f8a7c";
@@ -1351,7 +1353,7 @@ const useChoiceTextures = (font: string) => {
           g.textBaseline = "middle";
           g.fillText(t, 512, 45);
         });
-        setTex({ face, header, row1: row("1 — НАЖАТЬ КНОПКУ СВЯЗИ"), row2: row("2 — БЕЖАТЬ ОБРАТНО В ВАГОН"), footer, note });
+        setTex({ face, header, row1: row(T.row1), row2: row(T.row2), footer, note });
         continueRender(handle);
       });
   }, [font, handle]);
@@ -1373,7 +1375,7 @@ const WIRES: [number, number, number][][] = [
   [[-0.2, 1.0, 0.04], [-0.05, 0.58, 0.1], [0.3, 0.55, 0.09], [0.55, 0.7, 0.05], [0.62, 0.9, 0.02]],
 ];
 
-const ChoiceScene = ({ u, tex }: { u: number; tex: ChoiceTex | null }) => {
+const ChoiceScene = ({ u, tex, wall }: { u: number; tex: ChoiceTex | null; wall?: THREE.Material }) => {
   const m = useMats();
   const L = 0.78 + 0.22 * lamp(u + 40);
   const breathe = Math.sin(u * 2 * Math.PI * 0.45);
@@ -1414,7 +1416,7 @@ const ChoiceScene = ({ u, tex }: { u: number; tex: ChoiceTex | null }) => {
       <fog attach="fog" args={["#050403", 2, 7]} />
       <ambientLight color="#8a7a55" intensity={0.04} />
       {/* стена тамбура и край торцевой двери справа */}
-      <Box p={[0, 1.3, -0.04]} s={[3, 2.8, 0.08]} m={m.wallUp} cast={false} />
+      <Box p={[0, 1.3, -0.04]} s={[3, 2.8, 0.08]} m={wall ?? m.wallUp} cast={false} />
       <Box p={[0, 0.25, 0.0]} s={[3, 0.5, 0.02]} m={m.wallLow} cast={false} />
       <Box p={[0.88, 1.1, 0.02]} s={[0.06, 2.2, 0.05]} m={m.dark} ol />
       <Box p={[1.2, 1.1, 0.0]} s={[0.6, 2.2, 0.04]} m={m.door} ol />
@@ -1490,14 +1492,14 @@ const ChoiceScene = ({ u, tex }: { u: number; tex: ChoiceTex | null }) => {
   );
 };
 
-export const Choice3D = ({ font }: { font: string }) => {
+export const Choice3D = ({ font, texts, wall }: { font: string; texts?: ChoiceTexts; wall?: THREE.Material }) => {
   const frame = useCurrentFrame();
   const u = frame / FPS;
-  const tex = useChoiceTextures(font);
+  const tex = useChoiceTextures(font, texts);
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <ThreeCanvas width={W} height={H} shadows="soft" dpr={1.5} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15, preserveDrawingBuffer: true }}>
-        <ChoiceScene u={u} tex={tex} />
+        <ChoiceScene u={u} tex={tex} wall={wall} />
       </ThreeCanvas>
       <AbsoluteFill style={{ background: "radial-gradient(80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(8,6,2,.8) 100%)" }} />
     </AbsoluteFill>
