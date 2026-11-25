@@ -1,174 +1,301 @@
 import React from "react";
 import { AbsoluteFill, Sequence, staticFile } from "remotion";
 import { Audio } from "@remotion/media";
+import { loadFont } from "@remotion/google-fonts/Montserrat";
 import { clamp, ease, Svg, useT } from "../components/fx";
 import { Sfx } from "../components/audio";
 import { LEN, proj, Wagon2, type Cam } from "./Wagon2";
-import { DimaBack, DimaFace, lampLevel, ride } from "./Gost";
 import { Rake } from "./Rake";
+import { DimaBack2, Face2 } from "./Dima2";
+import { Cracks, CreatureGlass } from "./Creature2";
 
-/** Пробный монтаж в 3D-вагоне: идём за Димой → лицо → существо ползёт по потолку соседнего вагона → прыжок на стекло. */
+/** Пробный монтаж v2 (по ревью): крючок → идём за Димой → лицо → вспышки в окне → скример. */
+const { fontFamily: MONT } = loadFont("normal", { weights: ["800", "900"], subsets: ["cyrillic", "latin"] });
+const FPS = 30;
 
-const Vig = ({ k = 1 }: { k?: number }) => <AbsoluteFill style={{ background: `radial-gradient(75% 60% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,${0.7 * k}) 100%)` }} />;
+// ── ритм поезда ───────────────────────────────────────────────────────
+/** Покачивание ±0.6° с периодом 1.4 с и толчок 3 px на стыке каждые 0.9 с. */
+const ride = (t: number) => {
+  const ph = (t % 0.9) / 0.9;
+  const bump = ph < 0.1 ? Math.sin((ph / 0.1) * Math.PI) * 3 : 0;
+  return { rot: Math.sin((t / 1.4) * Math.PI * 2) * 0.6, y: bump };
+};
+/** Неравномерное мигание (в кадрах): 6 вкл, 2 выкл, 1 вкл, 8 выкл, 3 вкл, 1 выкл, 2 вкл … */
+const PATTERN = [12, 2, 2, 5, 9, 1, 3, 6];
+const flickerOn = (frame: number) => {
+  const total = PATTERN.reduce((a, b) => a + b, 0);
+  let f = frame % total;
+  for (let i = 0; i < PATTERN.length; i++) {
+    if (f < PATTERN[i]) return i % 2 === 0;
+    f -= PATTERN[i];
+  }
+  return true;
+};
 
-/** Пыль в воздухе (поверх 3D). */
+// ── оформление как в референсе ────────────────────────────────────────
+const Hud = () => (
+  <div style={{ position: "absolute", top: 70, left: 40, right: 40, display: "flex", justifyContent: "space-between", fontFamily: MONT, fontWeight: 800 }}>
+    <div style={{ display: "flex", gap: 14 }}>
+      <div style={{ background: "#1a1a1a", border: "3px solid #3a3a3a", borderRadius: 10, padding: "8px 18px", color: "#f2e6c8", fontSize: 40, display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ width: 16, height: 16, borderRadius: 8, background: "#e53935", display: "inline-block" }} />
+        00:47 <span style={{ fontSize: 26, opacity: 0.7 }}>ночь</span>
+      </div>
+      <div style={{ background: "#d32f2f", borderRadius: 10, padding: "8px 18px", color: "#fff", fontSize: 40 }}>ЧАСТЬ 1</div>
+    </div>
+    <div style={{ background: "#1a1a1a", border: "3px solid #d32f2f", borderRadius: 10, padding: "8px 18px", color: "#fff", fontSize: 32 }}>
+      ВАГОН <span style={{ color: "#ff5a1f", fontSize: 42 }}>7</span>
+    </div>
+  </div>
+);
+
+type Cue = { from: number; to: number; text: string };
+/** Субтитры: жирный, белый, тёмная обводка, ключевое слово (в *звёздочках*) оранжевым. */
+const Subs = ({ t, cues }: { t: number; cues: Cue[] }) => {
+  const c = cues.find((q) => t >= q.from && t < q.to);
+  if (!c) return null;
+  return (
+    <div style={{ position: "absolute", left: 60, right: 60, top: 1430, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 70, lineHeight: 1.1, color: "#fff", WebkitTextStroke: "12px #1a120e", paintOrder: "stroke fill", textTransform: "uppercase" }}>
+      {c.text.split(" ").map((w, i) => (
+        <span key={i} style={{ display: "inline-block", margin: "0 0.15em", color: w.includes("*") ? "#ff5a1f" : undefined }}>
+          {w.replace(/\*/g, "")}
+        </span>
+      ))}
+    </div>
+  );
+};
+/** Слова фразы по 2–3, равномерно по длительности клипа. */
+const cuesFor = (at: number, dur: number, text: string): Cue[] => {
+  const w = text.split(" ");
+  const chunks: string[] = [];
+  for (let i = 0; i < w.length; i += 3) chunks.push(w.slice(i, i + 3).join(" "));
+  return chunks.map((c, i) => ({ from: at + (dur * i) / chunks.length, to: at + (dur * (i + 1)) / chunks.length, text: c }));
+};
+const CUES: Cue[] = [
+  { from: 0, to: 1.6, text: "В этой электричке ты *не один*" },
+  ...cuesFor(1.8, 5.3, "Ты проснулся. Электричка идёт сорок минут… без *остановок*."),
+  ...cuesFor(7.2, 2.3, "В соседнем вагоне гаснет *свет*."),
+  ...cuesFor(10.2, 4.8, "Вспышка. Пусто. Вспышка… оно *ближе*."),
+];
+
+const Vig = ({ k = 1 }: { k?: number }) => <AbsoluteFill style={{ background: `radial-gradient(75% 60% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,${0.72 * k}) 100%)` }} />;
+/** Пыль: дрейфует наискосок, ярче в луче (центр сверху). */
 const Dust = ({ t, l }: { t: number; l: number }) => (
   <Svg>
-    {Array.from({ length: 60 }, (_, i) => {
-      const y = ((Math.sin(i * 12.9) * 0.5 + 0.5 + t * (0.015 + (i % 5) * 0.006)) % 1) * 1920;
-      const x = ((Math.sin(i * 7.3) * 0.5 + 0.5) * 1080 + Math.sin(t * 0.6 + i) * 40) % 1080;
-      return <circle key={i} cx={x} cy={y} r={1 + (i % 4) * 0.8} fill="#fff4dc" opacity={(0.15 + 0.35 * Math.abs(Math.sin(t + i))) * l} />;
+    {Array.from({ length: 55 }, (_, i) => {
+      const sp = 0.012 + (i % 5) * 0.005;
+      const y = ((Math.sin(i * 12.9) * 0.5 + 0.5 + t * sp) % 1) * 1920;
+      const x = (((Math.sin(i * 7.3) * 0.5 + 0.5) * 1080 + y * 0.15 + Math.sin(t * 0.6 + i) * 20) % 1080 + 1080) % 1080;
+      const inBeam = Math.max(0, 1 - Math.abs(x - 540) / 380) * Math.max(0, 1 - y / 1600);
+      return <circle key={i} cx={x} cy={y} r={1 + (i % 3)} fill="#e8e2d0" opacity={(0.3 + 0.3 * inBeam + 0.2 * Math.abs(Math.sin(t + i))) * l} />;
     })}
   </Svg>
 );
 
-/** Дима со спины в мире: затылок на высоте 175 см, тело уходит вниз за кадр. */
-const dimaActor = (z: number, x: number, t: number, walk: number) => ({
+// ── Дима в 3D ─────────────────────────────────────────────────────────
+const dimaActor = (z: number, x: number, t: number, walk: number, turn = 0, dark = 0) => ({
   z,
   draw: (cam: Cam) => {
-    const p = proj(cam, x, 178, z);
-    const s = p.k / 20; // 20 единиц рисунка на см
-    const bob = Math.abs(Math.sin(walk * Math.PI)) * 3 * p.k;
+    const p = proj(cam, x, 182, z);
+    const s = p.k / 20;
     return (
-      <g transform={`translate(${p.x - 540 * s} ${p.y - 900 * s + bob}) scale(${s})`}>
-        {/* продолжение куртки вниз, чтобы тело не обрывалось */}
-        <path d="M-120 1700 C-200 2200 -220 2900 -200 3600 H1280 C1300 2900 1280 2200 1200 1700 Z" fill="#2f5f9e" stroke="#3b2b26" strokeWidth="8" />
-        <path d="M980 1700 C1100 2200 1120 2900 1100 3600 H1280 C1300 2900 1280 2200 1200 1700 Z" fill="#1b365c" />
-        <path d="M-150 2100 C-180 2500 -170 2900 -140 3300 M1230 2100 C1260 2500 1250 2900 1220 3300" stroke="#3b2b26" strokeWidth="8" fill="none" />
-        <path d="M540 1600 V3600" stroke="#1b365c" strokeWidth="10" opacity="0.6" />
-        <DimaBack t={t} />
+      <g transform={`translate(${p.x - 540 * s} ${p.y}) scale(${s})`}>
+        <DimaBack2 t={t} walk={walk} turn={turn} dark={dark} />
       </g>
     );
   },
 });
 
-/** 1. Идём за Димой по проходу к торцевой двери (3D). */
+// ── кадры ─────────────────────────────────────────────────────────────
+/** 0. Крючок: 6 кадров в тёмном окне видна рука с когтями. */
+const Hook = () => {
+  const t = useT();
+  const show = t > 0.1 && t < 0.3;
+  return (
+    <AbsoluteFill style={{ background: "#000" }}>
+      {show && (
+        <Svg>
+          <rect x="140" y="300" width="800" height="1100" rx="40" fill="#0c1013" stroke="#2b1d16" strokeWidth="14" />
+          <g transform="translate(0 -150) scale(1)">
+            <CreatureGlass t={t} open={0.2} />
+          </g>
+          <rect x="0" y="0" width="1080" height="300" fill="#000" />
+          <rect x="0" y="1400" width="1080" height="520" fill="#000" />
+        </Svg>
+      )}
+    </AbsoluteFill>
+  );
+};
+
+/** 1. Идём за Димой по проходу; на 3.5 с он оглядывается через плечо. */
 const Follow = () => {
   const t = useT();
-  const dz = ease(t, 0, 5, 900, 2050);
+  const z = ease(t, 0, 5.5, 1000, 1950);
   const r = ride(t);
-  const cam: Cam = { x: Math.sin(t * 0.8) * 6, y: 168, z: dz - 170, roll: r.rot, pitch: r.y * 2 };
-  const L = lampLevel(t);
+  const cam: Cam = { x: 0, y: 175, z: z - 190, roll: r.rot, pitch: r.y };
+  const L = 0.85;
+  const turn = ease(t, 3.0, 3.4, 0, 1) - ease(t, 4.2, 4.6, 0, 1);
   return (
-    <AbsoluteFill style={{ transform: `translate(${r.x}px,0)` }}>
-      <Wagon2 cam={cam} t={t} light={L} actors={[dimaActor(dz, Math.sin(t * 1.2) * 4, t, t * 1.6)]} />
+    <AbsoluteFill>
+      <Wagon2 cam={cam} t={t} light={L} actors={[dimaActor(z, 0, t, (t * 0.85) % 1, turn)]} />
       <Dust t={t} l={L} />
       <Vig />
     </AbsoluteFill>
   );
 };
 
-/** 2. Лицо крупно. */
+/** 2. Лицо крупно: страх, пот, слеза, наезд 100→115%. */
 const Face = () => {
   const t = useT();
   const r = ride(t);
-  const L = lampLevel(t + 3);
   return (
-    <AbsoluteFill style={{ background: "#1a2026", transform: `translate(${r.x}px,${r.y}px) rotate(${r.rot}deg) scale(1.04)` }}>
+    <AbsoluteFill style={{ background: "#151b21", transform: `translateY(${r.y}px) rotate(${r.rot}deg) scale(1.03)` }}>
       <Svg>
-        <g transform={`translate(540 960) scale(${ease(t, 0, 4, 1.0, 1.15)}) translate(-540 -880)`}>
-          <DimaFace t={t} fear={ease(t, 0, 2.5, 0.5, 1)} eyes={ease(t, 0, 1.5, 0.95, 1.25)} look={[0.15, -0.15]} mouth="clench" sweat={ease(t, 0, 2, 0.4, 1)} tears={ease(t, 0.5, 4, 0, 1)} tremble={ease(t, 0, 3, 0.3, 1)} />
+        <g transform={`translate(540 960) scale(${ease(t, 0, 3, 1.0, 1.15)}) translate(-540 -900)`}>
+          <Face2 t={t} fear={ease(t, 0, 1.5, 0.6, 1)} eyes={ease(t, 0, 0.8, 1, 1.28)} look={[0.25, -0.2]} mouth="clench" sweat={1} tear={ease(t, 0.2, 2.9, 0, 1)} tremble={1} />
         </g>
       </Svg>
-      <AbsoluteFill style={{ background: `radial-gradient(70% 45% at 45% 15%, rgba(255,236,200,${0.25 * L}) 0%, rgba(0,0,0,0) 70%)`, mixBlendMode: "screen" }} />
-      <AbsoluteFill style={{ background: "linear-gradient(90deg, rgba(8,10,14,0) 40%, rgba(8,10,14,.6) 100%)" }} />
-      <AbsoluteFill style={{ background: "#000", opacity: (1 - L) * 0.6 }} />
-      <Dust t={t} l={L} />
+      <AbsoluteFill style={{ background: "radial-gradient(70% 45% at 40% 10%, rgba(255,232,190,.28) 0%, rgba(0,0,0,0) 70%)", mixBlendMode: "screen" }} />
+      <AbsoluteFill style={{ background: "linear-gradient(90deg, rgba(8,10,14,0) 45%, rgba(8,10,14,.55) 100%)" }} />
+      <Dust t={t} l={1} />
       <Vig />
     </AbsoluteFill>
   );
 };
 
-/** Соседний вагон за стеклом: тёмный проход, свет вспышками, существо ползёт по потолку к нам. */
-const Beyond = ({ t, near, on }: { t: number; near: number; on: boolean }) => (
-  <g>
-    <rect width="400" height="600" fill={on ? "#1e2326" : "#030405"} />
-    {on && (
-      <g>
-        <path d="M0 0 L150 230 L250 230 L400 0 Z" fill="#5a605c" />
-        <path d="M0 600 L150 330 L250 330 L400 600 Z" fill="#2f2924" />
-        <path d="M0 0 L150 230 L150 330 L0 600 Z" fill="#3c4542" />
-        <path d="M400 0 L250 230 L250 330 L400 600 Z" fill="#323b38" />
-        <rect x="150" y="230" width="100" height="100" fill="#0b0d10" />
-      </g>
-    )}
-    {/* существо на потолке, вверх ногами */}
-    <g opacity={on ? 1 : 0.0}>
-      <g transform={`translate(200 ${200 - near * 150}) scale(${0.12 + near * 0.45}) scale(1 -1)`}>
-        <Rake t={t} phase={t * 1.4} jaw={0.4 + near * 0.4} />
-      </g>
+/** Соседний вагон за стеклом: ряды сидений, плафоны; существо на потолке рывками, голова вывернута к нам. */
+const Beyond = ({ t, frame, on }: { t: number; frame: number; on: boolean }) => {
+  // три появления: 15% → 30% → 55% высоты окна; рывок 2 кадра, стоп 4
+  const step = frame < 50 ? 0 : frame < 110 ? 1 : 2;
+  const scale = [0.15, 0.3, 0.55][step];
+  const jerk = Math.floor(frame / 6) % 2 === 0 && frame % 6 < 2 ? 1 : 0;
+  const cx = [230, 170, 200][step] + jerk * 8;
+  const cy = [120, 140, 170][step];
+  return (
+    <g>
+      <rect width="400" height="600" fill={on ? "#1d2326" : "#030405"} />
+      {on && (
+        <g>
+          <path d="M0 0 L150 210 L250 210 L400 0 Z" fill="#4e5552" />
+          <path d="M0 600 L150 340 L250 340 L400 600 Z" fill="#2f2924" />
+          <path d="M0 0 L150 210 L150 340 L0 600 Z" fill="#38413f" />
+          <path d="M400 0 L250 210 L250 340 L400 600 Z" fill="#2f3836" />
+          {[0, 1, 2].map((i) => (
+            <g key={i}>
+              <path d={`M${20 + i * 45} ${560 - i * 80} L${130 - i * 5} ${470 - i * 50} L${130 - i * 5} ${430 - i * 45} L${20 + i * 45} ${500 - i * 75} Z`} fill="#6a3f2d" stroke="#1a120e" strokeWidth="2" />
+              <path d={`M${380 - i * 45} ${560 - i * 80} L${270 + i * 5} ${470 - i * 50} L${270 + i * 5} ${430 - i * 45} L${380 - i * 45} ${500 - i * 75} Z`} fill="#6a3f2d" stroke="#1a120e" strokeWidth="2" />
+              <rect x={190 - i * 4} y={60 + i * 50} width={20 - i * 4} height={60 - i * 15} fill="#e9e3c6" opacity={i === 1 && Math.floor(t * 9) % 3 === 0 ? 0.2 : 0.8} />
+            </g>
+          ))}
+          <rect x="150" y="210" width="100" height="130" fill="#0b0d10" />
+        </g>
+      )}
+      {/* существо: тело вверх ногами по потолку, голова вывернута к нам */}
+      {on ? (
+        <g transform={`translate(${cx} ${cy}) scale(${scale * 1.2})`}>
+          <g transform="scale(1 -1)">
+            <Rake t={t} phase={jerk * 0.15 + step * 0.3} jaw={0.4 + step * 0.25} look={0} />
+          </g>
+        </g>
+      ) : (
+        <g transform={`translate(${cx} ${cy}) scale(${scale * 1.2})`}>
+          <circle cx="-30" cy="120" r={5 / (scale * 1.2) * 0.5 + 3} fill="#f2efd8" />
+          <circle cx="30" cy="120" r={5 / (scale * 1.2) * 0.5 + 3} fill="#f2efd8" />
+        </g>
+      )}
     </g>
-    {/* в темноте видны только глаза */}
-    {!on && near > 0.2 && (
-      <g transform={`translate(200 ${200 - near * 150}) scale(${0.12 + near * 0.45})`}>
-        <circle cx="-30" cy="130" r="6" fill="#fff" />
-        <circle cx="30" cy="130" r="6" fill="#fff" />
-      </g>
-    )}
-  </g>
-);
+  );
+};
 
-/** 3. Через плечо Димы в стекло: вспышки, существо ближе с каждой. */
+/** 3. Через плечо: Дима тёмным силуэтом слева (25–30%), дверь в правой трети, наезд 100→130%. */
 const Watch = () => {
   const t = useT();
+  const frame = Math.round(t * FPS);
+  const on = flickerOn(frame);
   const r = ride(t);
-  const on = (t % 0.85) < 0.42;
-  const near = clamp(t / 4.2);
-  const cam: Cam = { x: 10, y: 160, z: LEN - 300 + ease(t, 0, 4.5, 0, 140), roll: r.rot, pitch: r.y * 2 };
+  const cam: Cam = { x: -25, y: 160, z: LEN - 240, roll: r.rot, pitch: r.y };
   return (
-    <AbsoluteFill>
-      <Wagon2 cam={cam} t={t} light={on ? 0.85 : 0.25} beyond={<Beyond t={t} near={near} on={on} />} actors={[dimaActor(LEN - 160, -55, t, 0)]} />
-      <Dust t={t} l={on ? 1 : 0.3} />
+    <AbsoluteFill style={{ transform: `scale(${ease(t, 0, 6, 1.0, 1.3)})`, transformOrigin: "62% 48%" }}>
+      <Wagon2 cam={cam} t={t} light={on ? 0.8 : 0.18} beyond={<Beyond t={t} frame={frame} on={on} />} actors={[dimaActor(LEN - 150, -62, t, 0, 0, 1)]} />
+      <Dust t={t} l={on ? 1 : 0.25} />
       <Vig k={1.1} />
     </AbsoluteFill>
   );
 };
 
-/** 4. Прыжок на стекло: морда, когти, трещины, тряска. */
+/** 4. Скример: вспышка, удар с перелётом масштаба, затухающая тряска, трещины, сползающие ладони, наклон головы, в конце — чёрный. */
 const Slam = () => {
   const t = useT();
-  const p = clamp(t / 0.12);
-  const sh = t < 0.6 ? Math.sin(t * 90) * 26 * (1 - t / 0.6) : 0;
+  const f = t * FPS;
+  const sc = f < 2 ? 1.4 - 0.44 * (f / 2) : f < 4 ? 0.96 + 0.04 * ((f - 2) / 2) : 1;
+  const shake = f < 12 ? Math.sin(t * 2 * Math.PI * 18) * 40 * (1 - f / 12) : 0;
+  const crack = clamp((f - 2) / 4);
+  const slide = ease(f, 3, 20, 0, 60);
+  const tilt = ease(f, 20, 40, 0, 25);
+  const open = ease(f, 0, 40, 0.5, 1);
+  const black = t > 2.1;
   return (
-    <AbsoluteFill style={{ background: "#000", transform: `translate(${sh}px,${sh * 0.6}px)` }}>
-      <Svg>
-        <rect width="1080" height="1920" fill="#1b2023" />
-        <g transform={`translate(540 ${900 + (1 - p) * 200}) scale(${(0.4 + 2.4 * p) * (1 + Math.sin(t * 9) * 0.02)})`}>
-          <Rake t={t} phase={0.25} jaw={clamp(0.6 + t * 0.8)} />
-        </g>
-        <g stroke="#e9f1f5" strokeWidth="5" fill="none" opacity={p}>
-          <path d="M540 820 L420 600 L380 380 M540 820 L720 620 L860 480 M540 820 L560 1100 L480 1360 M540 820 L260 920 M540 820 L840 980" />
-        </g>
-        <rect x="0" y="0" width="1080" height="1920" fill="none" stroke="#5f6e70" strokeWidth="120" />
-      </Svg>
-      {t < 0.08 && <AbsoluteFill style={{ background: "#fff", opacity: 0.85 }} />}
-      <Vig k={0.8} />
+    <AbsoluteFill style={{ background: "#000", transform: `translate(${shake}px, ${shake * 0.5}px)` }}>
+      {!black && (
+        <Svg>
+          <rect width="1080" height="1920" fill="#12171a" />
+          <g transform={`translate(540 960) scale(${sc}) translate(-540 -960)`}>
+            <CreatureGlass t={t} open={open} tilt={tilt} slide={slide} />
+          </g>
+          {/* мутный отпечаток ладоней остаётся на стекле */}
+          {f > 20 && (
+            <g opacity="0.25">
+              <ellipse cx="230" cy="990" rx="130" ry="110" fill="#cfc7b2" />
+              <ellipse cx="850" cy="950" rx="130" ry="110" fill="#cfc7b2" />
+            </g>
+          )}
+          <Cracks x={560} y={820} p={crack} />
+          <rect x="0" y="0" width="1080" height="1920" fill="none" stroke="#5f6e70" strokeWidth="90" />
+        </Svg>
+      )}
+      {f < 3 && <AbsoluteFill style={{ background: "#f4f1e6", opacity: 0.8 * (1 - f / 3) }} />}
+      {!black && <Vig k={0.8} />}
     </AbsoluteFill>
   );
 };
 
-export const EP1_TEST_FRAMES = 480;
-export const Ep1Test = () => (
-  <AbsoluteFill style={{ background: "#000" }}>
-    <Audio src={staticFile("audio/train/ride.mp3")} loop volume={(f) => (f > 405 ? 0.12 : 0.55)} />
-    {Array.from({ length: 14 }, (_, i) => (
-      <Sfx key={i} at={i * 0.95} name="train/clack" vol={0.25} />
-    ))}
-    <Sfx at={5} name="train/breath" vol={0.75} />
-    <Sfx at={9} name="train/buzz" vol={0.4} dur={4.5} />
-    <Sfx at={13.5} name="train/sting" vol={1} />
-    <Sfx at={13.5} name="train/glass" vol={0.9} />
-    <Sequence durationInFrames={150}>
-      <Follow />
-    </Sequence>
-    <Sequence from={150} durationInFrames={120}>
-      <Face />
-    </Sequence>
-    <Sequence from={270} durationInFrames={135}>
-      <Watch />
-    </Sequence>
-    <Sequence from={405} durationInFrames={75}>
-      <Slam />
-    </Sequence>
-  </AbsoluteFill>
-);
+// ── сборка ────────────────────────────────────────────────────────────
+const T = { hook: 0, follow: 0.5, face: 6.0, watch: 9.6, slam: 15.6, end: 18.0 };
+const fr = (s: number) => Math.round(s * FPS);
+export const EP1_TEST_FRAMES = fr(T.end);
+
+export const Ep1Test = () => {
+  const t = useT();
+  return (
+    <AbsoluteFill style={{ background: "#000" }}>
+      <Audio src={staticFile("audio/train/ride.mp3")} loop volume={(f) => (f > fr(T.slam) ? 0.1 : 0.5)} />
+      {Array.from({ length: 17 }, (_, i) => (
+        <Sfx key={i} at={0.5 + i * 0.9} name="train/clack" vol={0.22} />
+      ))}
+      <Sfx at={0.1} name="train/sting" vol={0.6} dur={0.6} />
+      <Sfx at={1.8} name="train/n1" vol={1.1} />
+      <Sfx at={T.face} name="train/breath" vol={0.8} />
+      <Sfx at={7.2} name="train/n2" vol={1.1} />
+      <Sfx at={T.watch} name="train/buzz" vol={0.45} dur={6} />
+      <Sfx at={10.2} name="train/n3" vol={1.1} />
+      <Sfx at={T.slam} name="train/sting" vol={1} />
+      <Sfx at={T.slam} name="train/glass" vol={1} />
+      <Sequence from={fr(T.hook)} durationInFrames={fr(T.follow - T.hook)}>
+        <Hook />
+      </Sequence>
+      <Sequence from={fr(T.follow)} durationInFrames={fr(T.face - T.follow)}>
+        <Follow />
+      </Sequence>
+      <Sequence from={fr(T.face)} durationInFrames={fr(T.watch - T.face)}>
+        <Face />
+      </Sequence>
+      <Sequence from={fr(T.watch)} durationInFrames={fr(T.slam - T.watch)}>
+        <Watch />
+      </Sequence>
+      <Sequence from={fr(T.slam)} durationInFrames={fr(T.end - T.slam)}>
+        <Slam />
+      </Sequence>
+      {t < T.slam && <Hud />}
+      <Subs t={t} cues={CUES} />
+    </AbsoluteFill>
+  );
+};
