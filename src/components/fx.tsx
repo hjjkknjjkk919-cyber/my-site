@@ -114,7 +114,7 @@ export const Grade = ({ children }: { children: React.ReactNode }) => (
   <AbsoluteFill style={{ filter: "saturate(.2) contrast(1.15) brightness(.8)" }}>{children}</AbsoluteFill>
 );
 
-export const Subtitle = ({ t, cues, top = "72%" }: { t: number; cues: Cue[]; top?: string }) => {
+export const Subtitle = ({ t, cues, top = "72%", accent = RED }: { t: number; cues: Cue[]; top?: string; accent?: string }) => {
   const c = cues.find((q) => t >= q.from && t < q.to);
   if (!c) return null;
   const words = c.text.split(" ");
@@ -154,7 +154,7 @@ export const Subtitle = ({ t, cues, top = "72%" }: { t: number; cues: Cue[]; top
               // слово проступает из снега: размытие уходит, ветер приносит его слева
               filter: a < 1 ? `blur(${(1 - a) * 6}px)` : undefined,
               transform: `translateX(${(a - 1) * 16}px)`,
-              color: w.includes("*") ? RED : undefined,
+              color: w.includes("*") ? accent : undefined,
             }}
           >
             {w.replace(/\*/g, "")}
