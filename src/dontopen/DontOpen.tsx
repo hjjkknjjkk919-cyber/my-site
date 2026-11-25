@@ -1,14 +1,12 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { AbsoluteFill, Sequence, staticFile } from "remotion";
 import { Audio } from "@remotion/media";
-import * as THREE from "three";
 import { clamp, useT } from "../components/fx";
 import { Sfx } from "../components/audio";
 import { cuesFor, type Cue, MONT, Subs } from "../train/Ep1Test";
-import { Choice3D } from "../train/Pov3D";
 import { loadFont as loadStencil } from "@remotion/google-fonts/RussoOne";
 import { Hall3D, makeWallpaper, T } from "./Hall3D";
-import { BedSitUp, LockHand, Peephole, PhoneFlash, PovPhone } from "./Scenes2D";
+import { BedSitUp, LocatorCall, LockHand, Peephole, PhoneFlash, PovPhone } from "./Scenes2D";
 const { fontFamily: STENCIL } = loadStencil("normal", { weights: ["400"], subsets: ["latin", "cyrillic"] });
 
 /** «Не открывай», серия 1. Ровно 1:00. Действие с первой секунды, событие каждые 2–3 с, живые диалоги. */
@@ -18,19 +16,18 @@ const fr = (s: number) => Math.round(s * FPS);
 
 // реплики: [клип, старт, длительность, текст субтитра]
 const VO: [string, number, number, string][] = [
-  ["d1", 0.95, 2.85, "Чего?.. Мама же на *даче*."],
-  ["d2", 7.5, 3.7, "Мам? Ты чего приехала, ты ж секунду назад с *дачи* писала…"],
-  ["m1", 11.4, 5.25, "Димочка, связь глючит, сообщение поздно дошло. Открой, я *замёрзла*."],
-  ["x1", 17.3, 2.8, "Не открывай ей. Это *не я*."],
-  ["d3", 20.3, 2.85, "Что за… Мама, ты *где*?"],
-  ["m2", 23.6, 2.45, "Дима, открой дверь, ну что ты там *стоишь*!"],
-  ["x2", 24.0, 3.5, "Иди сюда… не пускай *её*…"],
-  ["d4", 28.4, 1.8, "Да кто вы обе *такие*?!"],
-  ["u1", 36.0, 2.05, "Мы знаем, что ты *один*."],
-  ["n1", 51.6, 2.95, "Кому ты поверишь? Решай *быстрее*."],
+  ["a1", 1.0, 3.3, "Что за… Мама же на даче, *блять*…"],
+  ["a2", 8.0, 4.35, "Мам?.. Ты чего приехала, ты ж секунду назад с *дачи* писала…"],
+  ["b1", 12.6, 4.5, "Димочка, связь глючит, сообщение поздно дошло. Открой, я *замёрзла*."],
+  ["b2", 17.9, 2.05, "Открой. Мне *холодно*."],
+  ["c1", 20.4, 3.9, "Не открывай ей. Это *не я*."],
+  ["a3", 24.5, 4.6, "Сука… кто там?.. Мам, *пальто* же твоё здесь висит!"],
+  ["a4", 30.0, 2.6, "Как звали нашего прошлого *кота*?!"],
+  ["u2", 32.9, 3.1, "*Барсик*. Открой дверь."],
+  ["u1", 39.6, 2.3, "Мы знаем, что ты *один*."],
+  ["n1", 52.0, 2.95, "Кому ты поверишь? Решай *быстрее*."],
 ];
-// x2 звучит одновременно с m2 — субтитр второй реплики показываем после первой
-const CUES: Cue[] = VO.flatMap(([k, at, d, tx]) => (k === "x2" ? cuesFor(26.0, 1.5, tx) : k === "m2" ? cuesFor(at, 2.4, tx) : cuesFor(at, d, tx)));
+const CUES: Cue[] = VO.flatMap(([, at, d, tx]) => cuesFor(at, d, tx));
 
 const voiceAt = (g: number) => VO.some(([, at, d]) => g > at - 0.1 && g < at + d + 0.1);
 const SILENCE: [number, number][] = [[T.silence, T.burst]];
@@ -43,14 +40,14 @@ const bed = (base: number, start = 0) => (f: number) => {
 };
 
 // склейки, после которых коротко показываем плашки
-const CUTS = [7.0, 25.0];
+const CUTS = [7.0];
 const hudK = (t: number) => {
   let v = clamp((2.5 - t) / 0.3);
   for (const c of CUTS) if (t >= c && t < c + 1.5) v = Math.max(v, clamp((t - c) / 0.2) * clamp((c + 1.5 - t) / 0.3));
   return v;
 };
 const GLITCH: [number, number][] = [
-  [4.0, 4.15],
+  [4.3, 4.45],
   [7.0, 7.15],
   [44.0, 44.2],
 ];
@@ -76,17 +73,6 @@ const Plate = ({ text }: { text: string }) => (
   </AbsoluteFill>
 );
 
-const ChoiceWall = () => {
-  const wall = useMemo(() => new THREE.MeshStandardMaterial({ color: "#a89c7e", roughness: 0.9, map: makeWallpaper() }), []);
-  return (
-    <Choice3D
-      font={STENCIL}
-      wall={wall}
-      texts={{ header: "КОМУ ПОВЕРИТ ДИМА?", row1: "1 — ОТКРЫТЬ ВХОДНУЮ ДВЕРЬ", row2: "2 — ЗАПЕРЕТЬСЯ В ВАННОЙ", footer: "ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ", note: "ПРОДОЛЖЕНИЕ СНИМЕМ ПО ВЫБОРУ БОЛЬШИНСТВА" }}
-    />
-  );
-};
-
 const at = (a: number, b: number, el: React.ReactNode, key?: string) => (
   <Sequence key={key ?? `${a}`} from={fr(a)} durationInFrames={fr(b) - fr(a)}>
     {el}
@@ -103,33 +89,33 @@ export const DontOpen1 = () => {
       {/* ── звук ── */}
       <Audio src={staticFile("audio/dontopen/roomtone.mp3")} loop volume={(f) => (f > fr(T.end) && f < fr(50.25) ? 0 : bed(0.35)(f))} />
       <Sfx at={0.0} name="dontopen/phonebuzz" vol={0.8} />
-      <Sfx at={0.1} name="dontopen/doorbell_l" vol={0.9} dur={0.8} />
-      <Sfx at={4.0} name="train/glitch" vol={0.8} />
-      <Sfx at={4.3} name="dontopen/choke" vol={0.95} />
-      <Sfx at={4.45} name="train/growl" vol={0.45} dur={1.2} />
+      {/* голосовое от «мамы»: из динамика — звук нашего же звонка, и тут же звонок в прихожей */}
+      <Sfx at={0.45} name="dontopen/doorbell_phone" vol={0.9} dur={0.8} />
+      <Sfx at={0.75} name="dontopen/doorbell_l" vol={0.9} dur={0.8} />
+      <Sfx at={4.3} name="train/glitch" vol={0.8} />
+      <Sfx at={4.6} name="dontopen/sob" vol={0.95} />
+      <Sfx at={4.75} name="train/growl" vol={0.4} dur={1.2} />
       <Sfx at={7.0} name="train/glitch" vol={0.6} />
-      <Sfx at={7.05} name="train/steps2" vol={0.35} dur={2.7} />
-      <Sfx at={16.7} name="dontopen/wardrobe_r" vol={0.9} />
-      <Sfx at={20.55} name="train/whoosh" vol={0.35} />
-      <Sfx at={25.0} name="train/whoosh" vol={0.3} />
-      <Sfx at={26.5} name="train/whoosh" vol={0.3} />
-      <Sfx at={30.3} name="train/breath" vol={0.4} dur={2.5} />
-      <Sfx at={33.0} name="dontopen/rattle_l" vol={0.9} />
-      <Sfx at={34.4} name="dontopen/wardrobe_r" vol={0.6} />
-      <Sfx at={38.3} name="dontopen/rattle_l" vol={0.95} />
-      <Sfx at={42.0} name="dontopen/rattle_l" vol={0.8} dur={1.5} />
+      <Sfx at={7.05} name="train/steps2" vol={0.3} dur={3.4} />
+      <Sfx at={20.0} name="dontopen/wardrobe_r" vol={0.9} />
+      <Sfx at={24.35} name="dontopen/sniff" vol={0.7} />
+      <Sfx at={24.7} name="train/whoosh" vol={0.3} />
+      <Sfx at={26.4} name="train/whoosh" vol={0.3} />
+      <Sfx at={29.2} name="dontopen/phonebuzz" vol={0.7} />
+      <Sfx at={36.1} name="dontopen/chain" vol={1.0} />
+      <Sfx at={37.2} name="dontopen/chain" vol={1.0} />
+      <Sfx at={38.3} name="dontopen/rattle_l" vol={0.6} dur={1.2} />
+      <Sfx at={42.1} name="dontopen/rattle_l" vol={0.7} dur={1.4} />
       {/* нарастающий гул: с 30 с, обрыв в тишину за 0.4 с до броска */}
       <Sequence from={fr(30)} durationInFrames={fr(T.silence) - fr(30)}>
-        <Audio src={staticFile("audio/train/infra.mp3")} loop volume={(f) => 0.1 + 0.65 * clamp(f / (fr(T.silence) - fr(30)))} />
+        <Audio src={staticFile("audio/train/infra.mp3")} loop volume={(f) => 0.1 + 0.55 * clamp(f / (fr(T.silence) - fr(30)))} />
       </Sequence>
       <Sfx at={T.burst} name="dontopen/burst_r" vol={1} />
       <Sfx at={T.burst} name="train/sting" vol={0.85} dur={1.2} />
       <Sfx at={T.burst + 0.05} name="dontopen/scream" vol={0.95} />
       <Sfx at={T.burst + 0.35} name="train/growl" vol={0.8} dur={1.6} />
-      <Sfx at={T.burst + 1.2} name="dontopen/choke" vol={0.7} />
-      {[0.15, 0.6, 1.1, 1.6, 2.1].map((d, i) => (
-        <Sfx key={`r${i}`} at={50.25 + d} name="train/relay" vol={0.8} />
-      ))}
+      <Sfx at={T.burst + 1.2} name="dontopen/sob" vol={0.6} />
+      <Sfx at={50.3} name="dontopen/alarm" vol={0.7} dur={9.5} />
       {VO.map(([k, a]) => (
         <Sfx key={k} at={a} name={`dontopen/${k}`} vol={1.2} />
       ))}
@@ -137,24 +123,27 @@ export const DontOpen1 = () => {
       {/* ── картинка ── */}
       <AbsoluteFill style={{ filter: glitch ? "url(#do-rgb)" : undefined, transform: glitch ? `translateX(${gk * 18}px)` : undefined }}>
         {at(0, 1.3, <PhoneFlash />)}
-        {at(1.3, 4.0, <BedSitUp />)}
+        {at(1.3, 4.3, <BedSitUp />)}
         {/* флеш-форвард: замедленный кусок кульминации */}
-        {at(4.0, 7.0, <Hall3D timeAt={(l) => 45.25 + l * 0.45} />, "ff")}
-        {at(7.0, 10.2, <Hall3D timeAt={(l) => 7.0 + l} />, "h1")}
-        {at(7.0, 10.2, <PovPhone />, "ph")}
-        {at(10.2, 14.0, <Peephole smile={1} near={0} />, "p1")}
-        {at(14.0, 23.7, <Hall3D timeAt={(l) => 14.0 + l} />, "h2")}
-        {at(14.0, 16.9, <LockHand freezeAt={2.4} />, "lh")}
-        {at(23.7, 25.0, <Peephole smile={0} near={1} />, "p2")}
-        {at(25.0, T.end, <Hall3D timeAt={(l) => 25.0 + l} />, "h3")}
-        {at(50.25, 60, <ChoiceWall />, "ch")}
+        {at(4.3, 7.0, <Hall3D font={STENCIL} timeAt={(l) => 45.3 + l * 0.45} />, "ff")}
+        {at(7.0, 10.6, <Hall3D font={STENCIL} timeAt={(l) => 7.0 + l} />, "h1")}
+        {at(7.0, 9.6, <PovPhone />, "ph")}
+        {at(10.6, 13.8, <Peephole smile={1} near={0} talk={[[2.0, 3.2]]} />, "p1")}
+        {at(13.8, 16.0, <Hall3D font={STENCIL} timeAt={(l) => 13.8 + l} />, "h2")}
+        {at(13.8, 16.0, <LockHand freezeAt={1.8} />, "lh")}
+        {/* на «Открой. Мне холодно» рот застыл в улыбке */}
+        {at(16.0, 19.95, <Peephole smile={1} near={0.55} talk={[[0, 1.1]]} frozen={false} />, "p2")}
+        {at(19.95, 29.1, <Hall3D font={STENCIL} timeAt={(l) => 19.95 + l} />, "h3")}
+        {at(29.1, 30.9, <LocatorCall />, "loc")}
+        {at(30.9, T.end, <Hall3D font={STENCIL} timeAt={(l) => 30.9 + l} />, "h4")}
+        {at(T.finale, 60, <Hall3D font={STENCIL} timeAt={(l) => T.finale + l} />, "fin")}
       </AbsoluteFill>
       {/* полосы глитча */}
       {glitch &&
         Array.from({ length: 6 }, (_, i) => (
           <div key={i} style={{ position: "absolute", left: 0, right: 0, top: ((steps * 37 + i * 311) % 1800) + 40, height: 8 + ((i * 13) % 30), background: i % 2 ? "rgba(255,255,255,.12)" : "rgba(0,0,0,.6)", transform: `translateX(${(i % 2 ? 1 : -1) * 40}px)` }} />
         ))}
-      {t >= 4.0 && t < 7.0 && <Plate text="5 МИНУТ СПУСТЯ" />}
+      {t >= 4.3 && t < 7.0 && <Plate text="5 МИНУТ СПУСТЯ" />}
       {t >= 7.0 && t < 8.5 && <Plate text="5 МИНУТ ДО ЭТОГО" />}
       {/* единое плёночное зерно и глубокая виньетка поверх 2D и 3D */}
       <AbsoluteFill style={{ mixBlendMode: "overlay", opacity: 0.18, pointerEvents: "none" }}>
@@ -183,7 +172,7 @@ export const DontOpen1 = () => {
           <Hud />
         </AbsoluteFill>
       )}
-      {t < 50 && <Subs t={t} cues={CUES} />}
+      {<Subs t={t} cues={CUES} />}
     </AbsoluteFill>
   );
 };

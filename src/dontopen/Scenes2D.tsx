@@ -16,18 +16,34 @@ const TEE_SH = "#41464c";
 const PHONE_GLOW = "rgba(184,220,255,";
 
 /** Экран телефона с SMS. */
-const Screen = ({ k = 1 }: { k?: number }) => (
+const Screen = ({ k = 1, play = -1 }: { k?: number; play?: number }) => (
   <g>
     <rect x="-150" y="-300" width="300" height="600" rx="40" fill="#0b0f15" />
     <rect x="-150" y="-300" width="300" height="600" rx="40" fill="#b8dcff" opacity={0.08 * k} />
-    <text x="0" y="-150" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="92" fill="#eef4fb" opacity={k}>03:12</text>
-    <text x="0" y="-100" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="22" fill="#9fb3c6" opacity={k}>среда, 26 ноября</text>
-    <g opacity={k} transform="translate(0 0)">
-      <rect x="-130" y="-60" width="260" height="120" rx="22" fill="#1b2533" stroke="#36506d" strokeWidth="2" />
-      <text x="-110" y="-24" fontFamily={MONT} fontWeight="800" fontSize="22" fill="#cfe2f5">Мама</text>
-      <text x="110" y="-24" textAnchor="end" fontFamily={MONT} fontWeight="800" fontSize="16" fill="#7f95ab">сейчас</text>
-      <text x="-110" y="10" fontFamily={MONT} fontWeight="800" fontSize="21" fill="#eef4fb">Я на даче,</text>
-      <text x="-110" y="38" fontFamily={MONT} fontWeight="800" fontSize="21" fill="#eef4fb">буду завтра</text>
+    <g opacity={k}>
+      <text x="0" y="-205" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="78" fill="#eef4fb">03:12</text>
+      <text x="0" y="-168" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="20" fill="#9fb3c6">среда, 26 ноября</text>
+      {/* чат с другом */}
+      <rect x="-135" y="-140" width="270" height="86" rx="20" fill="#1e2630" />
+      <text x="-118" y="-112" fontFamily={MONT} fontWeight="800" fontSize="19" fill="#9fd0ff">Лёха</text>
+      <text x="-118" y="-84" fontFamily={MONT} fontWeight="800" fontSize="17" fill="#e6edf5">лан, я спать, не ссы</text>
+      <text x="-118" y="-62" fontFamily={MONT} fontWeight="800" fontSize="17" fill="#e6edf5">там один)</text>
+      {/* SMS мамы */}
+      <rect x="-135" y="-40" width="270" height="86" rx="20" fill="#1b2533" stroke="#36506d" strokeWidth="2" />
+      <text x="-118" y="-12" fontFamily={MONT} fontWeight="800" fontSize="19" fill="#cfe2f5">Мама</text>
+      <text x="118" y="-12" textAnchor="end" fontFamily={MONT} fontWeight="800" fontSize="14" fill="#7f95ab">сейчас</text>
+      <text x="-118" y="16" fontFamily={MONT} fontWeight="800" fontSize="18" fill="#eef4fb">Я на даче, буду завтра</text>
+      {/* голосовое 0:02 */}
+      <rect x="-135" y="60" width="270" height="70" rx="20" fill="#1b2533" stroke="#36506d" strokeWidth="2" />
+      <circle cx="-100" cy="95" r="20" fill="#3d8bfd" />
+      {play >= 0 ? <rect x="-107" y="86" width="5" height="18" fill="#fff" /> : <path d="M-106 84 L-90 95 L-106 106 Z" fill="#fff" />}
+      {play >= 0 && <rect x="-97" y="86" width="5" height="18" fill="#fff" />}
+      {Array.from({ length: 18 }, (_, i) => {
+        const h = 6 + Math.abs(Math.sin(i * 1.7)) * 22;
+        const lit = play >= 0 && i / 18 < play;
+        return <rect key={i} x={-70 + i * 9} y={95 - h / 2} width="5" height={h} rx="2" fill={lit ? "#9fd0ff" : "#56708c"} />;
+      })}
+      <text x="118" y="122" textAnchor="end" fontFamily={MONT} fontWeight="800" fontSize="14" fill="#7f95ab">0:02</text>
     </g>
   </g>
 );
@@ -51,9 +67,15 @@ export const PhoneFlash = () => {
           <path d="M600 1500 C700 1560 860 1520 1080 1600" stroke="#0a0a0b" strokeWidth="10" fill="none" />
           {/* отсвет экрана на дереве */}
           <ellipse cx="560" cy="1260" rx={420} ry={330} fill="#b8dcff" opacity={0.18 * on} />
+          {t > 0.25 && t < 0.7 && (
+            <g transform={`translate(${470 - (0.7 - t) * 80} ${1355 + (0.7 - t) * 260})`}>
+              <path d="M-26 300 C-28 160 -24 60 -10 0 C-2 -24 26 -24 32 0 C40 60 40 160 38 300 Z" fill="#e9c4a8" stroke={LINE} strokeWidth="6" />
+              <path d="M-4 -6 C0 -20 22 -20 24 -4 L22 24 C12 30 2 30 -4 24 Z" fill="#f3dccd" stroke={LINE} strokeWidth="3" />
+            </g>
+          )}
           <g transform={`translate(${560 + buzz} 1240) rotate(-8)`}>
             <rect x="-162" y="-312" width="324" height="624" rx="46" fill="#111" stroke={LINE} strokeWidth="8" />
-            <Screen k={on} />
+            <Screen k={on} play={t > 0.4 ? clamp((t - 0.4) / 0.9) : -1} />
           </g>
         </Svg>
       </AbsoluteFill>
@@ -84,9 +106,18 @@ export const BedSitUp = () => {
       <Svg>
         {/* стена и изголовье */}
         <rect width="1080" height="1920" fill="#14161a" />
+        {/* окно со шторами: слабый холодный отсвет улицы */}
+        <rect x="30" y="120" width="330" height="470" fill="#1a2436" stroke={LINE} strokeWidth="10" />
+        <path d="M195 120 V590 M30 355 H360" stroke={LINE} strokeWidth="8" />
+        <rect x="30" y="120" width="330" height="470" fill="#6f8fbf" opacity="0.18" />
+        {Array.from({ length: 5 }, (_, i) => <circle key={i} cx={70 + i * 62} cy={480 - (i % 2) * 30} r="5" fill="#ffd38a" opacity="0.6" />)}
+        <path d="M0 90 C30 250 10 420 40 640 L0 640 Z" fill="#2a1f2c" stroke={LINE} strokeWidth="6" />
+        <path d="M390 90 C350 250 380 420 340 640 L400 640 L400 90 Z" fill="#2a1f2c" stroke={LINE} strokeWidth="6" />
+        {[60, 100, 360].map((x, i) => <path key={i} d={`M${x} 110 C${x + 8} 300 ${x - 6} 460 ${x + 4} 630`} stroke="#1c141e" strokeWidth="5" fill="none" />)}
+        <path d="M0 640 L420 640 L600 1920 L0 1920 Z" fill="#6f8fbf" opacity="0.05" />
         <rect x="80" y="560" width="920" height="560" rx="30" fill="#1f1712" stroke={LINE} strokeWidth="8" />
         {/* подушка */}
-        <ellipse cx="540" cy="1120" rx="420" ry="120" fill="#2b2f36" stroke={LINE} strokeWidth="6" />
+        <rect x="120" y="1050" width="840" height="150" rx="70" fill="#2b2f36" stroke={LINE} strokeWidth="6" />
         {/* тело в футболке: садится */}
         <g transform={`translate(0 ${(1 - up) * 260 + breath * 0.3})`}>
           <path d={`M170 1920 C180 1580 250 1400 390 1330 L690 1330 C830 1400 900 1580 910 1920 Z`} fill={TEE} stroke={LINE} strokeWidth="9" />
@@ -130,7 +161,7 @@ export const BedSitUp = () => {
       {/* тёплый клин из приоткрытой двери справа: резкий, с длинной тенью */}
       <AbsoluteFill style={{ clipPath: "polygon(78% 0%, 92% 0%, 100% 100%, 58% 100%)", background: `linear-gradient(180deg, rgba(217,160,67,${0.38 * warm}) 0%, rgba(217,160,67,${0.12 * warm}) 100%)`, mixBlendMode: "screen", filter: "blur(10px)" }} />
       {/* глубокая тьма комнаты */}
-      <AbsoluteFill style={{ background: "radial-gradient(38% 26% at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,.55) 70%, rgba(0,0,0,.82) 100%)" }} />
+      <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 70%, rgba(0,0,0,.55) 100%), linear-gradient(90deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 75%, rgba(0,0,0,.4) 100%)" }} />
       {/* холодный свет экрана снизу-спереди на лицо, подбородок и пальцы */}
       <AbsoluteFill style={{ background: `radial-gradient(20% 9% at 50% 47%, ${PHONE_GLOW}.32) 0%, ${PHONE_GLOW}0) 100%), radial-gradient(10% 8% at 68% 66%, ${PHONE_GLOW}.4) 0%, ${PHONE_GLOW}0) 100%)`, mixBlendMode: "screen" }} />
       {/* размытый край тумбочки на переднем плане */}
@@ -145,14 +176,15 @@ export const BedSitUp = () => {
 };
 
 /** «Мама» на лестничной клетке. smile: 1 — слишком широкая неподвижная улыбка, 0 — без улыбки. near — насколько вплотную к глазку. */
-const Mom = ({ t, smile, near }: { t: number; smile: number; near: number }) => {
+const Mom = ({ t, smile, near, talk }: { t: number; smile: number; near: number; talk: number }) => {
   const s = 0.75 + near * 0.9;
   const blink = Math.floor(t * 10) % 37 === 0 && smile > 0.5 ? 0.15 : 1;
   return (
     <g transform={`translate(540 ${980 + near * 120}) scale(${s}) translate(-540 -900)`}>
       {/* пальто и шарф */}
-      <path d="M250 1700 C260 1420 330 1260 440 1220 L640 1220 C750 1260 820 1420 830 1700 Z" fill="#6e5a48" stroke={LINE} strokeWidth="8" />
-      <path d="M430 1220 C470 1290 610 1290 650 1220 L640 1320 C590 1350 490 1350 440 1320 Z" fill="#8a2f2f" stroke={LINE} strokeWidth="6" />
+      <path d="M250 1700 C260 1420 330 1260 440 1220 L640 1220 C750 1260 820 1420 830 1700 Z" fill="#6e1f24" stroke={LINE} strokeWidth="8" />
+      <path d="M540 1240 V1700 M500 1400 l0 0 M520 1420 a8 8 0 1 0 0.1 0 M520 1540 a8 8 0 1 0 0.1 0" stroke="#3a0e10" strokeWidth="6" fill="#2a0a0c" />
+      <path d="M430 1220 C470 1290 610 1290 650 1220 L640 1320 C590 1350 490 1350 440 1320 Z" fill="#8a8580" stroke={LINE} strokeWidth="6" />
       {/* шея и лицо */}
       <path d="M480 1120 L480 1230 L600 1230 L600 1120 Z" fill={SKIN_SH} stroke={LINE} strokeWidth="6" />
       <ellipse cx="540" cy="930" rx="190" ry="235" fill={SKIN} stroke={LINE} strokeWidth="8" />
@@ -172,7 +204,7 @@ const Mom = ({ t, smile, near }: { t: number; smile: number; near: number }) => 
       <path d="M535 940 C545 990 548 1010 535 1022" stroke={LINE} strokeWidth="5" fill="none" />
       {/* рот: слишком широкая улыбка → ровная линия */}
       {smile > 0.5 ? (
-        <g>
+        <g transform={`translate(540 1068) scale(1 ${1 + talk * 0.9}) translate(-540 -1068)`}>
           <path d="M420 1060 C470 1110 610 1110 660 1060 C620 1080 460 1080 420 1060 Z" fill="#5a1d1d" stroke={LINE} strokeWidth="5" />
           <path d="M440 1066 C490 1082 590 1082 640 1066" stroke="#f1ece0" strokeWidth="9" fill="none" />
           <path d="M410 1055 l-14 -6 M670 1055 l14 -6" stroke={LINE} strokeWidth="4" />
@@ -187,11 +219,43 @@ const Mom = ({ t, smile, near }: { t: number; smile: number; near: number }) => 
 };
 
 /** Вид в глазок: рыбий глаз, лестничная клетка, мигающая лампа подъезда. */
-export const Peephole = ({ smile = 1, near = 0 }: { smile?: number; near?: number }) => {
+/** Карта смещений для бочкообразного искажения «рыбьего глаза» (R — x, G — y). */
+let fishMap: string | null = null;
+const getFishMap = () => {
+  if (fishMap) return fishMap;
+  const S = 256;
+  const c = document.createElement("canvas");
+  c.width = S;
+  c.height = S;
+  const g = c.getContext("2d")!;
+  const img = g.createImageData(S, S);
+  for (let y = 0; y < S; y++)
+    for (let x = 0; x < S; x++) {
+      const nx = (x / S) * 2 - 1;
+      const ny = (y / S) * 2 - 1;
+      const r2 = nx * nx + ny * ny;
+      const k = -0.5 * r2; // тянет края к центру
+      const i = (y * S + x) * 4;
+      img.data[i] = Math.max(0, Math.min(255, 128 + nx * k * 127));
+      img.data[i + 1] = Math.max(0, Math.min(255, 128 + ny * k * 127));
+      img.data[i + 2] = 128;
+      img.data[i + 3] = 255;
+    }
+  g.putImageData(img, 0, 0);
+  fishMap = c.toDataURL();
+  return fishMap;
+};
+
+/** Вид в глазок: рыбий глаз, запотевание от дыхания, мигающая лампа и красная кнопка лифта. talk — интервалы речи [с,по] (локально), frozen — рот не двигается. */
+export const Peephole = ({ smile = 1, near = 0, talk = [], frozen = false }: { smile?: number; near?: number; talk?: [number, number][]; frozen?: boolean }) => {
   const t = useT();
   const L = lamp(t * 1.3 + 5);
   const flick = L < 0.6 ? 0.35 : 1;
   const zoomIn = ease(t, 0, 0.35, 1.25, 1);
+  const talking = !frozen && talk.some(([a, b]) => t > a && t < b);
+  const mouth = talking ? Math.abs(Math.sin(t * 17)) * (0.5 + 0.5 * Math.abs(Math.sin(t * 5.3))) : 0;
+  const fog = 0.5 + 0.5 * Math.sin(t * 2.3);
+  const lift = Math.floor(t * 2.2) % 2 === 0;
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <Svg>
@@ -204,29 +268,84 @@ export const Peephole = ({ smile = 1, near = 0 }: { smile?: number; near?: numbe
             <stop offset="0.92" stopColor="#000" stopOpacity="0.85" />
             <stop offset="1" stopColor="#000" stopOpacity="1" />
           </radialGradient>
+          <radialGradient id="peepFog" cx="50%" cy="58%" r="50%">
+            <stop offset="0" stopColor="#dfe6e8" stopOpacity="0.5" />
+            <stop offset="1" stopColor="#dfe6e8" stopOpacity="0" />
+          </radialGradient>
+          <filter id="fisheye" x="-10%" y="-10%" width="120%" height="120%">
+            <feImage href={getFishMap()} x="70" y="490" width="940" height="940" result="map" preserveAspectRatio="none" />
+            <feDisplacementMap in="SourceGraphic" in2="map" scale="300" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
         </defs>
-        <g clipPath="url(#peep)" transform={`translate(540 960) scale(${zoomIn}) translate(-540 -960)`}>
-          {/* подъезд: стены, изогнутые рыбьим глазом */}
-          <rect x="0" y="0" width="1080" height="1920" fill="#2d3a2e" />
-          <path d="M70 400 C300 520 780 520 1010 400 L1010 1520 C780 1400 300 1400 70 1520 Z" fill="#3c4c3a" />
-          <path d="M70 1520 C300 1400 780 1400 1010 1520 L1010 1920 H70 Z" fill="#3a2e26" />
-          <path d="M70 1120 C300 1060 780 1060 1010 1120" stroke="#26301f" strokeWidth="16" fill="none" />
-          {Array.from({ length: 6 }, (_, i) => (
-            <circle key={i} cx={200 + random(`pp${i}`) * 680} cy={560 + random(`pq${i}`) * 500} r={4 + random(`pr${i}`) * 8} fill="#1e271b" opacity="0.6" />
-          ))}
-          {/* соседская дверь и лампа под потолком */}
-          <path d="M130 600 C150 640 160 1400 150 1450 L260 1430 C270 1380 260 650 245 610 Z" fill="#4a2e22" stroke={LINE} strokeWidth="6" />
-          <circle cx="540" cy="470" r="22" fill={`rgba(255,226,160,${flick})`} />
-          <ellipse cx="540" cy="760" rx="420" ry="360" fill="#ffd98a" opacity={0.14 * flick} />
-          <Mom t={t} smile={smile} near={near} />
-          {/* мигание лампы гасит площадку */}
-          <rect x="0" y="0" width="1080" height="1920" fill="#000" opacity={(1 - flick) * 0.75} />
+        <g clipPath="url(#peep)">
+          <g filter="url(#fisheye)" transform={`translate(540 960) scale(${zoomIn}) translate(-540 -960)`}>
+            <rect x="0" y="0" width="1080" height="1920" fill="#2d3a2e" />
+            <path d="M70 400 C300 520 780 520 1010 400 L1010 1520 C780 1400 300 1400 70 1520 Z" fill="#3c4c3a" />
+            <path d="M70 1520 C300 1400 780 1400 1010 1520 L1010 1920 H70 Z" fill="#3a2e26" />
+            <path d="M70 1120 C300 1060 780 1060 1010 1120" stroke="#26301f" strokeWidth="16" fill="none" />
+            {Array.from({ length: 6 }, (_, i) => (
+              <circle key={i} cx={200 + random(`pp${i}`) * 680} cy={560 + random(`pq${i}`) * 500} r={4 + random(`pr${i}`) * 8} fill="#1e271b" opacity="0.6" />
+            ))}
+            <path d="M130 600 C150 640 160 1400 150 1450 L260 1430 C270 1380 260 650 245 610 Z" fill="#4a2e22" stroke={LINE} strokeWidth="6" />
+            {/* лифт: створки и мигающая красная кнопка */}
+            <rect x="800" y="660" width="170" height="640" fill="#5a5f5c" stroke={LINE} strokeWidth="6" />
+            <path d="M885 660 V1300" stroke={LINE} strokeWidth="5" />
+            <rect x="770" y="900" width="22" height="44" rx="4" fill="#2a2a2a" stroke={LINE} strokeWidth="3" />
+            <circle cx="781" cy="922" r="8" fill={lift ? "#ff2a1a" : "#4a0d08"} />
+            {lift && <circle cx="781" cy="922" r="26" fill="#ff2a1a" opacity="0.25" />}
+            <circle cx="540" cy="470" r="22" fill={`rgba(255,226,160,${flick})`} />
+            <ellipse cx="540" cy="760" rx="420" ry="360" fill="#ffd98a" opacity={0.14 * flick} />
+            <Mom t={t} smile={smile} near={near} talk={mouth} />
+            <rect x="0" y="0" width="1080" height="1920" fill="#000" opacity={(1 - flick) * 0.75} />
+          </g>
+          {/* запотевание стекла в такт дыханию */}
+          <circle cx="540" cy="1000" r="430" fill="url(#peepFog)" opacity={0.35 + 0.5 * fog} />
         </g>
         <circle cx="540" cy="960" r="470" fill="url(#peepVig)" />
-        {/* блик и мутное стекло линзы */}
         <ellipse cx="400" cy="760" rx="120" ry="60" fill="#fff" opacity="0.05" transform="rotate(-30 400 760)" />
         <circle cx="540" cy="960" r="470" fill="none" stroke="#120d0a" strokeWidth="26" />
       </Svg>
+    </AbsoluteFill>
+  );
+};
+
+/** Экран «Локатора»: мама на даче за 60 км, поверх всплывает видеозвонок «Мама ❤️». */
+export const LocatorCall = () => {
+  const t = useT();
+  const buzz = t > 0.5 ? Math.sin(t * 80) * 6 : 0;
+  const call = ease(t, 0.5, 0.75, -420, 0);
+  return (
+    <AbsoluteFill style={{ background: "#020203" }}>
+      <Svg>
+        <g transform={`translate(${540 + buzz} 980) scale(2.6)`}>
+          <rect x="-165" y="-320" width="330" height="640" rx="44" fill="#111" stroke={LINE} strokeWidth="6" />
+          <clipPath id="locClip">
+            <rect x="-150" y="-300" width="300" height="600" rx="36" />
+          </clipPath>
+          <g clipPath="url(#locClip)">
+            <rect x="-150" y="-300" width="300" height="600" fill="#1d2a22" />
+            {Array.from({ length: 9 }, (_, i) => <path key={i} d={`M-160 ${-280 + i * 70} C-40 ${-300 + i * 70} 60 ${-250 + i * 70} 160 ${-270 + i * 70}`} stroke="#2f4236" strokeWidth={i % 3 ? 3 : 7} fill="none" />)}
+            {Array.from({ length: 5 }, (_, i) => <path key={i} d={`M${-120 + i * 60} -300 L${-100 + i * 55} 300`} stroke="#2f4236" strokeWidth="3" />)}
+            <path d="M0 200 C-40 80 60 -40 20 -190" stroke="#e85d75" strokeWidth="4" strokeDasharray="10 8" fill="none" />
+            <circle cx="0" cy="200" r="12" fill="#3d8bfd" stroke="#fff" strokeWidth="4" />
+            <text x="18" y="206" fontFamily={MONT} fontWeight="800" fontSize="16" fill="#fff">Вы</text>
+            <circle cx="20" cy="-190" r="16" fill="#e85d75" stroke="#fff" strokeWidth="4" />
+            <rect x="-110" y="-260" width="220" height="40" rx="12" fill="#0d1014" opacity="0.9" />
+            <text x="0" y="-234" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="17" fill="#fff">Мама · Дача · 60 км</text>
+            {/* входящий видеозвонок */}
+            <g transform={`translate(0 ${call})`}>
+              <rect x="-150" y="-300" width="300" height="170" fill="#0d1014" opacity="0.94" />
+              <circle cx="-100" cy="-215" r="30" fill="#6e1f24" />
+              <text x="-100" y="-206" textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="24" fill="#fff">М</text>
+              <text x="-55" y="-228" fontFamily={MONT} fontWeight="800" fontSize="22" fill="#fff">Мама ❤️</text>
+              <text x="-55" y="-202" fontFamily={MONT} fontWeight="800" fontSize="15" fill="#9fb3c6">Видеозвонок…</text>
+              <circle cx="60" cy="-160" r="18" fill="#e74c3c" />
+              <circle cx="110" cy="-160" r="18" fill="#2ecc71" />
+            </g>
+          </g>
+        </g>
+      </Svg>
+      <AbsoluteFill style={{ background: "radial-gradient(60% 45% at 50% 50%, rgba(184,220,255,.12) 0%, rgba(0,0,0,0) 70%)", mixBlendMode: "screen" }} />
     </AbsoluteFill>
   );
 };
