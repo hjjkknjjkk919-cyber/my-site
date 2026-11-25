@@ -364,7 +364,7 @@ const Sub = ({ t, text, from, dur }: { t: number; text: string; from: number; du
   const sx = shout ? Math.sin(t * 70) * 8 : 0;
   const sy = shout ? Math.cos(t * 53) * 6 : 0;
   return (
-    <div style={{ position: "absolute", left: 50, right: 50, top: shout ? "68%" : "75%", textAlign: "center", fontFamily: MONT, fontWeight: 800, fontSize: shout ? 118 : 84, color: shout ? RED : "#fff", transform: `translate(${sx}px,${sy}px) rotate(${shout ? Math.sin(t * 9) * 2 : 0}deg)`, lineHeight: 1.12, WebkitTextStroke: "14px #000", paintOrder: "stroke fill", textShadow: "0 6px 18px rgba(0,0,0,.6)" }}>
+    <div style={{ position: "absolute", left: 50, right: 50, top: shout ? "68%" : "75%", textAlign: "center", fontFamily: MONT, fontWeight: 800, fontSize: shout ? 118 : 84, color: shout ? RED : "#fff", transform: `translate(${sx}px,${sy}px) rotate(${shout ? Math.sin(t * 9) * 2 : 0}deg)`, lineHeight: 1.12, WebkitTextStroke: "14px #000", paintOrder: "stroke fill" }}>
       {words.map((w, i) => {
         const a = t - from - i * step >= 0 ? 1 : 0;
         const pop = 1 + 0.15 * (1 - clamp((t - from - i * step) / 0.15));
