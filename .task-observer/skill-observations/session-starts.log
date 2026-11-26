@@ -2,3 +2,5 @@
 2026-11-26 00:44 session start 4-5: activation=CLAUDE.md block v3.12.0 + SessionStart hook concurrency=per-file, ok
 2026-11-26 01:21 [my-site] session start: 1 storage=ok 2 scan=files 0 parsed 0 3 review=last never, marker absent 6 staged=none 7 log=0 entries; 4-5 appended by the session
 2026-11-26 01:26 session start 4-5: activation=ok concurrency=ok
+2026-11-26 19:57 [my-site] session start: 1 storage=ok 2 scan=files 0 parsed 0 3 review=last never, marker absent 6 staged=none 7 log=0 entries; 4-5 appended by the session
+2026-11-26 19:58 session start 4-5: activation=ok concurrency=ok
