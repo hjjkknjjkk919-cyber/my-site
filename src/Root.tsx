@@ -7,6 +7,7 @@ import { GostTest, GOST_TEST_FRAMES } from "./train/Gost";
 import { Ep1Test, EP1_TEST_FRAMES } from "./train/Ep1Test";
 import { Ep1, EP1_FRAMES } from "./train/Ep1";
 import { DontOpen1, DO1_FRAMES } from "./dontopen/DontOpen";
+import { Pelmeni43, PEL_FRAMES } from "./pelmeni/Pelmeni43";
 import { Choice3D, Pov3D, Station3D } from "./train/Pov3D";
 
 // Серия 1 «Улыбка»: длина = сумма сцен (~2:20)
@@ -26,6 +27,7 @@ export const Root = () => (
     <Composition id="Pov3DTest" component={Pov3D} width={1080} height={1920} fps={30} durationInFrames={870} defaultProps={{ post: true }} />
     <Composition id="Station3DTest" component={Station3D} width={1080} height={1920} fps={30} durationInFrames={240} />
     <Composition id="Choice3DTest" component={Choice3D} width={1080} height={1920} fps={30} durationInFrames={225} defaultProps={{ font: "sans-serif" }} />
+    <Composition id="Pelmeni43" component={Pelmeni43} width={1080} height={1920} fps={30} durationInFrames={PEL_FRAMES} />
     <Composition id="DontOpen1" component={DontOpen1} width={1080} height={1920} fps={30} durationInFrames={DO1_FRAMES} />
     <Composition id="Ep1" component={Ep1} width={1080} height={1920} fps={30} durationInFrames={EP1_FRAMES} />
   </>
