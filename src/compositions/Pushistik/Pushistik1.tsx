@@ -2,12 +2,16 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { Sfx } from "../../components/audio";
 import { ez, MONT } from "../../pelmeni/kit";
+import { useAudioData } from "@remotion/media-utils";
+import { staticFile } from "remotion";
+import { Arm, Leg } from "../AvitoWardrobe/rig";
+import { speechEnergy } from "../AvitoWardrobe/useLipSync";
 
 /* «Утренняя зарядка с Пушистиком. Кассета №1» — аналог-хоррор под VHS, ~35 с. */
 export const PUSH_FRAMES = Math.round(34.5 * 30);
 
 const LINE = "#2a1f24";
-const OUT = { stroke: LINE, strokeWidth: 5, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
+const OUT = { stroke: LINE, strokeWidth: 3, strokeLinejoin: "round" as const, strokeLinecap: "round" as const, vectorEffect: "non-scaling-stroke" as const };
 const VCR = '"Courier New", monospace';
 
 /* ── тайминги (сек) ── */
@@ -29,58 +33,100 @@ const repsAt = (t: number) => {
   return 8;
 };
 
-/* ── Пушистик: круглый пушистый медвежонок; иерархия костей тело → голова / руки ── */
-const fuzz = (rx: number, ry: number, n = 28, amp = 9) =>
-  Array.from({ length: n }, (_, i) => {
-    const a = (i / n) * Math.PI * 2;
-    const r = i % 2 ? 1 : 1 + amp / Math.max(rx, ry);
-    return `${i ? "L" : "M"}${(Math.cos(a) * rx * r).toFixed(1)} ${(Math.sin(a) * ry * r).toFixed(1)}`;
-  }).join(" ") + " Z";
+/* ── Пушистик в стиле Димы: кости (ноги → тело → голова / руки), тени, контур 3px, глаза и зубы в clipPath ── */
+const FUR = "#e8b67a";
+const FUR_SH = "#c98f55";
+const BELLY = "#f8e3c2";
 
-const Pushistik = ({ t, arms, bend, creep, voidEyes }: { t: number; arms: number; bend: number; creep: number; voidEyes: boolean }) => {
-  const smileW = 46 + creep * 40;
-  const smileH = 18 + creep * 26;
-  const arm = (side: -1 | 1) => (
-    <g transform={`rotate(${-side * (20 + arms * 150)} ${side * 120} -250)`}>
-      <line x1={side * 120} y1={-250} x2={side * 120} y2={-110} stroke={LINE} strokeWidth={50} strokeLinecap="round" />
-      <line x1={side * 120} y1={-250} x2={side * 120} y2={-110} stroke="#f2c98e" strokeWidth={40} strokeLinecap="round" />
-      <circle cx={side * 120} cy={-100} r={26} fill="#f7dcb0" {...OUT} />
+const PushMouth = ({ open, creep }: { open: number; creep: number }) => {
+  const id = React.useId().replace(/:/g, "");
+  const w = 34 + creep * 34;
+  const h = 6 + open * 30 + creep * 24;
+  const d = `M${-w} -372 Q0 ${-372 - 6 + creep * 4} ${w} -372 Q${w * 0.7} ${-372 + h} 0 ${-370 + h} Q${-w * 0.7} ${-372 + h} ${-w} -372 Z`;
+  return (
+    <g>
+      <defs>
+        <clipPath id={id}>
+          <path d={d} />
+        </clipPath>
+      </defs>
+      <path d={d} fill="#4a1018" />
+      {/* зубы и язык лежат ВНУТРИ рта — обрезаны по его контуру */}
+      <g clipPath={`url(#${id})`}>
+        {creep > 0.5
+          ? Array.from({ length: 10 }, (_, i) => <path key={i} d={`M${-w + i * (w / 5)} ${-376} l${w / 10} ${10 + creep * 6} l${w / 10} ${-10 - creep * 6} Z`} fill="#fffbe8" stroke={LINE} strokeWidth={1.5} />)
+          : <rect x={-w * 0.6} y={-374} width={w * 1.2} height={7} rx={3} fill="#fffbe8" />}
+        <ellipse cx={0} cy={-370 + h} rx={w * 0.45} ry={8} fill="#d8566a" />
+      </g>
+      <path d={d} fill="none" {...OUT} strokeWidth={3} />
     </g>
   );
+};
+
+const PushEye = ({ cx, look, creep, voidEyes }: { cx: number; look: number; creep: number; voidEyes: boolean }) => {
+  const id = React.useId().replace(/:/g, "");
   return (
-    <g transform={`rotate(${bend * 28} 0 -60)`}>
-      {/* ноги стоят на полу (y=0) */}
-      {[-1, 1].map((d) => <ellipse key={d} cx={d * 60} cy={-22} rx={52} ry={26} fill="#f2c98e" {...OUT} />)}
-      <path d={fuzz(150, 170)} transform="translate(0 -200)" fill="#f2c98e" {...OUT} />
-      <ellipse cx={0} cy={-180} rx={84} ry={100} fill="#fbe8c8" />
-      {arm(-1)}
-      {arm(1)}
-      {/* голова: поворот у шеи */}
-      <g transform={`rotate(${Math.sin(t * 2) * 4 * (1 - creep) + creep * 8} 0 -340)`}>
-        {[-1, 1].map((d) => (
-          <g key={d}>
-            <circle cx={d * 95} cy={-505} r={42} fill="#f2c98e" {...OUT} />
-            <circle cx={d * 95} cy={-505} r={22} fill="#f6a5b5" />
-          </g>
-        ))}
-        <path d={fuzz(135, 120)} transform="translate(0 -420)" fill="#f2c98e" {...OUT} />
-        {[-1, 1].map((d) => (
-          <g key={`e${d}`}>
-            {voidEyes ? (
-              <ellipse cx={d * 50} cy={-440} rx={30} ry={40} fill="#050505" />
-            ) : (
-              <>
-                <ellipse cx={d * 50} cy={-440} rx={30} ry={36} fill="#ffffff" {...OUT} strokeWidth={4} />
-                <circle cx={d * 50 + Math.sin(t) * 4} cy={-434} r={14 - creep * 8} fill="#1a1a1a" />
-                <circle cx={d * 50 + 6} cy={-442} r={5} fill="#fff" />
-              </>
-            )}
-          </g>
-        ))}
-        <ellipse cx={0} cy={-395} rx={16} ry={11} fill="#7a3b3b" />
-        <path d={`M${-smileW} -372 Q0 ${-372 + smileH * 2} ${smileW} -372 Q0 ${-372 + smileH} ${-smileW} -372 Z`} fill="#5a1b22" {...OUT} strokeWidth={4} />
-        {creep > 0.5 && Array.from({ length: 9 }, (_, i) => <path key={i} d={`M${-smileW + 8 + i * ((smileW * 2 - 16) / 9)} -372 l5 12 l5 -12 Z`} fill="#fffbe8" />)}
-        {[-1, 1].map((d) => <ellipse key={`b${d}`} cx={d * 88} cy={-390} rx={20} ry={11} fill="#f6a5b5" opacity={0.7 * (1 - creep)} />)}
+    <g>
+      <defs>
+        <clipPath id={id}>
+          <ellipse cx={cx} cy={-440} rx={26} ry={32} />
+        </clipPath>
+      </defs>
+      <ellipse cx={cx} cy={-440} rx={26} ry={32} fill={voidEyes ? "#050505" : "#ffffff"} />
+      {!voidEyes && (
+        <g clipPath={`url(#${id})`}>
+          <circle cx={cx + look * 8} cy={-436} r={13 - creep * 7} fill="#2a1a12" />
+          <circle cx={cx + look * 8 + 5} cy={-442} r={4} fill="#fff" />
+        </g>
+      )}
+      <ellipse cx={cx} cy={-440} rx={26} ry={32} fill="none" {...OUT} strokeWidth={3} />
+    </g>
+  );
+};
+
+const Pushistik = ({ t, arms, bend, creep, voidEyes, talk }: { t: number; arms: number; bend: number; creep: number; voidEyes: boolean; talk: number }) => {
+  const br = 3 * Math.sin(t * 2.2);
+  const shL = 12 + arms * 158;
+  const paw = (wx: number, wy: number) => <circle cx={wx} cy={wy + 14} r={28} fill={BELLY} {...OUT} strokeWidth={3} />;
+  const armsPass = (pass: "out" | "fill") => (
+    <>
+      <Arm sx={-112} sy={-262} up={95} fo={85} w={44} color={FUR} pose={{ sh: shL, el: arms * 15 }} pass={pass} hand={paw} />
+      <Arm sx={112} sy={-262} up={95} fo={85} w={44} color={FUR} pose={{ sh: -shL, el: -arms * 15 }} pass={pass} hand={paw} />
+    </>
+  );
+  return (
+    <g>
+      <ellipse cx={0} cy={0} rx={150} ry={20} fill="#000" opacity={0.25} />
+      {[-1, 1].map((d) => <Leg key={`o${d}`} hx={d * 50} hy={-110} kx={d * 54} ky={-60} fx={d * 58} w={62} color={FUR} pass="out" />)}
+      {[-1, 1].map((d) => <Leg key={`f${d}`} hx={d * 50} hy={-110} kx={d * 54} ky={-60} fx={d * 58} w={62} color={FUR} pass="fill" />)}
+      {[-1, 1].map((d) => <ellipse key={d} cx={d * 62} cy={-14} rx={46} ry={22} fill={BELLY} {...OUT} strokeWidth={3} />)}
+      <g transform={`translate(0 ${-br}) rotate(${bend * 26} 0 -90)`}>
+        {/* тело: груша с тенью и светлым пузом */}
+        <path d="M-118 -100 C-150 -200 -128 -290 -60 -310 C-20 -320 20 -320 60 -310 C128 -290 150 -200 118 -100 C70 -70 -70 -70 -118 -100 Z" fill={FUR} {...OUT} strokeWidth={3} />
+        <path d="M70 -300 C130 -270 146 -190 116 -102 C96 -92 84 -88 76 -86 C110 -160 108 -240 70 -300 Z" fill={FUR_SH} opacity={0.75} />
+        <ellipse cx={-6} cy={-185} rx={70} ry={88} fill={BELLY} />
+        {[-40, 0, 40].map((x, i) => <path key={i} d={`M${x - 8} -308 q8 -12 16 0`} stroke={FUR_SH} strokeWidth={4} fill="none" />)}
+        {armsPass("out")}
+        {armsPass("fill")}
+        {/* голова: поворот у шеи */}
+        <g transform={`rotate(${Math.sin(t * 2) * 4 * (1 - creep) + creep * 8 + talk * 2 * Math.sin(t * 20)} 0 -320)`}>
+          {[-1, 1].map((d) => (
+            <g key={d}>
+              <circle cx={d * 92} cy={-520} r={40} fill={FUR} {...OUT} strokeWidth={3} />
+              <circle cx={d * 92} cy={-518} r={22} fill="#f2a0ae" />
+            </g>
+          ))}
+          <ellipse cx={0} cy={-430} rx={132} ry={118} fill={FUR} {...OUT} strokeWidth={3} />
+          <path d="M70 -530 C130 -500 140 -420 112 -350 C120 -410 116 -480 70 -530 Z" fill={FUR_SH} opacity={0.7} />
+          <path d="M-60 -540 q20 -22 40 -6 q16 -20 36 -4 q20 -16 34 6" stroke={FUR_SH} strokeWidth={5} fill="none" strokeLinecap="round" />
+          <ellipse cx={0} cy={-385} rx={70} ry={48} fill={BELLY} />
+          <PushEye cx={-48} look={Math.sin(t * 0.8) * 0.5} creep={creep} voidEyes={voidEyes} />
+          <PushEye cx={48} look={Math.sin(t * 0.8) * 0.5} creep={creep} voidEyes={voidEyes} />
+          <path d={`M-76 ${-482 - creep * 6} q24 -12 48 0 M28 ${-482 - creep * 6} q24 -12 48 0`} stroke="#7a4a2a" strokeWidth={6} fill="none" strokeLinecap="round" />
+          <path d="M-14 -402 Q0 -414 14 -402 Q0 -388 -14 -402 Z" fill="#5a2a2a" {...OUT} strokeWidth={2.5} />
+          <PushMouth open={talk} creep={creep} />
+          {[-1, 1].map((d) => <ellipse key={`b${d}`} cx={d * 86} cy={-392} rx={18} ry={10} fill="#f2a0ae" opacity={0.7 * (1 - creep)} />)}
+        </g>
       </g>
     </g>
   );
@@ -148,6 +194,12 @@ export const Pushistik1 = () => {
   const f = useCurrentFrame();
   const t = f / 30;
   const reps = repsAt(t);
+  // lip-sync: энергия голоса активной реплики → открытие рта
+  const audio = VO.map(([k]) => useAudioData(staticFile(`audio/pushistik/${k}.mp3`)));
+  let talk = 0;
+  VO.forEach(([, at, dur], i) => {
+    if (t >= at && t < at + dur) talk = Math.min(1, speechEnergy(audio[i], f - Math.round(at * 30), 30) * 2.2);
+  });
   const night = ez(t, 10.5, 13, 0, 1);
   const creep = ez(t, 11, 15, 0, 0.6);
   // упражнения: руки вверх-вниз в такт счёту, наклоны — плавно и всё медленнее
@@ -161,7 +213,7 @@ export const Pushistik1 = () => {
       <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
         <Studio night={night} />
         <g transform={`translate(540 1440) scale(${1.45 + creep * 0.25})`}>
-          <Pushistik t={t} arms={arms} bend={bend} creep={creep} voidEyes={false} />
+          <Pushistik t={t} arms={arms} bend={bend} creep={creep} voidEyes={false} talk={talk} />
         </g>
         <g opacity={ez(t, 0.3, 0.6) * (1 - ez(t, 3.6, 4.0))}>
           <rect x={160} y={180} width={760} height={120} rx={60} fill="#ffe14a" {...OUT} />
@@ -181,7 +233,7 @@ export const Pushistik1 = () => {
         <Studio night={1} />
         <rect width={1080} height={1920} fill="#5a0010" opacity={0.35} />
         <g transform={`translate(540 ${2300 + ez(t, T.face, T.face + 0.3, 200, 0)}) scale(${3.1 + ez(t, T.face, T.rew, 0, 0.4)})`}>
-          <Pushistik t={t} arms={0.1} bend={0} creep={1} voidEyes />
+          <Pushistik t={t} arms={0.1} bend={0} creep={1} voidEyes talk={talk} />
         </g>
       </svg>
     );
