@@ -890,73 +890,99 @@ const glossyEye = (g: CanvasRenderingContext2D, x: number, y: number, r: number,
 const LINE2 = "#2b1d16";
 const PALE = "#d8d2c4";
 const PALE_SH = "#a9a291";
-const BODY = "#0c1019";
-const RIM = "rgba(90,110,150,.55)";
+const BODY = "#07090d";
+const RIM = "rgba(170,178,195,.5)";
+/** Контровой блик по краю конечности: тонкая светлая линия со смещением. */
+const rim = (g: CanvasRenderingContext2D, pts: [number, number][], dx = 4, dy = -3) => {
+  g.save();
+  g.strokeStyle = RIM;
+  g.lineWidth = 2.2;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x + dx, y + dy) : g.moveTo(x + dx, y + dy)));
+  g.stroke();
+  g.restore();
+};
 
 /** Задний слой: очень высокий костлявый чёрно-синий силуэт, длинные руки и ноги в тени шкафа. */
 const drawBack = (g: CanvasRenderingContext2D) => {
+  // мягкая тьма вокруг фигуры — тонет в глубине шкафа
+  const sh = g.createRadialGradient(512, 1000, 100, 512, 1000, 620);
+  sh.addColorStop(0, "rgba(0,0,0,.55)");
+  sh.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = sh;
+  g.fillRect(0, 300, RW, 1500);
+  // ноги: тонкие, с острыми коленями
   for (const sd of [-1, 1]) {
-    limb(g, [[512 + sd * 55, 1320, 24], [512 + sd * 120, 1650, 17], [512 + sd * 95, 2010, 13]], BODY);
-    limb(g, [[512 + sd * 140, 780, 16], [512 + sd * 300, 980, 12], [512 + sd * 330, 1330, 10]], BODY);
+    const leg: [number, number, number][] = [[512 + sd * 45, 1280, 16], [512 + sd * 150, 1560, 12], [512 + sd * 95, 1990, 9]];
+    limb(g, leg, BODY);
+    rim(g, leg.map(([x, y]) => [x, y] as [number, number]), sd * 3);
   }
+  // угловатый сгорбленный торс: острые плечи, впалая талия
+  const torso: [number, number][] = [[300, 770], [400, 740], [470, 760], [512, 735], [554, 760], [624, 740], [724, 770], [660, 850], [610, 1020], [585, 1180], [600, 1290], [424, 1290], [439, 1180], [414, 1020], [364, 850]];
   g.beginPath();
-  g.moveTo(420, 1330);
-  g.bezierCurveTo(390, 1100, 400, 880, 450, 770);
-  g.bezierCurveTo(480, 730, 544, 730, 574, 770);
-  g.bezierCurveTo(624, 880, 634, 1100, 604, 1330);
+  torso.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
   g.closePath();
   g.fillStyle = BODY;
   g.fill();
   g.strokeStyle = INKC;
   g.lineWidth = 4;
   g.stroke();
-  // выступающие рёбра и позвонки — тусклым контровым светом
-  g.strokeStyle = RIM;
-  g.lineWidth = 3;
+  rim(g, [[724, 770], [660, 850], [610, 1020], [585, 1180]], 3, 0);
+  // рёбра и позвонки тусклым светом
+  g.strokeStyle = "rgba(120,128,145,.35)";
+  g.lineWidth = 2.5;
   for (let i = 0; i < 6; i++) {
     for (const sd of [-1, 1]) {
       g.beginPath();
-      g.moveTo(512, 820 + i * 52);
-      g.quadraticCurveTo(512 + sd * 60, 805 + i * 52, 512 + sd * 88, 845 + i * 52);
+      g.moveTo(512, 820 + i * 50);
+      g.lineTo(512 + sd * (70 - i * 4), 812 + i * 50);
+      g.lineTo(512 + sd * (92 - i * 6), 850 + i * 50);
       g.stroke();
     }
   }
-  // холодный контур справа
-  g.save();
-  g.globalCompositeOperation = "source-atop";
-  const gr = g.createLinearGradient(380, 0, 650, 0);
-  gr.addColorStop(0, "rgba(0,0,0,.3)");
-  gr.addColorStop(0.85, "rgba(0,0,0,0)");
-  gr.addColorStop(1, "rgba(110,130,170,.4)");
-  g.fillStyle = gr;
-  g.fillRect(0, 0, RW, RH);
-  g.restore();
+  // длинные тонкие ломаные руки: плечо → локоть вверх → запястье вниз
+  for (const sd of [-1, 1]) {
+    const arm: [number, number, number][] = [[512 + sd * 200, 760, 13], [512 + sd * 330, 560, 10], [512 + sd * 395, 900, 8], [512 + sd * 300, 1180, 7]];
+    limb(g, arm, BODY);
+    rim(g, arm.map(([x, y]) => [x, y] as [number, number]), sd * 3);
+  }
 };
 
 /** Средний слой: длинная шея, переломленная вбок, и бледное вытянутое мамино лицо с вывихнутой челюстью. */
 const drawMid = (g: CanvasRenderingContext2D) => {
-  // острые плечи и ключицы
-  g.beginPath();
-  g.moveTo(400, 800);
-  g.quadraticCurveTo(512, 730, 624, 800);
-  g.lineTo(600, 860);
-  g.quadraticCurveTo(512, 800, 424, 860);
-  g.closePath();
-  g.fillStyle = BODY;
-  g.fill();
-  g.strokeStyle = INKC;
-  g.lineWidth = 4;
-  g.stroke();
+  // острые ключицы
+  for (const sd of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(512, 762);
+    g.lineTo(512 + sd * 95, 748);
+    g.lineTo(512 + sd * 175, 772);
+    g.strokeStyle = "rgba(170,178,195,.55)";
+    g.lineWidth = 4;
+    g.stroke();
+  }
   // шея: вверх и резко вбок, чтобы голова влезла под верх шкафа
   limb(g, [[512, 770, 20], [470, 690, 17], [540, 650, 15]], BODY);
   g.save();
   g.translate(560, 560);
   g.rotate(-0.42);
   // волосы сзади
-  g.fillStyle = "#120d0b";
+  // волосы сзади: рваные пряди, а не ровный капюшон
+  g.fillStyle = "#100b09";
   g.beginPath();
-  g.ellipse(0, -40, 98, 120, 0, 0, Math.PI * 2);
+  g.ellipse(0, -55, 80, 85, 0, 0, Math.PI * 2);
   g.fill();
+  g.strokeStyle = "#100b09";
+  g.lineCap = "round";
+  for (let i = 0; i < 14; i++) {
+    const a = Math.PI * (0.05 + (i / 13) * 0.9);
+    g.lineWidth = 6 + rnd(i + 9700) * 6;
+    g.beginPath();
+    g.moveTo(Math.cos(a) * 70, -40 - Math.sin(a) * 60);
+    g.quadraticCurveTo(Math.cos(a) * 95, 20, Math.cos(a) * (80 + rnd(i + 9701) * 30), 60 + rnd(i + 9702) * 90);
+    g.stroke();
+  }
   // вытянутое бледное лицо
   const fg = g.createLinearGradient(-70, 0, 70, 0);
   fg.addColorStop(0, PALE_SH);
@@ -1027,81 +1053,167 @@ const drawMid = (g: CanvasRenderingContext2D) => {
   g.moveTo(4, 2);
   g.quadraticCurveTo(10, 30, 0, 40);
   g.stroke();
-  // вывихнутая челюсть, растянутая вниз в чёрную пустоту
-  const mg = g.createLinearGradient(0, 50, 0, 230);
-  mg.addColorStop(0, "#1a0606");
-  mg.addColorStop(0.4, "#000");
-  mg.addColorStop(1, "#000");
+  // отвисшая нижняя челюсть: бледная кожа по ширине лица
   g.beginPath();
-  g.moveTo(-26, 52);
-  g.bezierCurveTo(-34, 110, -30, 180, -14, 222);
-  g.lineTo(14, 222);
-  g.bezierCurveTo(30, 180, 34, 110, 26, 52);
-  g.quadraticCurveTo(0, 46, -26, 52);
+  g.moveTo(-40, 56);
+  g.bezierCurveTo(-50, 110, -46, 168, -26, 196);
+  g.bezierCurveTo(-10, 210, 10, 210, 26, 196);
+  g.bezierCurveTo(46, 168, 50, 110, 40, 56);
+  g.closePath();
+  const jg = g.createLinearGradient(-50, 0, 50, 0);
+  jg.addColorStop(0, PALE_SH);
+  jg.addColorStop(0.45, PALE);
+  jg.addColorStop(1, "#8f8a7d");
+  g.fillStyle = jg;
+  g.fill();
+  g.strokeStyle = LINE2;
+  g.lineWidth = 5;
+  g.stroke();
+  // тёмный провал пасти внутри челюсти
+  const mg = g.createRadialGradient(0, 120, 4, 0, 110, 80);
+  mg.addColorStop(0, "#000");
+  mg.addColorStop(0.7, "#060202");
+  mg.addColorStop(1, "#2a0808");
+  g.beginPath();
+  g.moveTo(-30, 58);
+  g.bezierCurveTo(-38, 100, -34, 150, -18, 182);
+  g.quadraticCurveTo(0, 190, 18, 182);
+  g.bezierCurveTo(34, 150, 38, 100, 30, 58);
+  g.quadraticCurveTo(0, 52, -30, 58);
   g.closePath();
   g.fillStyle = mg;
   g.fill();
   g.strokeStyle = LINE2;
-  g.lineWidth = 4;
+  g.lineWidth = 3;
   g.stroke();
-  // тонкие острые зубы по краям пасти
-  g.fillStyle = "#e6dfcc";
-  g.strokeStyle = "rgba(20,10,8,.9)";
-  g.lineWidth = 0.8;
-  for (let i = 0; i < 9; i++) {
-    const x = -20 + i * 5;
+  // неровные острые зубы: сверху вниз и снизу вверх
+  g.strokeStyle = "rgba(25,12,8,.9)";
+  g.lineWidth = 0.9;
+  const tooth = (x: number, y: number, len: number, w: number, lean: number) => {
     g.beginPath();
-    g.moveTo(x - 2, 54);
-    g.lineTo(x, 70 + (i % 2) * 8);
-    g.lineTo(x + 2, 54);
+    g.moveTo(x - w, y);
+    g.lineTo(x + lean, y + len);
+    g.lineTo(x + w, y);
+    g.closePath();
+    g.fillStyle = "#ddd3bc";
+    g.fill();
+    g.stroke();
+  };
+  for (let i = 0; i < 9; i++) tooth(-24 + i * 6, 58 + Math.abs(i - 4) * 0.8, 10 + rnd(i + 9600) * 12, 2.4, (rnd(i + 9601) - 0.5) * 4);
+  for (let i = 0; i < 7; i++) tooth(-16 + i * 5.3, 182 - Math.abs(i - 3) * 1.5, -(8 + rnd(i + 9610) * 10), 2.2, (rnd(i + 9611) - 0.5) * 4);
+  for (const sd of [-1, 1]) for (let i = 0; i < 4; i++) {
+    const y = 85 + i * 24;
+    const x = sd * (31 - i * 1.2);
+    g.beginPath();
+    g.moveTo(x, y - 3);
+    g.lineTo(x - sd * (7 + rnd(i + sd * 7 + 9620) * 5), y + 1);
+    g.lineTo(x, y + 4);
+    g.closePath();
+    g.fillStyle = "#cfc5ad";
     g.fill();
     g.stroke();
   }
-  for (let i = 0; i < 7; i++) {
-    for (const sd of [-1, 1]) {
-      const y = 80 + i * 18;
-      const x = sd * (28 - i * 1.5);
-      g.beginPath();
-      g.moveTo(x, y - 3);
-      g.lineTo(x - sd * 11, y + 2);
-      g.lineTo(x, y + 4);
-      g.fill();
-      g.stroke();
-    }
-  }
-  // съехавший подбородок и растянутые щёки
-  g.beginPath();
-  g.ellipse(0, 232, 24, 14, 0, 0, Math.PI * 2);
-  g.fillStyle = PALE_SH;
-  g.fill();
-  g.strokeStyle = LINE2;
-  g.lineWidth = 4;
-  g.stroke();
-  g.strokeStyle = "rgba(60,45,40,.6)";
+  // растянутая кожа щёк и тёмная кровь в уголках
+  g.strokeStyle = "rgba(60,45,40,.55)";
   g.lineWidth = 2;
   for (const sd of [-1, 1]) {
     g.beginPath();
-    g.moveTo(sd * 30, 50);
-    g.quadraticCurveTo(sd * 44, 140, sd * 22, 226);
+    g.moveTo(sd * 42, 60);
+    g.quadraticCurveTo(sd * 52, 130, sd * 30, 192);
     g.stroke();
-  }
-  // тёмная кровь в уголках
-  g.strokeStyle = "rgba(45,4,6,.85)";
-  g.lineWidth = 3;
-  for (const sd of [-1, 1]) {
+    g.strokeStyle = "rgba(45,4,6,.85)";
+    g.lineWidth = 3;
     g.beginPath();
-    g.moveTo(sd * 26, 56);
-    g.lineTo(sd * 28, 92);
+    g.moveTo(sd * 30, 60);
+    g.lineTo(sd * 33, 98);
     g.stroke();
+    g.strokeStyle = "rgba(60,45,40,.55)";
+    g.lineWidth = 2;
   }
   g.restore();
 };
 
-/** Передний слой: длинные бледные многосуставные пальцы с тёмными ногтями, сжимают края дверцы шкафа. */
+/** Тонкий бледный заострённый палец: две фаланги с изгибом, тёмный коготь. */
+const finger = (g: CanvasRenderingContext2D, x: number, y: number, ang: number, len: number, w: number) => {
+  const pts: [number, number][] = [[x, y]];
+  let a = ang;
+  let px = x;
+  let py = y;
+  for (const [l, bend] of [[0.42, 0.35], [0.33, 0.5], [0.25, 0.35]] as [number, number][]) {
+    a += bend;
+    px += Math.cos(a) * len * l;
+    py += Math.sin(a) * len * l;
+    pts.push([px, py]);
+  }
+  // сужающийся контур пальца
+  const left: [number, number][] = [];
+  const right: [number, number][] = [];
+  pts.forEach(([qx, qy], i) => {
+    const n = pts[Math.min(i + 1, pts.length - 1)];
+    const p = pts[Math.max(i - 1, 0)];
+    const t = Math.atan2(n[1] - p[1], n[0] - p[0]) + Math.PI / 2;
+    const ww = w * (1 - i / (pts.length - 0.4));
+    left.push([qx + Math.cos(t) * ww, qy + Math.sin(t) * ww]);
+    right.push([qx - Math.cos(t) * ww, qy - Math.sin(t) * ww]);
+  });
+  g.beginPath();
+  left.forEach(([qx, qy], i) => (i ? g.lineTo(qx, qy) : g.moveTo(qx, qy)));
+  right.reverse().forEach(([qx, qy]) => g.lineTo(qx, qy));
+  g.closePath();
+  const fg = g.createLinearGradient(x, y, px, py);
+  fg.addColorStop(0, PALE_SH);
+  fg.addColorStop(0.5, PALE);
+  fg.addColorStop(1, "#b9b2a2");
+  g.fillStyle = fg;
+  g.fill();
+  g.strokeStyle = LINE2;
+  g.lineWidth = 3;
+  g.stroke();
+  // складки суставов
+  g.strokeStyle = "rgba(90,70,60,.6)";
+  g.lineWidth = 1.5;
+  for (let i = 1; i < pts.length - 1; i++) {
+    g.beginPath();
+    g.moveTo(left[i][0], left[i][1]);
+    g.lineTo(pts[i][0], pts[i][1]);
+    g.stroke();
+  }
+  // тёмный острый коготь
+  g.save();
+  g.translate(px, py);
+  g.rotate(a);
+  g.beginPath();
+  g.moveTo(-2, -w * 0.5);
+  g.quadraticCurveTo(w * 2.4, -w * 0.3, w * 3.4, w * 0.9);
+  g.quadraticCurveTo(w * 1.6, w * 0.6, -2, w * 0.5);
+  g.closePath();
+  g.fillStyle = "#120b08";
+  g.fill();
+  g.restore();
+};
+const paleHand = (g: CanvasRenderingContext2D, x: number, y: number, dir: number, sc: number) => {
+  g.save();
+  g.translate(x, y);
+  g.scale(sc, sc);
+  g.beginPath();
+  g.ellipse(0, 0, 30, 22, dir, 0, Math.PI * 2);
+  g.fillStyle = PALE_SH;
+  g.fill();
+  g.strokeStyle = LINE2;
+  g.lineWidth = 3;
+  g.stroke();
+  for (let f = 0; f < 4; f++) finger(g, Math.cos(dir + (f - 1.5) * 0.3) * 22, Math.sin(dir + (f - 1.5) * 0.3) * 22, dir + (f - 1.5) * 0.22, 150 - Math.abs(f - 1.5) * 18, 7);
+  finger(g, Math.cos(dir + 1.3) * 18, Math.sin(dir + 1.3) * 18, dir + 1.1, 80, 7);
+  g.restore();
+};
+
+/** Передний слой: длинные бледные многосуставные пальцы с тёмными когтями сжимают края дверцы. */
 const drawFront = (g: CanvasRenderingContext2D) => {
   for (const sd of [-1, 1]) {
-    limb(g, [[512 + sd * 300, 1000, 13], [512 + sd * 270, 860, 12]], BODY);
-    hand(g, 512 + sd * 265, 830, sd > 0 ? 2.6 : 0.55, 1.6, PALE);
+    const fore: [number, number, number][] = [[512 + sd * 270, 1080, 8], [512 + sd * 160, 850, 7]];
+    limb(g, fore, BODY);
+    rim(g, fore.map(([x, y]) => [x, y] as [number, number]), sd * 3);
+    paleHand(g, 512 + sd * 150, 830, sd > 0 ? 4.1 : -0.95, 1.2);
   }
 };
 
@@ -1285,19 +1397,6 @@ const LensHit = ({ g }: { g: number }) => {
             <feGaussianBlur stdDeviation="10 28" />
           </filter>
         </defs>
-        <g filter="url(#crk)">
-          {origins.map(([x, y, a], i) =>
-            [0, 1].map((j) => {
-              const d = crack(x, y, a + (j - 0.5) * 0.5, i * 31 + j * 7 + 4000);
-              return (
-                <g key={`${i}${j}`}>
-                  <path d={d} stroke="rgba(4,4,6,.75)" strokeWidth="16" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-                  <path d={d} stroke="rgba(200,210,225,.28)" strokeWidth="3" fill="none" transform="translate(5 -3)" />
-                </g>
-              );
-            }),
-          )}
-        </g>
         <g filter="url(#smear)">
           {Array.from({ length: 8 }, (_, i) => (
             <ellipse key={i} cx={rnd(i + 4300) > 0.5 ? 50 + rnd(i + 4301) * 200 : 830 + rnd(i + 4302) * 200} cy={200 + rnd(i + 4303) * 1500} rx={18 + rnd(i + 4304) * 30} ry={60 + rnd(i + 4305) * 120} fill="rgba(30,2,4,.85)" />

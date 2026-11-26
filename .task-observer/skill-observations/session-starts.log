@@ -1,0 +1,2 @@
+2026-11-26 00:44 [my-site] session start: 1 storage=missing: observation-log/archive, last-review-date.txt, cross-cutting-principles.md 2 scan=files 0 parsed 0 3 review=last absent, marker absent 6 staged=none 7 log=0 entries; 4-5 appended by the session
+2026-11-26 00:44 session start 4-5: activation=CLAUDE.md block v3.12.0 + SessionStart hook concurrency=per-file, ok
