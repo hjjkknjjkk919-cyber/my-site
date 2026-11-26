@@ -190,27 +190,67 @@ export const ChatHeader = ({ w, title, sub, avatar, color }: { w: number; title:
 );
 
 /** Кисть руки (ладонь + пальцы), смотрит вверх; s — масштаб. */
-export const Hand = ({ x, y, s = 1, rot = 0, sleeve = "#3b4250" }: { x: number; y: number; s?: number; rot?: number; sleeve?: string }) => (
-  <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
-    <path d="M-95 260 L-85 120 L85 120 L95 260 Z" fill={sleeve} {...OL} />
-    <path d="M-85 130 L85 130 L87 152 L-87 152 Z" fill="#000" opacity={0.25} />
-    {[-60, -30, 0, 30, 60].map((rx) => <path key={rx} d={`M${rx} 160 l4 90`} stroke="#000" strokeWidth={3} opacity={0.25} />)}
-    <path d="M-80 130 C-95 60 -90 0 -70 -30 L70 -30 C92 0 95 60 80 130 Z" fill={SKIN} {...OL} />
-    <path d="M40 -20 C70 10 76 80 70 126 L80 130 C95 60 92 0 70 -30 Z" fill={SKIN_SH} opacity={0.8} />
-    {[-52, -18, 16, 50].map((fx, i) => {
-      const top = -120 + Math.abs(i - 1.5) * 14;
-      return (
-        <g key={i}>
-          <rect x={fx - 15} y={top} width={30} height={110} rx={15} fill={SKIN} {...OL} strokeWidth={6} />
-          <rect x={fx + 4} y={top + 6} width={8} height={96} rx={4} fill={SKIN_SH} opacity={0.6} />
-          <rect x={fx - 9} y={top + 4} width={18} height={22} rx={8} fill="#f6d9c6" stroke="#b98b72" strokeWidth={2} />
-          <path d={`M${fx - 9} ${top + 52} q9 5 18 0 M${fx - 8} ${top + 80} q8 4 16 0`} stroke="#a8735c" strokeWidth={2.5} fill="none" />
-        </g>
-      );
-    })}
-    <path d="M-78 70 C-120 40 -132 0 -118 -24 C-104 -36 -84 -20 -76 6 Z" fill={SKIN} {...OL} strokeWidth={6} />
-    <path d="M-120 -16 q8 -10 18 -4 l-4 14 q-8 2 -14 -10 Z" fill="#f6d9c6" stroke="#b98b72" strokeWidth={2} />
-    <path d="M-40 60 C-10 80 20 80 50 60" stroke="#a8735c" strokeWidth={3} fill="none" opacity={0.7} />
+/** Палец из трёх фаланг: сгибы, ноготь, тень сбоку и рефлекс света. Основание в (0,0), растёт вверх. */
+const Finger = ({ x, y, len, w, rot = 0, bend = 0 }: { x: number; y: number; len: number; w: number; rot?: number; bend?: number }) => {
+  const seg = [len * 0.42, len * 0.32, len * 0.26];
+  const piece = (h: number, ww: number, tip: boolean) =>
+    tip ? `M${-ww / 2} 0 L${-ww * 0.46} ${-h + ww * 0.5} Q0 ${-h - ww * 0.15} ${ww * 0.46} ${-h + ww * 0.5} L${ww / 2} 0 Z` : `M${-ww / 2} 2 L${-ww * 0.47} ${-h - 2} L${ww * 0.47} ${-h - 2} L${ww / 2} 2 Z`;
+  let acc = 0;
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot})`}>
+      {seg.map((h, i) => {
+        const ww = w * (1 - i * 0.08);
+        const g = (
+          <g key={i} transform={`translate(0 ${-acc}) rotate(${bend * i})`}>
+            <path d={piece(h, ww, i === 2)} fill={SKIN} stroke={INK} strokeWidth={5} strokeLinejoin="round" />
+            <path d={`M${ww * 0.16} 0 L${ww * 0.2} ${-h + (i === 2 ? ww * 0.5 : 0)} L${ww * 0.47} ${-h + (i === 2 ? ww * 0.5 : 0)} L${ww / 2} 0 Z`} fill={SKIN_SH} opacity={0.55} />
+            <path d={`M${-ww * 0.36} -4 L${-ww * 0.34} ${-h + 6}`} stroke="#ffe3cf" strokeWidth={3} opacity={0.7} strokeLinecap="round" />
+            {i < 2 && <path d={`M${-ww * 0.3} ${-h + 3} q${ww * 0.3} 6 ${ww * 0.6} 0`} stroke="#9a6a54" strokeWidth={2.5} fill="none" />}
+            {i === 2 && <path d={`M${-ww * 0.3} ${-h + ww * 0.95} L${-ww * 0.3} ${-h + ww * 0.42} Q0 ${-h + ww * 0.05} ${ww * 0.3} ${-h + ww * 0.42} L${ww * 0.3} ${-h + ww * 0.95} Q0 ${-h + ww * 1.08} ${-ww * 0.3} ${-h + ww * 0.95} Z`} fill="#f4d4c2" stroke="#a7786a" strokeWidth={2} />}
+            {i === 2 && <path d={`M${-ww * 0.14} ${-h + ww * 0.5} l0 ${ww * 0.3}`} stroke="#fff" strokeWidth={2.5} opacity={0.8} strokeLinecap="round" />}
+          </g>
+        );
+        acc += h - 2;
+        return g;
+      })}
+    </g>
+  );
+};
+
+/** Анатомическая кисть (ладонью к зрителю, пальцы вверх). */
+export const Hand = ({ x, y, s = 1, rot = 0, sleeve = "#3b4250", curl = 0 }: { x: number; y: number; s?: number; rot?: number; sleeve?: string; curl?: number }) => (
+  <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`} filter="url(#pk-sh)">
+    <path d="M-92 270 L-82 128 L82 128 L92 270 Z" fill={sleeve} stroke={INK} strokeWidth={7} strokeLinejoin="round" />
+    <path d="M-82 128 L82 128 L84 150 L-84 150 Z" fill="#000" opacity={0.28} />
+    {[-50, -16, 18, 52].map((rx) => <path key={rx} d={`M${rx} 160 l3 100`} stroke="#000" strokeWidth={3} opacity={0.22} />)}
+    {/* пальцы: длины и наклоны как у настоящей кисти */}
+    {[
+      [-50, -22, 128, 30, -6],
+      [-17, -32, 150, 32, -2],
+      [17, -30, 140, 31, 2],
+      [48, -16, 112, 27, 8],
+    ].map(([fx, fy, len, w, r], i) => (
+      <Finger key={i} x={fx} y={fy} len={len} w={w} rot={r} bend={curl * (i % 2 ? 1 : -1) * 4} />
+    ))}
+    {/* ладонь */}
+    <path d="M-72 132 C-86 80 -84 20 -66 -22 C-30 -36 30 -36 66 -18 C82 20 84 80 72 132 Z" fill={SKIN} stroke={INK} strokeWidth={7} strokeLinejoin="round" />
+    <path d="M30 -24 C66 -14 82 30 80 80 C78 110 74 124 72 132 L50 132 C64 90 60 20 30 -24 Z" fill={SKIN_SH} opacity={0.6} />
+    {/* костяшки и тени между пальцами */}
+    {[-50, -17, 17, 48].map((kx, i) => (
+      <g key={i}>
+        <path d={`M${kx - 12} ${-24 - (i === 1 || i === 2 ? 6 : 0)} q12 -8 24 0`} stroke="#9a6a54" strokeWidth={3} fill="none" />
+        {i < 3 && <path d={`M${kx + 16} -26 l2 18`} stroke="#7a4a3a" strokeWidth={5} opacity={0.5} strokeLinecap="round" />}
+      </g>
+    ))}
+    <path d="M-48 40 C-10 64 30 60 58 34 M-40 84 C-6 98 24 96 40 80" stroke="#a8735c" strokeWidth={3} fill="none" opacity={0.7} />
+    <path d="M-66 -10 C-80 40 -80 90 -70 128" stroke="#ffe3cf" strokeWidth={4} fill="none" opacity={0.6} />
+    {/* большой палец */}
+    <g transform="translate(-66 70) rotate(-48)">
+      <path d="M-20 0 L-18 -70 Q0 -100 18 -70 L22 0 Z" fill={SKIN} stroke={INK} strokeWidth={6} strokeLinejoin="round" />
+      <path d="M8 0 L10 -66 Q16 -76 18 -70 L22 0 Z" fill={SKIN_SH} opacity={0.55} />
+      <path d="M-12 -50 L-12 -74 Q0 -92 12 -74 L12 -50 Q0 -44 -12 -50 Z" fill="#f4d4c2" stroke="#a7786a" strokeWidth={2} />
+      <path d="M-14 -30 q14 6 28 0" stroke="#9a6a54" strokeWidth={2.5} fill="none" />
+    </g>
   </g>
 );
 

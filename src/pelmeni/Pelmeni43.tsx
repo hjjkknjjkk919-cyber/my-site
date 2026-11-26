@@ -108,6 +108,7 @@ const CHUNKS: Chunk[] = VO.flatMap(([k, at]) => {
 });
 
 const Subs = ({ t }: { t: number }) => {
+  if (t >= FINALE + 0.55) return null; // кнопки выбора выезжают — субтитры прячем
   const c = CHUNKS.find((x) => t >= x.from && t < x.to + 0.05);
   if (!c) return null;
   const k = ez(t, c.from, c.from + 0.12);

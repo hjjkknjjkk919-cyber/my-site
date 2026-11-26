@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
+import { DimaFace } from "../train/GostOld";
 import { DurCtx, KitDefs, Bubble, ChatHeader, Dumplings, Earring, ez, Glow, GOLD, Hand, INK, Marker, MONT, OL, PAPER, Phone, RED, SKIN, SKIN_SH, Stage, Tamara, useLT, useSpr, Wave } from "./kit";
 
 const STENCIL = "Russo One";
@@ -48,15 +49,25 @@ export const S2Mom = () => {
       <Glow id="s2g" x={540} y={260} r={700} color="#ffc070" o={0.35} />
       {/* проём: за дверью темнота площадки */}
       <rect x={300} y={420} width={480} height={1150} fill="#07090c" {...OL} />
-      <Glow id="s2h" x={540} y={700} r={300} color="#9fb7c9" o={0.18 * (1 - close)} />
+      <defs>
+        <linearGradient id="s2-st" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffe2a8" stopOpacity={0.15} />
+          <stop offset="100%" stopColor="#ffd48a" stopOpacity={0.85} />
+        </linearGradient>
+      </defs>
+      <path d="M470 420 L610 420 L700 1570 L380 1570 Z" fill="url(#s2-st)" opacity={1 - close * 0.9} />
+      <path d={`M380 1570 L700 1570 L${780 + 120 * (1 - close)} 1900 L${300 - 120 * (1 - close)} 1900 Z`} fill="#ffd48a" opacity={0.28 * (1 - close)} />
       {/* мама: силуэт в куртке, уходит в проём */}
-      <g transform={`translate(${540 + walk * 40} ${980 - walk * 60}) scale(${1 - walk * 0.35})`} opacity={1 - close}>
-        <path d="M-120 520 L-110 120 C-110 40 110 40 110 120 L120 520 Z" fill="#5b1f2a" {...OL} />
-        <path d="M0 60 V520" stroke="#3d141c" strokeWidth={6} />
-        <circle cx={0} cy={-30} r={78} fill={SKIN} {...OL} />
-        <path d="M-82 -30 C-90 -140 90 -140 82 -30 C60 -80 -60 -80 -82 -30 Z" fill="#4a2c1d" {...OL} />
-        <path d="M-120 140 L-150 360 M120 140 L150 380" stroke="#5b1f2a" strokeWidth={40} strokeLinecap="round" />
-        <rect x={110} y={340} width={90} height={110} rx={14} fill="#1c1a1a" {...OL} />
+      <g transform={`translate(${540 + walk * 30} ${1000 - walk * 40}) scale(${1 - walk * 0.3})`} opacity={1 - close * 0.95}>
+        <g fill="#0b090b" stroke="#ffcf7a" strokeWidth={4} strokeOpacity={0.55}>
+          <path d="M-120 560 L-118 150 C-120 60 -70 30 0 30 C70 30 120 60 118 150 L120 560 Z" />
+          <path d="M-56 560 L-50 760 L-14 760 L-10 560 Z M10 560 L14 760 L50 760 L56 560 Z" />
+          <circle cx={0} cy={-36} r={72} />
+          <path d="M-74 -40 C-80 -130 80 -130 74 -40 C80 20 70 50 58 64 L-58 64 C-70 50 -80 20 -74 -40 Z" />
+          <path d="M-118 160 C-150 260 -150 360 -140 440 L-112 440 C-112 360 -100 260 -96 180 Z M118 160 C150 260 150 360 140 440 L112 440 C112 360 100 260 96 180 Z" />
+          <path d="M110 300 L150 300 L180 470 L100 470 Z" />
+          <path d="M120 300 C120 230 150 230 152 300" fill="none" strokeWidth={8} />
+        </g>
       </g>
       {/* дверь на петле справа: закрывается сжатием по X */}
       <g transform={`translate(780 0) scale(${-0.08 - close * 0.92} 1) translate(-780 0)`}>
@@ -112,7 +123,25 @@ export const S4Board = () => {
           <g key={i} transform={`translate(${p.x} ${p.y + (1 - k) * 30}) rotate(${(i - 1) * 3})`} opacity={k}>
             <rect x={-200} y={-250} width={400} height={500} fill={PAPER} {...OL} strokeWidth={5} />
             <text x={0} y={-180} textAnchor="middle" fontFamily={STENCIL} fontSize={76} fill={RED}>ПРОПАЛ{p.tam ? "А" : ""}</text>
-            {p.tam ? <Tamara x={0} y={20} s={0.82} /> : <rect x={-100} y={-120} width={200} height={240} fill="#9a958a" {...OL} strokeWidth={4} />}
+            {p.tam ? <Tamara x={0} y={20} s={0.82} /> : (
+              <g>
+                <rect x={-100} y={-120} width={200} height={240} fill="#9a958a" stroke={INK} strokeWidth={4} />
+                {i === 0 ? (
+                  <g fill="#26231f">
+                    <path d="M-80 120 C-80 50 -40 30 0 30 C40 30 80 50 80 120 Z" />
+                    <ellipse cx={0} cy={-20} rx={40} ry={48} />
+                    <path d="M-52 -40 C-50 -80 50 -80 52 -40 L60 -36 L-60 -36 Z" />
+                  </g>
+                ) : (
+                  <g fill="#26231f">
+                    <path d="M-70 110 L-60 30 C-60 0 -30 -10 0 -6 L40 -4 L50 110 L34 110 L30 50 L-30 50 L-40 110 Z" />
+                    <path d="M20 -6 C20 -50 50 -70 70 -56 L80 -30 L56 -20 L46 0 Z" />
+                    <path d="M44 -66 L36 -96 L56 -70 Z M62 -66 L70 -94 L74 -62 Z" />
+                    <path d="M-60 30 C-86 20 -90 -10 -80 -24" stroke="#26231f" strokeWidth={10} fill="none" strokeLinecap="round" />
+                  </g>
+                )}
+              </g>
+            )}
             <text x={0} y={200} textAnchor="middle" fontFamily={MONT} fontWeight={800} fontSize={p.tam ? 24 : 30} fill={INK}>{p.name}</text>
             <circle cx={0} cy={-236} r={9} fill="#c33" />
           </g>
@@ -188,7 +217,7 @@ export const S7Kitchen = () => {
       <rect y={760} width={1080} height={1160} fill="#8a5a36" {...OL} />
       <Glow id="s7g" x={540} y={600} r={800} color="#ffcf7a" o={0.45} />
       <Dumplings x={480} y={1150} s={1.5} t={t} />
-      <g transform={`translate(800 1560) rotate(${-8 + (1 - note) * 20}) scale(${note})`}>
+      <g transform={`translate(270 820) rotate(${-8 + (1 - note) * 20}) scale(${note})`}>
         <rect x={-190} y={-110} width={380} height={220} fill="#fff7c2" {...OL} strokeWidth={5} />
         <text x={0} y={-24} textAnchor="middle" fontFamily="Caveat, cursive" fontWeight={700} fontSize={50} fill="#1d3b8a">Поешь,</text>
         <text x={0} y={44} textAnchor="middle" fontFamily="Caveat, cursive" fontWeight={700} fontSize={50} fill="#1d3b8a">сосед угостил ♥</text>
@@ -205,6 +234,17 @@ export const S8Fork = ({ hitAt = 1 }: { hitAt?: number }) => {
   return (
     <Stage bg="#140d08" light={{ x: 540, y: 500, color: "#ffcf7a", r: 1000, o: 0.5 }} zoom={[1.05, 1.2]}>
       <rect width={1080} height={1920} fill="#2a1a10" />
+      <path d="M0 1180 L1080 1060 L1080 1920 L0 1920 Z" fill="#5a3a22" />
+      {Array.from({ length: 7 }, (_, i) => <path key={i} d={`M0 ${1230 + i * 110} C360 ${1180 + i * 105} 720 ${1150 + i * 100} 1080 ${1110 + i * 98}`} stroke="#4a2f1b" strokeWidth={6} fill="none" />)}
+      <path d="M0 1180 L1080 1060 L1080 1920 L0 1920 Z" fill="url(#s8-tbl)" />
+      <defs>
+        <linearGradient id="s8-tbl" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#000" stopOpacity={0.75} />
+          <stop offset="55%" stopColor="#000" stopOpacity={0} />
+          <stop offset="100%" stopColor="#000" stopOpacity={0.55} />
+        </linearGradient>
+      </defs>
+      <ellipse cx={560} cy={1420} rx={300} ry={70} fill="#000" opacity={0.35} />
       <Glow id="s8g" x={540} y={800} r={700} color="#ffcf7a" o={0.35} />
       <g transform={`translate(${540 + (hit > 0 ? Math.sin(t * 90) * 10 * (1 - ez(t, hitAt + 0.1, hitAt + 0.6)) : 0)} ${1300 - up * 300}) rotate(-20)`}>
         <rect x={-18} y={0} width={36} height={700} rx={14} fill="#c9ccd2" {...OL} />
@@ -212,8 +252,19 @@ export const S8Fork = ({ hitAt = 1 }: { hitAt?: number }) => {
         <g transform="translate(0 -170) scale(2.4)">
           <path d="M-46 8 C-46 -30 46 -30 46 8 C30 18 -30 18 -46 8 Z" fill="#f6ecd6" {...OL} strokeWidth={4} />
           <path d="M-30 -8 q8 -8 16 0 q8 -8 16 0 q8 -8 16 0" fill="none" stroke="#c9b899" strokeWidth={2} />
+          {/* надкус: фарш и металл внутри */}
+          <path d="M12 -24 C18 -10 34 -10 40 -22 C44 -8 46 2 46 8 C36 12 22 10 14 4 Z" fill="#a8574a" stroke={INK} strokeWidth={3} />
+          <path d="M26 -10 L36 -4 L30 4 L22 -2 Z" fill="#e8c25a" stroke="#6b4a10" strokeWidth={1.5} />
+          {hit > 0 && (
+            <g opacity={hit * (1 - ez(t, hitAt + 0.5, hitAt + 1.2) * 0.6)} stroke="#fffbe8" strokeLinecap="round">
+              <path d="M30 -30 L30 22 M4 -4 L56 -4" strokeWidth={3} />
+              <path d="M18 -16 L42 8 M42 -16 L18 8" strokeWidth={1.6} />
+              <circle cx={30} cy={-4} r={6} fill="#fff" stroke="none" />
+            </g>
+          )}
         </g>
       </g>
+      <rect width={1080} height={1920} fill="#fff" opacity={hit * (1 - ez(t, hitAt + 0.05, hitAt + 0.35))} />
       <g opacity={hit} transform={`translate(540 520) rotate(-8) scale(${0.6 + hit * 0.5})`}>
         <path d="M-330 0 L-250 -90 L-200 -20 L-120 -130 L-60 -30 L20 -150 L70 -40 L170 -120 L200 -20 L320 -70 L250 40 L330 100 L190 110 L210 190 L80 120 L0 200 L-60 110 L-180 170 L-170 80 L-320 90 Z" fill={GOLD} {...OL} strokeWidth={9} />
         <text x={0} y={40} textAnchor="middle" fontFamily={STENCIL} fontSize={120} fill={RED} stroke={INK} strokeWidth={6} paintOrder="stroke">ХРУСТ!</text>
@@ -258,11 +309,8 @@ export const S10Split = () => {
       <rect y={955} width={1080} height={10} fill={INK} />
       <g transform={`translate(${(1 - b) * 600} 0)`}>
         <rect x={0} y={965} width={1080} height={955} fill="#3a2a20" />
-        <g transform="translate(540 1420) scale(2.2)">
-          <path d="M-110 160 C-130 40 -120 -40 -80 -70 L80 -70 C120 -40 130 40 110 160 Z" fill={SKIN} {...OL} strokeWidth={4} />
-          <path d="M-60 0 C-20 30 30 30 60 0" fill="none" stroke={SKIN_SH} strokeWidth={4} />
-        </g>
-        <Earring x={540} y={1250} s={2.2} shine={0.5 + 0.5 * Math.sin(t * 7)} />
+        <Hand x={540} y={1330} s={2.1} sleeve="#4a5160" curl={0.6} />
+        <Earring x={540} y={1430} s={1.9} shine={0.5 + 0.5 * Math.sin(t * 7)} />
       </g>
       <g opacity={arrow}>
         <path d={`M760 620 C960 800 940 1060 ${640 + 120 * (1 - arrow)} ${1200 - 200 * (1 - arrow)}`} fill="none" stroke={RED} strokeWidth={16} strokeLinecap="round" />
@@ -303,22 +351,45 @@ export const S11Bag = () => {
 /* ── 12. Телефон на столе вспыхивает (3с) ── */
 export const S12Flash = () => {
   const t = useLT();
-  const on = ez(t, 0.05, 0.2);
-  const buzz = t > 0.1 && t < 1.8 ? Math.sin(t * 95) * 8 : 0;
+  const dur = React.useContext(DurCtx);
+  const on = ez(t, 0.05, 0.25);
+  const push = useSpr(0.35);
+  const buzz = t > 0.1 && t < 1.8 ? Math.sin(t * 95) * 5 : 0;
+  const cam = ez(t, 0.6, dur, 1, 1.9);
   return (
-    <Stage bg="#06070a" zoom={[1.0, 1.15]} light={{ x: 540, y: 1150, color: "#ffffff", r: 1000, o: 0.45 }} origin={[540, 1150]}>
-      <rect width={1080} height={1920} fill="#2a1d14" />
-      <Glow id="s12g" x={540} y={1150} r={900} color="#ffffff" o={0.5 * on} />
-      <g transform={`translate(${buzz} 0)`}>
-        <Phone x={540} y={1150} s={0.85} rot={78} screen={on > 0.5 ? "#f2f6fa" : "#101418"}>
-          <rect x={30} y={420} width={460} height={200} rx={30} fill="#17212b" opacity={on} />
-          <text x={60} y={500} fontFamily={MONT} fontWeight={800} fontSize={34} fill="#fff" opacity={on}>Кв. 44 · Геннадий</text>
-          <text x={60} y={560} fontFamily={MONT} fontSize={30} fill="#b8c7d6" opacity={on}>Новое сообщение</text>
-        </Phone>
-      </g>
-      {buzz !== 0 && [0, 1, 2].map((i) => <path key={i} d={`M${120 + i * 30} ${1050 + i * 10} q-20 100 0 200`} fill="none" stroke="#fff" strokeWidth={8} opacity={0.6} />)}
-      {buzz !== 0 && [0, 1, 2].map((i) => <path key={i} d={`M${960 - i * 30} ${1050 + i * 10} q20 100 0 200`} fill="none" stroke="#fff" strokeWidth={8} opacity={0.6} />)}
-    </Stage>
+    <AbsoluteFill style={{ background: "#120b07" }}>
+      <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
+        <KitDefs />
+        {/* вид строго сверху: наезд камеры на экран */}
+        <g transform={`translate(540 900) scale(${cam}) translate(-540 -900)`}>
+          <rect width={1080} height={1920} fill="#5a3a22" />
+          {Array.from({ length: 16 }, (_, i) => <path key={i} d={`M${i * 72} 0 C${i * 72 + 18} 640 ${i * 72 - 16} 1280 ${i * 72 + 10} 1920`} stroke="#4a2f1b" strokeWidth={5} fill="none" opacity={0.8} />)}
+          <circle cx={190} cy={420} r={130} fill="#d8d2c6" {...OL} />
+          <circle cx={190} cy={420} r={96} fill="#3a1f10" />
+          <path d="M320 420 C380 420 380 500 320 500" fill="none" stroke="#d8d2c6" strokeWidth={26} />
+          <rect x={760} y={1380} width={240} height={300} rx={10} fill="#f4f1ea" {...OL} transform="rotate(12 880 1530)" />
+          <g transform={`translate(${buzz} 0)`}>
+            <rect x={312} y={402} width={456} height={936} rx={66} fill="#000" opacity={0.45} filter="url(#pk-blur)" transform="translate(14 22)" />
+            <Phone x={540} y={870} s={0.82} screen={on > 0.5 ? "#0f1726" : "#07090c"}>
+              <rect width={520} height={1040} fill="#1b2a44" opacity={on} />
+              <text x={260} y={190} textAnchor="middle" fontFamily={MONT} fontWeight={800} fontSize={110} fill="#fff" opacity={on}>20:14</text>
+              <text x={260} y={240} textAnchor="middle" fontFamily={MONT} fontWeight={600} fontSize={28} fill="#c8d4e6" opacity={on}>четверг, 14 ноября</text>
+              <g opacity={push} transform={`translate(0 ${(1 - push) * -60})`}>
+                <rect x={24} y={310} width={472} height={190} rx={34} fill="rgba(240,244,250,.94)" />
+                <circle cx={78} cy={364} r={30} fill="#c94a4a" />
+                <text x={78} y={375} textAnchor="middle" fontFamily={MONT} fontWeight={800} fontSize={30} fill="#fff">Г</text>
+                <text x={124} y={358} fontFamily={MONT} fontWeight={800} fontSize={26} fill="#111">Геннадий · кв. 44</text>
+                <text x={124} y={390} fontFamily={MONT} fontSize={20} fill="#667">Telegram · сейчас</text>
+                <text x={44} y={442} fontFamily={MONT} fontWeight={600} fontSize={26} fill="#111">Дань, ну как, счастливый</text>
+                <text x={44} y={478} fontFamily={MONT} fontWeight={600} fontSize={26} fill="#111">пельмень попался? 🙂</text>
+              </g>
+            </Phone>
+          </g>
+          {buzz !== 0 && [0, 1, 2].map((i) => <path key={i} d={`M${290 - i * 26} ${780 + i * 6} q-16 90 0 180 M${790 + i * 26} ${780 + i * 6} q16 90 0 180`} fill="none" stroke="#fff" strokeWidth={6} opacity={0.55} />)}
+          <Glow id="s12g" x={540} y={870} r={700} color="#bcd4ff" o={0.4 * on} />
+        </g>
+      </svg>
+    </AbsoluteFill>
   );
 };
 
@@ -342,29 +413,23 @@ export const S13DM = () => {
 /* ── 14. Лицо героя: зрачки сужаются (2с) ── */
 export const S14Face = () => {
   const t = useLT();
-  const pupil = ez(t, 0.3, 0.7, 30, 7);
-  const tr = Math.sin(t * 55) * 4;
+  const dur = React.useContext(DurCtx);
+  const fear = ez(t, 0.15, 0.55, 0.6, 1.65);
   return (
-    <Stage bg="#050608" light={{ x: 540, y: 1700, color: "#8fb8ff", r: 1300, o: 0.5 }} zoom={[1.08, 1.3]} origin={[540, 860]}>
-      <g transform={`translate(${tr} 0)`}>
-        <path d="M120 1920 C140 1500 260 1300 540 1300 C820 1300 940 1500 960 1920 Z" fill="#2e3646" {...OL} />
-        <ellipse cx={540} cy={900} rx={340} ry={430} fill={SKIN} {...OL} />
-        <path d="M200 760 C180 380 900 380 880 760 C820 560 300 560 200 760 Z" fill="#2b1e16" {...OL} />
-        {[380, 700].map((x, i) => (
-          <g key={i}>
-            <path d={`M${x - 90} ${700 - 40} q90 -60 180 0`} fill="none" stroke="#2b1e16" strokeWidth={22} strokeLinecap="round" />
-            <ellipse cx={x} cy={830} rx={92} ry={70} fill="#fbf6ee" {...OL} />
-            <circle cx={x + 6} cy={830} r={46} fill="#5b7a52" stroke={INK} strokeWidth={4} />
-            <circle cx={x + 6} cy={830} r={pupil} fill={INK} />
-            <circle cx={x + 22} cy={812} r={10} fill="#fff" />
-          </g>
-        ))}
-        <path d="M520 900 q-30 90 0 120 q30 6 40 -10" fill="none" stroke={SKIN_SH} strokeWidth={8} />
-        <ellipse cx={540} cy={1120} rx={50} ry={34 + Math.sin(t * 20) * 6} fill="#4a1414" {...OL} />
-        <path d="M800 760 q16 40 0 60 q-16 -20 0 -60" fill="#cfe8ff" opacity={0.85} />
-      </g>
-      <Glow id="s14g" x={540} y={1500} r={700} color="#8fb8ff" o={0.35} />
-    </Stage>
+    <AbsoluteFill style={{ background: "#040507" }}>
+      <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
+        <g transform={`translate(${Math.sin(t * 52) * 3} ${Math.cos(t * 41) * 2}) translate(540 980) scale(${ez(t, 0, dur, 1.18, 1.32)}) translate(-540 -900)`}>
+          <DimaFace t={t} fear={fear} eyes={1.2} look={[0.1, -0.05]} mouth="closed" sweat={1} tremble={0.9} />
+          {/* сжатые дрожащие губы */}
+          <path d={`M470 1122 ${Array.from({ length: 8 }, (_, i) => `L${478 + i * 18} ${1118 + Math.sin(t * 38 + i * 1.7) * 3 - Math.sin((i / 7) * Math.PI) * 6}`).join(" ")} L610 1122`} stroke="#5a2a24" strokeWidth={10} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M488 1132 C520 1146 560 1146 594 1132" stroke="#b77a6a" strokeWidth={6} fill="none" opacity={0.7} />
+        </g>
+      </svg>
+      {/* глубокая тень на половине лица и холодный блик экрана снизу */}
+      <AbsoluteFill style={{ background: "linear-gradient(90deg, rgba(2,3,6,.86) 0%, rgba(2,3,6,.7) 38%, rgba(2,3,6,.15) 52%, rgba(0,0,0,0) 60%)" }} />
+      <AbsoluteFill style={{ background: "radial-gradient(48% 26% at 52% 96%, rgba(110,165,255,.6) 0%, rgba(110,165,255,0) 100%)", mixBlendMode: "screen" }} />
+      <AbsoluteFill style={{ background: "radial-gradient(70% 55% at 55% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,.8) 100%)" }} />
+    </AbsoluteFill>
   );
 };
 
