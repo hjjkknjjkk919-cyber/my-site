@@ -9,28 +9,35 @@ const shakeXY = (t: number, a: number) => `translate(${Math.sin(t * 61) * a} ${M
 /* ── 1. Тёмная спальня, диктофон у стены (3с) ── */
 export const S1Bedroom = () => {
   const t = useLT();
+  const rec = 0.6 + 0.4 * Math.sin(t * 6);
   return (
-    <Stage bg="#07080c" light={{ x: 760, y: 360, color: "#9fb8ff", r: 1100, o: 0.35, rays: true }} zoom={[1.0, 1.12]} origin={[600, 1180]}>
-      <rect width={1080} height={1920} fill="#141823" />
-      {Array.from({ length: 9 }, (_, i) => <path key={i} d={`M${i * 130} 0 V1400`} stroke="#1b2130" strokeWidth={26} />)}
-      <rect y={1400} width={1080} height={520} fill="#0d0f15" />
-      <rect x={600} y={180} width={360} height={520} fill="#0b1630" {...OL} />
-      <circle cx={850} cy={300} r={54} fill="#dfe8ff" opacity={0.9} />
-      {Array.from({ length: 14 }, (_, i) => <path key={i} d={`M600 ${200 + i * 30} q180 ${8 + Math.sin(t + i) * 4} 360 0`} stroke="#5b6ea8" strokeWidth={2} fill="none" opacity={0.25} />)}
-      <path d="M600 180 V700 M780 180 V700 M600 440 H960" stroke="#1b2130" strokeWidth={14} />
-      <path d={`M560 160 C600 360 ${590 + Math.sin(t) * 6} 560 570 760 L520 760 L520 160 Z`} fill="#3a2440" {...OL} />
-      <path d={`M1000 160 C960 360 ${970 - Math.sin(t) * 6} 560 990 760 L1040 760 L1040 160 Z`} fill="#3a2440" {...OL} />
-      <rect x={-40} y={1180} width={560} height={300} rx={30} fill="#2a2f3e" {...OL} />
-      <rect x={-40} y={1130} width={260} height={110} rx={40} fill="#d6d2c6" {...OL} />
-      {[60, 150, 250, 360, 450].map((x) => <path key={x} d={`M${x} 1250 q30 110 -10 220`} stroke="#1c2030" strokeWidth={5} fill="none" opacity={0.7} />)}
-      <rect x={620} y={1230} width={300} height={250} fill="#3a2a20" {...OL} />
-      <Glow id="s1g" x={700} y={1150} r={360} color="#ff3b3b" o={0.25 + 0.1 * Math.sin(t * 8)} />
-      <Phone x={700} y={1130} s={0.22} rot={-12} screen="#14080a">
-        <text x={260} y={300} textAnchor="middle" fontFamily={MONT} fontWeight={800} fontSize={90} fill="#fff">03:02</text>
-        <circle cx={260} cy={830} r={70} fill={RED} opacity={0.6 + 0.4 * Math.sin(t * 6)} />
-        <Wave t={t} x={40} y={560} w={440} h={260} />
+    <Stage bg="#07080c" light={{ x: 540, y: 980, color: "#ff5a5a", r: 900, o: 0.32 }} zoom={[1.0, 1.16]} origin={[540, 980]}>
+      {/* вид строго сверху: край кровати, тумбочка, на ней лежит телефон */}
+      <rect width={1080} height={1920} fill="#0d0f15" />
+      <path d="M0 0 H210 C230 640 200 1280 220 1920 H0 Z" fill="#2a2f3e" />
+      {[40, 90, 140, 180].map((x, i) => <path key={i} d={`M${x} 0 C${x + 20} 600 ${x - 20} 1300 ${x + 10} 1920`} stroke="#1c2030" strokeWidth={5} fill="none" />)}
+      <rect x={250} y={300} width={790} height={1400} rx={18} fill="#4a3324" {...OL} />
+      {Array.from({ length: 12 }, (_, i) => <path key={i} d={`M${260 + i * 66} 300 C${276 + i * 66} 800 ${248 + i * 66} 1200 ${266 + i * 66} 1700`} stroke="#3c281b" strokeWidth={5} fill="none" opacity={0.8} />)}
+      <rect x={250} y={300} width={790} height={1400} rx={18} fill="none" stroke="#6a4a34" strokeWidth={6} opacity={0.6} />
+      {/* лампа, стакан воды, будильник 03:02 */}
+      <circle cx={850} cy={480} r={130} fill="#2b2b2f" {...OL} />
+      <circle cx={850} cy={480} r={60} fill="#3c3c42" />
+      <circle cx={420} cy={480} r={70} fill="rgba(190,215,240,.25)" stroke="#cfe0f0" strokeWidth={5} />
+      <circle cx={420} cy={480} r={52} fill="rgba(150,190,230,.18)" />
+      <path d="M396 456 a30 30 0 0 1 40 -10" stroke="#fff" strokeWidth={4} fill="none" opacity={0.6} />
+      <rect x={520} y={510} width={190} height={100} rx={18} fill="#16161a" {...OL} />
+      <text x={615} y={580} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={54} fill="#ff3b3b">03:02</text>
+      {/* телефон лежит ровно, с тенью */}
+      <rect x={350} y={640} width={400} height={790} rx={58} fill="#000" opacity={0.5} filter="url(#pk-blur)" transform="translate(14 24)" />
+      <Phone x={550} y={1030} s={0.7} screen="#14080a">
+        <text x={260} y={150} textAnchor="middle" fontFamily={MONT} fontWeight={700} fontSize={34} fill="#c9a0a0">Диктофон</text>
+        <text x={260} y={280} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={100} fill="#fff">03:02</text>
+        <rect x={30} y={400} width={460} height={300} rx={20} fill="#1a1114" />
+        <Wave t={t} x={46} y={550} w={430} h={240} />
+        <circle cx={260} cy={860} r={74} fill={RED} opacity={rec} stroke={INK} strokeWidth={6} />
+        <text x={260} y={980} textAnchor="middle" fontFamily={MONT} fontWeight={800} fontSize={34} fill={RED} opacity={rec}>● REC</text>
       </Phone>
-      <text x={700} y={980} textAnchor="middle" fontFamily={MONT} fontWeight={800} fontSize={34} fill={RED} opacity={0.5 + 0.5 * Math.sin(t * 6)}>● REC</text>
+      <Glow id="s1g" x={550} y={1030} r={420} color="#ff3b3b" o={0.2 + 0.08 * Math.sin(t * 8)} />
     </Stage>
   );
 };
