@@ -12,22 +12,21 @@ import { S1Hook, S2Voice, S3Recruit, S4Shelf, S5Guard, S5Kitchen, S6Review } fro
 /* ── реплики: файл, кто говорит, текст субтитров (без цензуры), ключевые слова, цвет ── */
 type Line = { file: string; who: "dima" | "nuance"; text: string; keys: string[]; color: string };
 const LINES: Line[] = [
-  { file: "01_dima_hook", who: "dima", text: "Купил, блядь, шкаф на Авито за пятьсот рублей. В описании: небольшой нюанс и приписка — ночью свет в прихожей не включать. Ну спасибо, сука, не наебал.", keys: ["небольшой", "нюанс", "свет"], color: ORANGE },
-  { file: "02_dima_voice", who: "dima", text: "Слышь, Валера, ты про трёхметрового демона ни слова не писал. Кидай триста рублей обратно, либо я тебе такой отзыв въебу — хуй ты тут больше чё продашь.", keys: ["демона", "отзыв"], color: REDK },
-  { file: "03_nuance_sorry", who: "nuance", text: "Бля, братан... ну чё сразу единицу-то... Я вообще не Валера, я в комплекте шёл.", keys: ["единицу-то", "комплекте"], color: ORANGE },
+  { file: "01_dima_hook", who: "dima", text: "Купил, блядь, шкаф на Авито за пятьсот рублей. В описании: небольшой нюанс, ночью свет в прихожей не включать. Ну спасибо, сука.", keys: ["небольшой", "нюанс", "свет"], color: ORANGE },
+  { file: "02_dima_voice", who: "dima", text: "Слышь, Валера, про трёхметрового демона ни слова не было. Кидай триста обратно, или такой отзыв въебу — хуй чё продашь.", keys: ["демона", "отзыв"], color: REDK },
+  { file: "03_nuance_sorry", who: "nuance", text: "Бля, братан... я вообще не Валера. Я в комплекте шёл.", keys: ["валера.", "комплекте"], color: ORANGE },
   { file: "04_dima_drill", who: "dima", text: "Короче, возврата нет. Раз прописался на халяву — бери перфоратор, вешай полку в прихожей. А то кривая, аж бесит.", keys: ["перфоратор", "полку"], color: ORANGE },
-  { file: "05_nuance_argue", who: "nuance", text: "Слышь, я вообще-то древнее зло, а не муж на час. Где у вас тут стремянка?", keys: ["зло", "стремянка?"], color: ORANGE },
   { file: "06_nuance_wall", who: "nuance", text: "Пиздец, тут бетон армированный, сверло вообще нихуя не берёт...", keys: ["бетон"], color: REDK },
   { file: "07_dima_scold", who: "dima", text: "Не ной, блядь, ровнее держи. Правый край заваливаешь, рукожоп потусторонний.", keys: ["рукожоп"], color: ORANGE },
   { file: "08_dima_sleep", who: "dima", text: "Слышь, нюанс, сходи разберись, там какой-то долбоёб замок ковыряет.", keys: ["замок"], color: REDK },
-  { file: "09_nuance_thief", who: "nuance", text: "Мужчина, свет выключите, глаза режет. И дверью вы ошиблись — тут уже занято.", keys: ["свет", "занято"], color: ORANGE },
+  { file: "09_nuance_thief", who: "nuance", text: "Мужчина, свет выключите — глаза режет. И тут занято.", keys: ["свет", "занято."], color: ORANGE },
   { file: "11_dima_bills", who: "dima", text: "И посуду помой. А, и ещё — с тебя половина коммуналки. Свет жрёшь, воду льёшь.", keys: ["посуду", "коммуналки"], color: ORANGE },
   { file: "12_nuance_rent", who: "nuance", text: "Братан, я древнее зло! Я триста лет за аренду не платил!", keys: ["триста", "аренду"], color: REDK },
   { file: "13_dima_welcome", who: "dima", text: "Ну вот и начнёшь.", keys: ["начнёшь"], color: ORANGE },
-  { file: "10_dima_outro", who: "dima", text: "Поставил четыре звезды. Одну снял за то, что шкаф, сука, скрипит. А через час продавец пишет про диван с сюрпризом. Думаю, надо брать, хули.", keys: ["четыре", "диван"], color: ORANGE },
+  { file: "10_dima_outro", who: "dima", text: "Поставил четыре звезды — шкаф, сука, скрипит. А Валера уже пишет про диван с сюрпризом. Надо брать, хули.", keys: ["четыре", "диван"], color: ORANGE },
 ];
 const src = (f: string) => staticFile(`audio/avito/${f}.mp3`);
-const PAUSE = 0.35;
+const PAUSE = 0.25;
 
 export type AvitoProps = { durs: number[] };
 
@@ -52,7 +51,7 @@ const buildTimeline = (d: number[]): Timeline => {
   say(0, PAUSE);
   fx("creak", 0, 0.55);
   fx("whoosh", 1.0, 0.5);
-  scene(S1Hook, PAUSE + d[0] + 0.4, { ovalAt: PAUSE + d[0] * 0.35, yawnAt: PAUSE + d[0] + 0.02 });
+  scene(S1Hook, PAUSE + d[0] + PAUSE, { ovalAt: PAUSE + d[0] * 0.35, yawnAt: PAUSE + d[0] + 0.02 });
   // 2. голосовое → комедийная пауза 0.9 с («?», лапы за спину) → оправдания
   {
     const n1 = PAUSE + d[1] + 0.9;
@@ -63,69 +62,67 @@ const buildTimeline = (d: number[]): Timeline => {
     say(2, n1);
     scene(S2Voice, n1 + d[2] + PAUSE, { cut1: 2.6, cut2: n1 - 0.1, qAt: PAUSE + d[1] + 0.15 });
   }
-  // 3. чат 2.5 с без голоса → передача инструментов → ворчание Нюанса
+  // 3. чат 1.6 с без голоса → передача инструментов
   {
-    const chatEnd = 2.5;
+    const chatEnd = 1.2;
     const d3 = chatEnd + PAUSE;
     const handAt = d3 + d[3] * 0.62;
-    const n5 = d3 + d[3] + PAUSE;
     fx("sfx_chat", 0, 0.7);
     say(3, d3);
-    say(4, n5);
-    scene(S3Recruit, Math.max(n5 + d[4] + PAUSE, handAt + 2.6), { chatEnd, handAt });
+    scene(S3Recruit, Math.max(d3 + d[3] + PAUSE, handAt + 1.4), { chatEnd, handAt });
   }
   // 4. полка
   {
-    const n6 = 1.4;
-    const d7 = n6 + d[5] + PAUSE;
-    fx("drill", 0.2, 0.55);
-    say(5, n6);
-    say(6, d7);
-    scene(S4Shelf, d7 + d[6] + PAUSE, { drillOn: 0.2, drillOff: 1.6, fixAt: d7 + d[6] * 0.45 });
+    const n6 = 0.6;
+    const d7 = n6 + d[4] + PAUSE;
+    fx("drill", 0.1, 0.55);
+    say(4, n6);
+    say(5, d7);
+    scene(S4Shelf, d7 + d[5] + PAUSE, { drillOn: 0.1, drillOff: 1.2, fixAt: d7 + d[5] * 0.45 });
   }
   // 4½. кухня: посуда и коммуналка
   {
-    const n12 = PAUSE + d[9] + PAUSE;
-    const d13 = n12 + d[10] + PAUSE;
-    say(9, PAUSE);
+    const n12 = PAUSE + d[8] + PAUSE;
+    const d13 = n12 + d[9] + PAUSE;
+    say(8, PAUSE);
     fx("dish", n12 - 0.05, 0.7);
-    say(10, n12);
-    say(11, d13);
-    scene(S5Kitchen, d13 + d[11] + 0.7, { dropAt: n12 - 0.4, shockFrom: n12 - 0.4, shockTo: d13 + d[11] });
+    say(9, n12);
+    say(10, d13);
+    scene(S5Kitchen, d13 + d[10] + 0.3, { dropAt: n12 - 0.4, shockFrom: n12 - 0.4, shockTo: d13 + d[10] });
   }
-  // 5. 03:15: скважина → пятка в шкаф → вор щёлкает светом (условие из 1-й сцены) → обморок
+  // 5. 03:15: скважина → пятка в шкаф → вор щёлкает светом → обморок (паузы 0.25 с)
   {
-    const keyEnd = 2.6;
-    const d8 = keyEnd + 0.2;
-    const bedEnd = d8 + d[7] + PAUSE;
-    const openAt = bedEnd + 0.2;
-    const clickAt = openAt + 0.9;
-    const dropAt = clickAt + 0.3;
-    const cloudAt = clickAt + 0.35;
-    const n9 = clickAt + 0.6;
-    const fallAt = n9 + d[8] * 0.55;
+    const keyEnd = 1.5;
+    const d8 = keyEnd + 0.1;
+    const bedEnd = d8 + d[6] + 0.25;
+    const openAt = bedEnd + 0.15;
+    const clickAt = openAt + 0.6;
+    const dropAt = clickAt + 0.25;
+    const cloudAt = clickAt + 0.3;
+    const n9 = clickAt + 0.25;
+    const fallAt = n9 + d[7] * 0.6;
     fx("pick", 0.05, 0.7);
-    say(7, d8);
+    say(6, d8);
     fx("creak", openAt - 0.1, 0.5);
     fx("switch", clickAt - 0.05, 0.8);
     fx("thud", fallAt + 0.05, 0.85);
-    say(8, n9);
-    scene(S5Guard, n9 + d[8] + 0.6, { keyEnd, bedEnd, openAt, clickAt, dropAt, cloudAt, fallAt });
+    say(7, n9);
+    scene(S5Guard, n9 + d[7] + 0.3, { keyEnd, bedEnd, openAt, clickAt, dropAt, cloudAt, fallAt });
   }
-  // 6. утро: отзыв 4 из 5, пуш про диван, плашка на последние 3.5 с
+  // 6. утро: отзыв 4 из 5, пуш про диван, плашка на последние 3 с
   {
-    const pushAt = PAUSE + d[12] * 0.6;
-    const plateAt = PAUSE + d[12] + PAUSE;
-    say(12, PAUSE);
+    const pushAt = PAUSE + d[11] * 0.6;
+    const plateAt = PAUSE + d[11] + PAUSE;
+    say(11, PAUSE);
     fx("whoosh", 0.2, 0.4);
     fx("push", pushAt, 0.8);
     plate = cur + plateAt;
-    scene(S6Review, plateAt + 3.5, { pushAt, plateAt });
+    scene(S6Review, plateAt + 2.6, { pushAt, plateAt });
   }
   return { placed, vo, sfx, total: cur, plate };
 };
 
-const FALLBACK = [11.02, 8.52, 7.42, 7.37, 9.14, 7.34, 4.44, 3.55, 8.07, 6.64, 5.9, 1.1, 8.59];
+const FALLBACK = [7.91, 6.22, 5.32, 7.02, 6.99, 4.23, 3.38, 6.05, 6.17, 5.62, 1.04, 6.39];
 export const calcAvitoMetadata: CalculateMetadataFunction<AvitoProps> = async () => {
   const durs = await Promise.all(LINES.map((l) => getAudioDurationInSeconds(src(l.file))));
   return { durationInFrames: Math.ceil(buildTimeline(durs).total * 30), props: { durs } };

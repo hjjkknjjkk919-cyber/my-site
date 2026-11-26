@@ -185,8 +185,11 @@ export const DimaHead = ({ lid = 0.55, look = 0.1, yawn = 0 }: { lid?: number; l
     <path d="M-42 -704 H-12 M12 -704 H42" stroke={HAIR} strokeWidth={6} strokeLinecap="round" />
     <path d="M0 -676 q-6 18 4 22" {...OUT} fill="none" />
     <DimaMouth yawn={yawn} />
-    {Array.from({ length: 30 }, (_, i) => <circle key={i} cx={-36 + ((i * 23) % 72)} cy={-628 + ((i * 7) % 22)} r={1.5} fill={HAIR} opacity={0.6} />)}
-    {Array.from({ length: 10 }, (_, i) => <circle key={`c${i}`} cx={-52 + ((i * 31) % 104)} cy={-652 + ((i * 11) % 16)} r={1.3} fill={HAIR} opacity={0.45} />)}
+    {Array.from({ length: 34 }, (_, i) => {
+      const a = i * 2.39996;
+      const r = Math.sqrt((i + 0.5) / 34);
+      return <circle key={i} cx={Math.cos(a) * r * 44} cy={-618 + Math.sin(a) * r * 16} r={1.4} fill={HAIR} opacity={0.5} />;
+    })}
   </g>
 );
 

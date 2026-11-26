@@ -148,7 +148,7 @@ export const S3Recruit = ({ chatEnd, handAt }: { chatEnd: number; handAt: number
   const dL = lerp(lerp([110, 1460], m2, h2.go), [110, 1460], h2.done ? h2.back : 0);
   const nR = lerp(lerp([1000, 1500], [m2[0] + 70, m2[1] - 6], h2.go), [1010, 1400], h2.done ? h2.back : 0);
   const drill = (
-    <g transform="rotate(-90)">
+    <g transform="rotate(-15) scale(0.6)">
       <Drill t={t} />
     </g>
   );
@@ -197,10 +197,10 @@ export const S4Shelf = ({ drillOn, drillOff, fixAt }: { drillOn: number; drillOf
           crouch,
           head: 10,
           goggles: true,
-          armL: nuanceReach(-1, 260, 700, NX, FLOOR_Y, S, crouch),
+          armL: nuanceReach(-1, 290, 590, NX, FLOOR_Y, S, crouch),
           gripL: 1,
           itemL: <Drill t={t} on={on} flip />,
-          armR: nuanceReach(1, 600, 553, NX, FLOOR_Y, S, crouch),
+          armR: nuanceReach(1, 560, 553, NX, FLOOR_Y, S, crouch),
           gripR: 1,
           itemR: (
             <g transform={`rotate(${tilt})`}>
@@ -209,7 +209,7 @@ export const S4Shelf = ({ drillOn, drillOff, fixAt }: { drillOn: number; drillOf
           ),
         }}
       />
-      <Dima x={860} y={DY} s={1.7} t={t} pose={{ lean: 3, armL: dimaReach(-1, 600, 1110, 860, DY, 1.7), pointL: true, armR: dimaReach(1, 930, 1350, 860, DY, 1.7), itemR: <Mug t={t} steam />, head: -4 }} />
+      <Dima x={860} y={DY} s={1.7} t={t} pose={{ lean: 3, armL: dimaReach(-1, 640, 880, 860, DY, 1.7), pointL: true, armR: dimaReach(1, 930, 1350, 860, DY, 1.7), itemR: <Mug t={t} steam />, head: -4 }} />
       {on && <text x={70 + Math.sin(t * 70) * 5} y={470 + Math.cos(t * 60) * 4} fontFamily={MONT} fontWeight={900} fontSize={72} fill="#fff" stroke={LINE} strokeWidth={8} paintOrder="stroke" transform="rotate(-8 70 470)">ВЖЖЖ!</text>}
     </Shot>
   );
@@ -286,7 +286,7 @@ export const S5Guard = ({ keyEnd, bedEnd, openAt, clickAt, dropAt, cloudAt, fall
       <Room wall="#2f3530" pattern="#363d37" floor="#2c2420" />
       <FrontDoor x={DX} open={open} landing={landing} />
       <Backlight x={DX} y={900} r={460} o={0.28 * open} color="#fff2c4" />
-      <Nuance x={NX} y={FLOOR_Y} s={0.95} t={t} pose={{ armL: t > openAt - 0.4 ? nuanceReach(-1, hd.x, hd.y - 50, NX, FLOOR_Y, 0.95, 0, 1) : nuanceReach(-1, 620, 1020, NX, FLOOR_Y, 0.95, 0, 1), gripL: t > openAt - 0.4 ? 1 : 0, armR: nuanceReach(1, 880, 1020, NX, FLOOR_Y, 0.95, 0, -1), head: -10, squint: light > 0.5 ? 1 : 0 }} />
+      <Nuance x={NX} y={FLOOR_Y} s={0.95} t={t} pose={{ armL: t > openAt - 0.4 ? nuanceReach(-1, hd.x, hd.y - 50, NX, FLOOR_Y, 0.95, 0, 1) : nuanceReach(-1, 620, 1020, NX, FLOOR_Y, 0.95, 0, 1), gripL: t > openAt - 0.4 ? 1 : 0, armR: { sh: -4, el: -6 }, head: -10, squint: light > 0.5 ? 1 : 0 }} />
       {/* настенный выключатель у двери и верхний свет */}
       <rect x={110} y={860} width={54} height={80} rx={8} fill="#efeae0" {...OUT} />
       <rect x={126} y={light > 0 ? 872 : 896} width={22} height={32} rx={4} fill="#d9d2c4" {...OUT} />
@@ -340,7 +340,7 @@ export const S5Kitchen = ({ dropAt, shockFrom, shockTo }: { dropAt: number; shoc
   return (
     <Shot to={dur} origin={[540, 1000]}>
       <Room wall="#3d4a52" pattern="#46535c" floor="#5a4632" />
-      <Sink x={760} />
+      <Sink x={720} />
       <Backlight x={760} y={700} r={600} o={0.3} color="#fff2c4" />
       <Nuance
         x={NX}
@@ -352,8 +352,9 @@ export const S5Kitchen = ({ dropAt, shockFrom, shockTo }: { dropAt: number; shoc
           apron: true,
           head: 14 - shock * 18,
           guilty: shock,
-          armL: nuanceReach(-1, 690 + scrub - shock * 40, 1060 - shock * 150, NX, FLOOR_Y, 0.95, 0.62),
-          armR: nuanceReach(1, 830 - scrub + shock * 40, 1060 - shock * 150, NX, FLOOR_Y, 0.95, 0.62),
+          // моет посуду, а от шока вскидывает лапы по бокам головы
+          armL: nuanceReach(-1, 690 + scrub - shock * 150, 1060 - shock * 420, NX, FLOOR_Y, 0.95, 0.62),
+          armR: nuanceReach(1, 830 - scrub + shock * 150, 1060 - shock * 420, NX, FLOOR_Y, 0.95, 0.62),
           gripR: t < dropAt ? 1 : 0,
           itemR: t < dropAt ? <ellipse cx={0} cy={0} rx={60} ry={14} fill="#f4f1ea" stroke={LINE} strokeWidth={3} /> : undefined,
         }}
@@ -361,7 +362,7 @@ export const S5Kitchen = ({ dropAt, shockFrom, shockTo }: { dropAt: number; shoc
       {t >= dropAt && fall < 1 && <ellipse cx={870 + fall * 40} cy={1060 + fall * 330} rx={60} ry={14} fill="#f4f1ea" stroke={LINE} strokeWidth={3} transform={`rotate(${fall * 220} ${870 + fall * 40} ${1060 + fall * 330})`} />}
       {fall >= 1 && [0, 1, 2, 3].map((i) => <path key={i} d={`M${860 + i * 30} 1392 l18 -10 l10 14 Z`} fill="#f4f1ea" stroke={LINE} strokeWidth={2} />)}
       {t > dropAt + 0.35 && t < dropAt + 1.3 && <text x={720} y={960} fontFamily={MONT} fontWeight={900} fontSize={80} fill="#fff" stroke={LINE} strokeWidth={8} paintOrder="stroke" transform="rotate(-6 720 960)">ДЗЫНЬ!</text>}
-      <Dima x={280} y={DY} s={DS} t={t} pose={{ armR: dimaReach(1, 380 + show * 110, 1420 - show * 260, 280, DY, DS), itemR: <Receipt />, armL: dimaReach(-1, 140, 1330, 280, DY, DS), itemL: <Mug t={t} steam flip />, head: 4, look: 0.5 }} />
+      <Dima x={280} y={DY} s={DS} t={t} pose={{ armR: dimaReach(1, 380 + show * 110, 1420 - show * 260, 280, DY, DS), itemR: <g transform="scale(0.5)"><Receipt /></g>, armL: dimaReach(-1, 140, 1330, 280, DY, DS), itemL: <Mug t={t} steam flip />, head: 4, look: 0.5 }} />
     </Shot>
   );
 };

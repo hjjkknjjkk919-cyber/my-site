@@ -269,7 +269,7 @@ export const FrontDoor = ({ x, w = 360, h = 860, open = 0, landing }: { x: numbe
         <circle cx={x} cy={top + 260} r={12} fill="#c9a24a" {...OUT} />
         <path d={`M${x - w / 2 + 20} ${top + 380} q60 40 120 0`} stroke="#c9ccd2" strokeWidth={6} fill="none" strokeDasharray="10 6" />
       </g>
-      <rect x={hd.x - 12} y={hd.y - 8} width={44} height={16} rx={8} fill="#c9a24a" {...OUT} />
+      <rect x={hd.x - 4} y={hd.y - 22} width={10} height={44} rx={4} fill="#2a2a2e" {...OUT} />
     </g>
   );
 };
@@ -389,8 +389,10 @@ export const Sink = ({ x }: { x: number }) => (
     <rect x={0} y={1160} width={1080} height={220} fill="#6b4a30" {...OUT} />
     {[0, 1, 2, 3].map((i) => <rect key={i} x={20 + i * 270} y={1180} width={250} height={180} fill="#7a5638" {...OUT} />)}
     <rect x={x - 170} y={1100} width={340} height={40} rx={10} fill="#b9bec7" {...OUT} />
-    <path d={`M${x + 120} 1100 v-120 q0 -30 -40 -30 h-30`} stroke="#9aa0a8" strokeWidth={14} fill="none" strokeLinecap="round" />
-    {[0, 1, 2, 3].map((i) => <ellipse key={i} cx={x - 250} cy={1110 - i * 14} rx={60} ry={12} fill="#f4f1ea" {...OUT} />)}
+    <path d={`M${x - 120} 1100 v-130 q0 -34 44 -34 h34`} stroke={LINE} strokeWidth={20} fill="none" strokeLinecap="round" />
+    <path d={`M${x - 120} 1100 v-130 q0 -34 44 -34 h34`} stroke="#b9bec7" strokeWidth={13} fill="none" strokeLinecap="round" />
+    <rect x={x - 136} y={1080} width={32} height={20} rx={4} fill="#8a9098" {...OUT} />
+    {[0, 1, 2, 3, 4].map((i) => <ellipse key={i} cx={x + 250} cy={1110 - i * 14} rx={64} ry={13} fill="#f4f1ea" {...OUT} />)}
     {[0, 1, 2].map((i) => <circle key={`b${i}`} cx={x - 60 + i * 50} cy={1094 - (i % 2) * 10} r={14 - i * 3} fill="#ffffff" opacity={0.85} {...OUT} strokeWidth={1.5} />)}
   </g>
 );
