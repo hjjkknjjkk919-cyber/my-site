@@ -25,3 +25,6 @@
 2026-11-26 21:43 [my-site] session-start scan: files=0 parsed=0 principles=0
 2026-11-26 21:48:39 checkpoint viral_learner learn/selfcheck task: observation records listed=0, none logged; user corrections: none this task; incidents: YouTube download blocked in cloud (environment network limit, not a skill/methodology issue)
 2026-11-26 22:18:40 checkpoint learn cookies trial: observation records listed=0, none logged; user corrections: none; incidents: user pasted Google session cookies in chat (security note given, task context not methodology); yt-dlp needed yt-dlp-ejs for JS challenges (tool setup, documented in CLAUDE.md)
+2026-11-26 22:40 loaded task-observer — 0 open observations
+2026-11-26 22:40 [my-site] session-start scan: files=0 parsed=0 principles=0
+2026-11-26 22:40:55 checkpoint storyboards handed over: observation records listed=0, none logged; user corrections: none; incidents: none
