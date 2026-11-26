@@ -1,5 +1,5 @@
 import React from "react";
-import { MONT } from "../pelmeni/kit";
+import { MONT } from "../../pelmeni/kit";
 import { LINE, OUT } from "./rig";
 
 export const AMBER = "#ffb347";
@@ -9,7 +9,7 @@ export const FLOOR_Y = 1380;
 
 /* ── предметы в руке: начало координат — точка хвата ── */
 /** Кружка «МНЕ ПОХУЙ»; flip — ручка наружу для левой руки (ручка всегда от корпуса). */
-export const Mug = ({ t = 0, steam = false, flip = false }: { t?: number; steam?: boolean; flip?: boolean }) => (
+export const Mug = ({ t = 0, steam = false, flip = false, line2 = "ПОХУЙ" }: { t?: number; steam?: boolean; flip?: boolean; line2?: string }) => (
   // хват за ручку: надпись «МНЕ ПОХУЙ» остаётся открытой
   <g transform={`translate(${flip ? 58 : -58} 15)`}>
     {steam &&
@@ -23,7 +23,7 @@ export const Mug = ({ t = 0, steam = false, flip = false }: { t?: number; steam?
     <rect x={-42} y={-60} width={84} height={92} rx={9} fill="#f1ece2" {...OUT} />
     <ellipse cx={0} cy={-60} rx={42} ry={8} fill="#7a4a24" {...OUT} />
     <text x={0} y={-22} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={21} fill="#c0392b">МНЕ</text>
-    <text x={0} y={6} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={21} fill="#c0392b">ПОХУЙ</text>
+    <text x={0} y={6} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={21} fill="#c0392b">{line2}</text>
   </g>
 );
 
@@ -289,7 +289,8 @@ export const Oval = ({ cx, cy, rx, ry, k, color = "#e5262b" }: { cx: number; cy:
 /** Белая карточка Авито от Валеры Перекупа, наклон −2°. */
 export const AvitoCard = ({ x, y, k, oval }: { x: number; y: number; k: number; oval: number }) => (
   <g transform={`translate(${x} ${y + (1 - k) * -260}) rotate(-2)`} opacity={k}>
-    <rect x={-420} y={-180} width={840} height={360} rx={26} fill="#ffffff" {...OUT} />
+    <rect x={-420} y={-180} width={840} height={420} rx={26} fill="#ffffff" {...OUT} />
+    <text x={-396} y={212} fontFamily={MONT} fontWeight={800} fontSize={22} fill="#c0392b">P.S. Верхний свет в коридоре ночью при нём НЕ ВКЛЮЧАТЬ</text>
     <rect x={-396} y={-156} width={210} height={250} rx={16} fill="#5a3a24" />
     <rect x={-372} y={-134} width={162} height={206} fill="#3a2516" />
     <rect x={-290} y={-134} width={80} height={206} fill="#6b4630" stroke={LINE} strokeWidth={2} />
@@ -321,16 +322,16 @@ export const ChatScreen = ({ k1, k2, ban }: { k1: number; k2: number; ban: numbe
     <text x={284} y={318} fontFamily={MONT} fontWeight={600} fontSize={22} fill="#888">Шкаф СССР • 500 ₽</text>
     <g opacity={k1} transform={`translate(0 ${(1 - k1) * 30})`}>
       <rect x={440} y={410} width={460} height={110} rx={28} fill="#00aaff" />
-      <text x={464} y={458} fontFamily={MONT} fontWeight={700} fontSize={27} fill="#fff">В шкафу демон. Верни</text>
+      <text x={464} y={458} fontFamily={MONT} fontWeight={700} fontSize={27} fill="#fff">Тут демон в шкафу. Верни</text>
       <text x={464} y={496} fontFamily={MONT} fontWeight={700} fontSize={27} fill="#fff">300 ₽, или отзыв въебу</text>
     </g>
     <g opacity={k2} transform={`translate(0 ${(1 - k2) * 30})`}>
       <rect x={180} y={570} width={620} height={290} rx={28} fill="#ffffff" {...OUT} />
-      {["Я написал «нюанс», хули ты", "хотел за пятьсот рублей?", "Он тихий, хату сторожит.", "Возврата нет"].map((l, i) => (
+      {["Возврата нет. Он тихий,", "хату сторожит. Напоминаю:", "свет в коридоре ночью", "не врубать"].map((l, i) => (
         <text key={i} x={206} y={624 + i * 44} fontFamily={MONT} fontWeight={700} fontSize={28} fill="#111">{l}</text>
       ))}
       <text x={776} y={840} textAnchor="end" fontFamily={MONT} fontSize={20} fill="#999">23:41</text>
-      <Oval cx={330} cy={614} rx={150} ry={34} k={k2 > 0.95 ? 1 : 0} />
+      <Oval cx={420} cy={700} rx={210} ry={60} k={k2 > 0.95 ? 1 : 0} />
     </g>
     <g opacity={ban} transform={`translate(0 ${(1 - ban) * 120})`}>
       <rect x={176} y={1180} width={728} height={110} rx={24} fill="#5f6368" />
@@ -352,22 +353,21 @@ export const ReviewCard = ({ k, stars }: { k: number; stars: number }) => (
       return <path key={i} transform={`translate(${-330 + i * 100} -40) scale(${on ? 1 : 0.9})`} d="M0 -38 L11 -12 L38 -10 L17 8 L24 36 L0 21 L-24 36 L-17 8 L-38 -10 L-11 -12 Z" fill={on ? "#ffb400" : "#d9d9d9"} {...OUT} />;
     })}
     <text x={150} y={-28} fontFamily={MONT} fontWeight={900} fontSize={44} fill="#111">4 из 5</text>
-    {["Шкаф скрипит, но нюанс", "рукастый — полку повесил,", "вора отпугнул. Рекомендую"].map((l, i) => (
+    {["Шкаф скрипит, но нюанс рукастый —", "полку повесил, посуду помыл,", "вора отпугнул. Рекомендую"].map((l, i) => (
       <text key={i} x={-380} y={60 + i * 52} fontFamily={MONT} fontWeight={800} fontSize={40} fill="#222">{l}</text>
     ))}
   </g>
 );
 
 /** Пуш от Валеры Перекупа. */
-export const Push = ({ k }: { k: number }) => (
+export const Push = ({ k, lines = ["Брат, есть бабушкин диван с сюрпризом.", "Тебе как постояннику за косарь"] }: { k: number; lines?: string[] }) => (
   <g transform={`translate(540 ${300 - (1 - k) * 360})`} opacity={k}>
     <rect x={-480} y={-110} width={960} height={220} rx={36} fill="rgba(250,250,252,.97)" {...OUT} />
     <circle cx={-410} cy={-52} r={34} fill="#00aaff" />
     <text x={-410} y={-41} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={26} fill="#fff">ВП</text>
     <text x={-358} y={-60} fontFamily={MONT} fontWeight={900} fontSize={30} fill="#111">Валера Перекуп · Авито</text>
     <text x={-358} y={-26} fontFamily={MONT} fontWeight={600} fontSize={22} fill="#888">сейчас</text>
-    <text x={-440} y={28} fontFamily={MONT} fontWeight={800} fontSize={30} fill="#111">Брат, у меня ещё бабушкин диван есть...</text>
-    <text x={-440} y={72} fontFamily={MONT} fontWeight={800} fontSize={30} fill="#111">с сюрпризом. Тебе как постояннику за косарь</text>
+    {lines.map((l, i) => <text key={i} x={-440} y={28 + i * 44} fontFamily={MONT} fontWeight={800} fontSize={30} fill="#111">{l}</text>)}
   </g>
 );
 
@@ -377,5 +377,32 @@ export const Cloud = ({ x, y, text, k }: { x: number; y: number; text: string; k
     <path d="M-200 30 C-240 -20 -190 -80 -130 -66 C-110 -120 -20 -124 10 -80 C50 -120 150 -110 160 -50 C230 -50 240 30 180 50 C190 100 110 120 70 90 C30 130 -60 120 -80 86 C-140 110 -220 90 -200 30 Z" fill="#fff" {...OUT} />
     <path d="M-60 100 l-30 60 l60 -40 Z" fill="#fff" {...OUT} />
     <text x={0} y={18} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={46} fill="#c0392b">{text}</text>
+  </g>
+);
+
+
+/** Кухонная мойка со столешницей, фартуком из плитки и стопкой тарелок. */
+export const Sink = ({ x }: { x: number }) => (
+  <g>
+    {Array.from({ length: 6 }, (_, r) => Array.from({ length: 9 }, (_, c) => <rect key={`${r}-${c}`} x={c * 124 - 20} y={700 + r * 70} width={120} height={66} fill={(r + c) % 2 ? "#d9d4c6" : "#cfc9b8"} stroke="#b7b09d" strokeWidth={2} />))}
+    <rect x={0} y={1120} width={1080} height={40} fill="#8a6a46" {...OUT} />
+    <rect x={0} y={1160} width={1080} height={220} fill="#6b4a30" {...OUT} />
+    {[0, 1, 2, 3].map((i) => <rect key={i} x={20 + i * 270} y={1180} width={250} height={180} fill="#7a5638" {...OUT} />)}
+    <rect x={x - 170} y={1100} width={340} height={40} rx={10} fill="#b9bec7" {...OUT} />
+    <path d={`M${x + 120} 1100 v-120 q0 -30 -40 -30 h-30`} stroke="#9aa0a8" strokeWidth={14} fill="none" strokeLinecap="round" />
+    {[0, 1, 2, 3].map((i) => <ellipse key={i} cx={x - 250} cy={1110 - i * 14} rx={60} ry={12} fill="#f4f1ea" {...OUT} />)}
+    {[0, 1, 2].map((i) => <circle key={`b${i}`} cx={x - 60 + i * 50} cy={1094 - (i % 2) * 10} r={14 - i * 3} fill="#ffffff" opacity={0.85} {...OUT} strokeWidth={1.5} />)}
+  </g>
+);
+
+/** Квитанция ЖКХ в руке: половина — на Нюанса. */
+export const Receipt = () => (
+  <g transform="translate(-10 -150) rotate(-4)">
+    <rect x={-110} y={-140} width={220} height={290} fill="#fbfaf6" {...OUT} />
+    <text x={0} y={-100} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={22} fill="#111">КВИТАНЦИЯ ЖКХ</text>
+    {["Свет ........ 2 140 ₽", "Вода ........ 1 980 ₽", "Отопл. ..... 750 ₽"].map((l, i) => <text key={i} x={-94} y={-56 + i * 32} fontFamily={MONT} fontWeight={700} fontSize={17} fill="#444">{l}</text>)}
+    <text x={0} y={62} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={26} fill="#111">ИТОГО 4 870 ₽</text>
+    <text x={0} y={112} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={24} fill="#c0392b">½ — НЮАНС</text>
+    <Oval cx={0} cy={104} rx={92} ry={28} k={1} />
   </g>
 );

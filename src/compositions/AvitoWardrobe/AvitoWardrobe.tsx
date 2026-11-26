@@ -1,25 +1,30 @@
 import React, { useMemo } from "react";
 import { AbsoluteFill, type CalculateMetadataFunction, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { Audio } from "@remotion/media";
-import { getAudioDurationInSeconds, useAudioData, visualizeAudio } from "@remotion/media-utils";
-import { Sfx } from "../components/audio";
-import { DurCtx, ez, MONT } from "../pelmeni/kit";
+import { getAudioDurationInSeconds, useAudioData } from "@remotion/media-utils";
+import { speechEnergy } from "./useLipSync";
+import { Sfx } from "../../components/audio";
+import { DurCtx, ez, MONT } from "../../pelmeni/kit";
 import { ORANGE, REDK } from "./props";
 import { MouthCtx } from "./rig";
-import { S1Hook, S2Voice, S3Recruit, S4Shelf, S5Guard, S6Review } from "./scenes";
+import { S1Hook, S2Voice, S3Recruit, S4Shelf, S5Guard, S5Kitchen, S6Review } from "./scenes";
 
 /* ── реплики: файл, кто говорит, текст субтитров (без цензуры), ключевые слова, цвет ── */
 type Line = { file: string; who: "dima" | "nuance"; text: string; keys: string[]; color: string };
 const LINES: Line[] = [
-  { file: "01_dima_hook", who: "dima", text: "Купил, блядь, шкаф на Авито за пятьсот рублей... Продавец написал: самовывоз, без торга, внутри небольшой нюанс. Ну спасибо, сука, не наебал.", keys: ["небольшой", "нюанс"], color: ORANGE },
-  { file: "02_dima_voice", who: "dima", text: "Слышь, уёбок, ты про древнего демона в описании ни слова не писал. Либо кидаешь триста рублей обратно на карту, либо я тебе такой отзыв въебу — хуй ты тут больше чё продашь, Валера.", keys: ["демона", "отзыв", "валера"], color: REDK },
-  { file: "03_nuance_sorry", who: "nuance", text: "Р-р-р... Бля, братан... ну чё сразу единицу-то... я вообще не Валера...", keys: ["единицу-то", "валера"], color: ORANGE },
-  { file: "04_dima_drill", who: "dima", text: "Продавец кинул в ЧС, говорит — возврата нет, тварь неприхотливая. Ладно, хуй с тобой. Раз уж прописался на халяву — бери перфоратор, пойдёшь полку в прихожей вешать. А то кривая, аж бесит.", keys: ["чс", "перфоратор", "полку"], color: ORANGE },
-  { file: "05_nuance_wall", who: "nuance", text: "Пиздец... тут бетон армированный, сверло вообще нихуя не берёт...", keys: ["бетон"], color: REDK },
-  { file: "06_dima_scold", who: "dima", text: "Не ной, блядь, ровнее держи. Правый край заваливаешь, рукожоп потусторонний.", keys: ["рукожоп"], color: ORANGE },
-  { file: "07_dima_sleep", who: "dima", text: "Слышь, нюанс, сходи разберись, там какой-то долбоёб замок ковыряет, спать мешает.", keys: ["замок"], color: REDK },
-  { file: "08_nuance_thief", who: "nuance", text: "Мужчина, вы дверью ошиблись, тут уже занято. Хорошего вечера.", keys: ["занято"], color: ORANGE },
-  { file: "09_dima_outro", who: "dima", text: "Короче, поставил четыре звезды. Одну снял за то, что шкаф, сука, скрипит. А через час продавец пишет, что у него ещё бабушкин диван есть — с сюрпризом. Думаю, надо брать, хули.", keys: ["четыре", "диван"], color: ORANGE },
+  { file: "01_dima_hook", who: "dima", text: "Купил, блядь, шкаф на Авито за пятьсот рублей. В описании: небольшой нюанс и приписка — ночью свет в прихожей не включать. Ну спасибо, сука, не наебал.", keys: ["небольшой", "нюанс", "свет"], color: ORANGE },
+  { file: "02_dima_voice", who: "dima", text: "Слышь, Валера, ты про трёхметрового демона ни слова не писал. Кидай триста рублей обратно, либо я тебе такой отзыв въебу — хуй ты тут больше чё продашь.", keys: ["демона", "отзыв"], color: REDK },
+  { file: "03_nuance_sorry", who: "nuance", text: "Бля, братан... ну чё сразу единицу-то... Я вообще не Валера, я в комплекте шёл.", keys: ["единицу-то", "комплекте"], color: ORANGE },
+  { file: "04_dima_drill", who: "dima", text: "Короче, возврата нет. Раз прописался на халяву — бери перфоратор, вешай полку в прихожей. А то кривая, аж бесит.", keys: ["перфоратор", "полку"], color: ORANGE },
+  { file: "05_nuance_argue", who: "nuance", text: "Слышь, я вообще-то древнее зло, а не муж на час. Где у вас тут стремянка?", keys: ["зло", "стремянка?"], color: ORANGE },
+  { file: "06_nuance_wall", who: "nuance", text: "Пиздец, тут бетон армированный, сверло вообще нихуя не берёт...", keys: ["бетон"], color: REDK },
+  { file: "07_dima_scold", who: "dima", text: "Не ной, блядь, ровнее держи. Правый край заваливаешь, рукожоп потусторонний.", keys: ["рукожоп"], color: ORANGE },
+  { file: "08_dima_sleep", who: "dima", text: "Слышь, нюанс, сходи разберись, там какой-то долбоёб замок ковыряет.", keys: ["замок"], color: REDK },
+  { file: "09_nuance_thief", who: "nuance", text: "Мужчина, свет выключите, глаза режет. И дверью вы ошиблись — тут уже занято.", keys: ["свет", "занято"], color: ORANGE },
+  { file: "11_dima_bills", who: "dima", text: "И посуду помой. А, и ещё — с тебя половина коммуналки. Свет жрёшь, воду льёшь.", keys: ["посуду", "коммуналки"], color: ORANGE },
+  { file: "12_nuance_rent", who: "nuance", text: "Братан, я древнее зло! Я триста лет за аренду не платил!", keys: ["триста", "аренду"], color: REDK },
+  { file: "13_dima_welcome", who: "dima", text: "Ну вот и начнёшь.", keys: ["начнёшь"], color: ORANGE },
+  { file: "10_dima_outro", who: "dima", text: "Поставил четыре звезды. Одну снял за то, что шкаф, сука, скрипит. А через час продавец пишет про диван с сюрпризом. Думаю, надо брать, хули.", keys: ["четыре", "диван"], color: ORANGE },
 ];
 const src = (f: string) => staticFile(`audio/avito/${f}.mp3`);
 const PAUSE = 0.35;
@@ -35,6 +40,7 @@ const buildTimeline = (d: number[]): Timeline => {
   const vo: [number, number][] = [];
   const sfx: [string, number, number?, number?][] = [];
   let cur = 0;
+  let plate = 0;
   const scene = (Scene: React.FC<any>, length: number, props: object) => {
     placed.push({ Scene, from: cur, to: cur + length, props });
     cur += length;
@@ -42,66 +48,84 @@ const buildTimeline = (d: number[]): Timeline => {
   const say = (i: number, at: number) => vo.push([i, cur + at]);
   const fx = (name: string, at: number, vol?: number, dur?: number) => sfx.push([name, cur + at, vol, dur]);
 
-  // 1. хук
+  // 1. хук (пауза после — 0.4 с)
   say(0, PAUSE);
   fx("creak", 0, 0.55);
   fx("whoosh", 1.0, 0.5);
-  scene(S1Hook, PAUSE + d[0] + PAUSE, { ovalAt: PAUSE + d[0] * 0.66, yawnAt: PAUSE + d[0] + 0.05 });
-  // 2. голосовое → извинения
+  scene(S1Hook, PAUSE + d[0] + 0.4, { ovalAt: PAUSE + d[0] * 0.35, yawnAt: PAUSE + d[0] + 0.02 });
+  // 2. голосовое → комедийная пауза 0.9 с («?», лапы за спину) → оправдания
   {
-    const n1 = PAUSE + d[1] + PAUSE;
+    const n1 = PAUSE + d[1] + 0.9;
     fx("growl", 0.1, 0.5);
     fx("rec", 0.25, 0.6);
     say(1, PAUSE);
-    fx("sent", n1 - 0.25, 0.6);
+    fx("sent", PAUSE + d[1] + 0.05, 0.6);
     say(2, n1);
-    scene(S2Voice, n1 + d[2] + PAUSE, { cut1: 2.6, cut2: n1 - 0.1 });
+    scene(S2Voice, n1 + d[2] + PAUSE, { cut1: 2.6, cut2: n1 - 0.1, qAt: PAUSE + d[1] + 0.15 });
   }
-  // 3. чат → передача инструментов
+  // 3. чат 2.5 с без голоса → передача инструментов → ворчание Нюанса
   {
-    const chatEnd = 5.0;
-    const handAt = PAUSE + d[3] * 0.6;
-    say(3, PAUSE);
-    scene(S3Recruit, Math.max(PAUSE + d[3] + PAUSE, handAt + 2.6), { chatEnd, handAt });
+    const chatEnd = 2.5;
+    const d3 = chatEnd + PAUSE;
+    const handAt = d3 + d[3] * 0.62;
+    const n5 = d3 + d[3] + PAUSE;
+    fx("sfx_chat", 0, 0.7);
+    say(3, d3);
+    say(4, n5);
+    scene(S3Recruit, Math.max(n5 + d[4] + PAUSE, handAt + 2.6), { chatEnd, handAt });
   }
   // 4. полка
   {
-    const n2 = 1.4;
-    const d4 = n2 + d[4] + PAUSE;
+    const n6 = 1.4;
+    const d7 = n6 + d[5] + PAUSE;
     fx("drill", 0.2, 0.55);
-    say(4, n2);
-    say(5, d4);
-    scene(S4Shelf, d4 + d[5] + PAUSE, { drillOn: 0.2, drillOff: 1.6, fixAt: d4 + d[5] * 0.45 });
+    say(5, n6);
+    say(6, d7);
+    scene(S4Shelf, d7 + d[6] + PAUSE, { drillOn: 0.2, drillOff: 1.6, fixAt: d7 + d[6] * 0.45 });
   }
-  // 5. охрана в 03:15
+  // 4½. кухня: посуда и коммуналка
+  {
+    const n12 = PAUSE + d[9] + PAUSE;
+    const d13 = n12 + d[10] + PAUSE;
+    say(9, PAUSE);
+    fx("dish", n12 - 0.05, 0.7);
+    say(10, n12);
+    say(11, d13);
+    scene(S5Kitchen, d13 + d[11] + 0.7, { dropAt: n12 - 0.4, shockFrom: n12 - 0.4, shockTo: d13 + d[11] });
+  }
+  // 5. 03:15: скважина → пятка в шкаф → вор щёлкает светом (условие из 1-й сцены) → обморок
   {
     const keyEnd = 2.6;
-    const d5 = keyEnd + 0.2;
-    const bedEnd = d5 + d[6] + PAUSE;
+    const d8 = keyEnd + 0.2;
+    const bedEnd = d8 + d[7] + PAUSE;
     const openAt = bedEnd + 0.2;
-    const dropAt = openAt + 0.5;
-    const cloudAt = openAt + 0.6;
-    const n3 = openAt + 0.8;
-    const fallAt = n3 + d[7] * 0.62;
+    const clickAt = openAt + 0.9;
+    const dropAt = clickAt + 0.3;
+    const cloudAt = clickAt + 0.35;
+    const n9 = clickAt + 0.6;
+    const fallAt = n9 + d[8] * 0.55;
     fx("pick", 0.05, 0.7);
-    say(6, d5);
+    say(7, d8);
     fx("creak", openAt - 0.1, 0.5);
+    fx("switch", clickAt - 0.05, 0.8);
     fx("thud", fallAt + 0.05, 0.85);
-    say(7, n3);
-    scene(S5Guard, n3 + d[7] + 0.6, { keyEnd, bedEnd, openAt, dropAt, cloudAt, fallAt, talkAt: n3, talkEnd: n3 + d[7] });
+    say(8, n9);
+    scene(S5Guard, n9 + d[8] + 0.6, { keyEnd, bedEnd, openAt, clickAt, dropAt, cloudAt, fallAt });
   }
-  // 6. отзыв и диван
-  const pushAt = PAUSE + d[8] * 0.55;
-  const plateAt = PAUSE + d[8] + PAUSE;
-  say(8, PAUSE);
-  fx("whoosh", 0.2, 0.4);
-  fx("push", pushAt, 0.8);
-  const plate = cur + plateAt;
-  scene(S6Review, plateAt + 2.6, { pushAt, plateAt });
+  // 6. утро: отзыв 4 из 5, пуш про диван, плашка на последние 3.5 с
+  {
+    const pushAt = PAUSE + d[12] * 0.6;
+    const plateAt = PAUSE + d[12] + PAUSE;
+    say(12, PAUSE);
+    fx("whoosh", 0.2, 0.4);
+    fx("push", pushAt, 0.8);
+    plate = cur + plateAt;
+    scene(S6Review, plateAt + 3.5, { pushAt, plateAt });
+  }
   return { placed, vo, sfx, total: cur, plate };
 };
 
-const FALLBACK = [9.33, 10.27, 7.13, 12.59, 7.34, 4.44, 5.09, 5.22, 10.29];
+const FALLBACK = [11.02, 8.52, 7.42, 7.37, 9.14, 7.34, 4.44, 3.55, 8.07, 6.64, 5.9, 1.1, 8.59];
 export const calcAvitoMetadata: CalculateMetadataFunction<AvitoProps> = async () => {
   const durs = await Promise.all(LINES.map((l) => getAudioDurationInSeconds(src(l.file))));
   return { durationInFrames: Math.ceil(buildTimeline(durs).total * 30), props: { durs } };
@@ -152,7 +176,7 @@ const Subs = ({ t, chunks, plate }: { t: number; chunks: Chunk[]; plate: number 
 };
 
 /* ── капсула статуса ── */
-const NAV_TEXT = ["АВИТО • СДЕЛКА ЗА 500 ₽", "СПОР ПО ТОВАРУ", "", "ОТРАБОТКА В ПРИХОЖЕЙ", "03:15 • ВЗЛОМ ЗАМКА", "ОТЗЫВ: 4 ИЗ 5"];
+const NAV_TEXT = ["АВИТО • СДЕЛКА ЗА 500 ₽", "СПОР ПО ТОВАРУ", "", "ОТРАБОТКА В ПРИХОЖЕЙ", "ВЕЧЕР • КУХНЯ И КОММУНАЛКА", "03:15 • ВЗЛОМ ЗАМКА", "ОТЗЫВ: 4 ИЗ 5"];
 const Nav = ({ t, placed }: { t: number; placed: Placed[] }) => {
   const marks = placed.map((p, i) => [p.from, NAV_TEXT[i]] as [number, string]).filter(([, s]) => s);
   const i = marks.reduce((acc, [a], j) => (t >= a ? j : acc), 0);
@@ -182,14 +206,6 @@ const Film = ({ f }: { f: number }) => (
   </>
 );
 
-/** Громкость голоса на кадре: среднее нижних полос спектра реплики → 0..1. */
-const loudness = (data: ReturnType<typeof useAudioData>, frame: number) => {
-  if (!data || frame < 0) return 0;
-  const bins = visualizeAudio({ fps: 30, frame, audioData: data, numberOfSamples: 32, smoothing: true });
-  const lo = bins.slice(0, 12);
-  return Math.min(1, (lo.reduce((a, b) => a + b, 0) / lo.length) * 9);
-};
-
 export const AvitoWardrobe = ({ durs }: AvitoProps) => {
   const f = useCurrentFrame();
   const t = f / 30;
@@ -201,7 +217,7 @@ export const AvitoWardrobe = ({ durs }: AvitoProps) => {
   // lip-sync: рот двигается только у того, чья реплика звучит
   const mouth = { dima: 0, nuance: 0 };
   for (const [i, a] of tl.vo) {
-    if (t >= a && t < a + d[i]) mouth[LINES[i].who] = loudness(audio[i], f - Math.round(a * 30));
+    if (t >= a && t < a + d[i]) mouth[LINES[i].who] = speechEnergy(audio[i], f - Math.round(a * 30), 30);
   }
   return (
     <AbsoluteFill style={{ background: "#000" }}>

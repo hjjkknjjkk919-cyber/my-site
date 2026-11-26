@@ -8,7 +8,7 @@ import { Ep1Test, EP1_TEST_FRAMES } from "./train/Ep1Test";
 import { Ep1, EP1_FRAMES } from "./train/Ep1";
 import { DontOpen1, DO1_FRAMES } from "./dontopen/DontOpen";
 import { Pelmeni43, PEL_FRAMES } from "./pelmeni/Pelmeni43";
-import { AVITO_DEFAULT_FRAMES, AvitoWardrobe, calcAvitoMetadata } from "./avito/AvitoWardrobe";
+import { AVITO_DEFAULT_FRAMES, AvitoWardrobe, calcAvitoMetadata } from "./compositions/AvitoWardrobe/AvitoWardrobe";
 import { Choice3D, Pov3D, Station3D } from "./train/Pov3D";
 
 // Серия 1 «Улыбка»: длина = сумма сцен (~2:20)
