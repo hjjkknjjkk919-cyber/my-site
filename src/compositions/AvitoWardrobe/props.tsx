@@ -360,8 +360,8 @@ export const ReviewCard = ({ k, stars }: { k: number; stars: number }) => (
 );
 
 /** Пуш от Валеры Перекупа. */
-export const Push = ({ k, lines = ["Брат, есть бабушкин диван с сюрпризом.", "Тебе как постояннику за косарь"] }: { k: number; lines?: string[] }) => (
-  <g transform={`translate(540 ${300 - (1 - k) * 360})`} opacity={k}>
+export const Push = ({ k, y = 300, lines = ["Брат, есть бабушкин диван с сюрпризом.", "Тебе как постояннику за косарь"] }: { k: number; y?: number; lines?: string[] }) => (
+  <g transform={`translate(540 ${y - (1 - k) * 360})`} opacity={k}>
     <rect x={-480} y={-110} width={960} height={220} rx={36} fill="rgba(250,250,252,.97)" {...OUT} />
     <circle cx={-410} cy={-52} r={34} fill="#00aaff" />
     <text x={-410} y={-41} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={26} fill="#fff">ВП</text>
@@ -406,5 +406,28 @@ export const Receipt = () => (
     <text x={0} y={62} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={26} fill="#111">ИТОГО 4 870 ₽</text>
     <text x={0} y={112} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={24} fill="#c0392b">½ — НЮАНС</text>
     <Oval cx={0} cy={104} rx={92} ry={28} k={1} />
+  </g>
+);
+
+/** Веер розовых купюр 5000 ₽ в руке. */
+export const BillsFan = () => (
+  <g transform="translate(0 -70)">
+    {[-30, -12, 6, 24].map((a, i) => (
+      <g key={i} transform={`rotate(${a})`}>
+        <rect x={-30} y={-130} width={60} height={130} rx={5} fill="#F472B6" {...OUT} />
+        <text x={0} y={-60} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={14} fill="#831843" transform="rotate(-90 0 -60)">5000 ₽</text>
+      </g>
+    ))}
+  </g>
+);
+
+/** Отзыв 5 из 5: «Шкаф с изюминкой». */
+export const ReviewCard5 = ({ k }: { k: number }) => (
+  <g transform={`translate(540 ${545 + (1 - k) * 80}) scale(0.72) rotate(-2)`} opacity={k}>
+    <rect x={-440} y={-210} width={880} height={420} rx={30} fill="#ffffff" {...OUT} />
+    <text x={-390} y={-140} fontFamily={MONT} fontWeight={900} fontSize={48} fill="#111">Шкаф с изюминкой</text>
+    {[0, 1, 2, 3, 4].map((i) => <path key={i} transform={`translate(${-350 + i * 96} -50)`} d="M0 -36 L11 -12 L36 -10 L16 7 L22 34 L0 20 L-22 34 L-16 7 L-36 -10 L-11 -12 Z" fill="#ffb400" {...OUT} />)}
+    <text x={130} y={-38} fontFamily={MONT} fontWeight={900} fontSize={44} fill="#111">5 из 5</text>
+    {["Полку повесил, посуду помыл,", "отбил коммуналку. 5 из 5"].map((l, i) => <text key={i} x={-390} y={60 + i * 56} fontFamily={MONT} fontWeight={800} fontSize={42} fill="#222">{l}</text>)}
   </g>
 );

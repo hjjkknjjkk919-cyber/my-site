@@ -7,10 +7,10 @@ import { Sfx } from "../../components/audio";
 import { DurCtx, ez, MONT } from "../../pelmeni/kit";
 import { ORANGE, REDK } from "./props";
 import { MouthCtx } from "./rig";
-import { S1Hook, S2Voice, S3Recruit, S4Shelf, S5Guard, S5Kitchen, S6Review } from "./scenes";
+import { S1Hook, S2Voice, S3Recruit, S4Shelf, S5Climax, S5Kitchen, S6Payoff } from "./scenes";
 
 /* ── реплики: файл, кто говорит, текст субтитров (без цензуры), ключевые слова, цвет ── */
-type Line = { file: string; who: "dima" | "nuance"; text: string; keys: string[]; color: string };
+type Line = { file: string; who: "dima" | "nuance" | "robber"; text: string; keys: string[]; color: string };
 const LINES: Line[] = [
   { file: "01_dima_hook", who: "dima", text: "Купил, блядь, шкаф на Авито за пятьсот рублей. В описании: небольшой нюанс, ночью свет в прихожей не включать. Ну спасибо, сука.", keys: ["небольшой", "нюанс", "свет"], color: ORANGE },
   { file: "02_dima_voice", who: "dima", text: "Слышь, Валера, про трёхметрового демона ни слова не было. Кидай триста обратно, или такой отзыв въебу — хуй чё продашь.", keys: ["демона", "отзыв"], color: REDK },
@@ -19,11 +19,13 @@ const LINES: Line[] = [
   { file: "06_nuance_wall", who: "nuance", text: "Пиздец, тут бетон армированный, сверло вообще нихуя не берёт...", keys: ["бетон"], color: REDK },
   { file: "07_dima_scold", who: "dima", text: "Не ной, блядь, ровнее держи. Правый край заваливаешь, рукожоп потусторонний.", keys: ["рукожоп"], color: ORANGE },
   { file: "08_dima_sleep", who: "dima", text: "Слышь, нюанс, сходи разберись, там какой-то долбоёб замок ковыряет.", keys: ["замок"], color: REDK },
-  { file: "09_nuance_thief", who: "nuance", text: "Мужчина, свет выключите — глаза режет. И тут занято.", keys: ["свет", "занято."], color: ORANGE },
   { file: "11_dima_bills", who: "dima", text: "И посуду помой. А, и ещё — с тебя половина коммуналки. Свет жрёшь, воду льёшь.", keys: ["посуду", "коммуналки"], color: ORANGE },
   { file: "12_nuance_rent", who: "nuance", text: "Братан, я древнее зло! Я триста лет за аренду не платил!", keys: ["триста", "аренду"], color: REDK },
   { file: "13_dima_welcome", who: "dima", text: "Ну вот и начнёшь.", keys: ["начнёшь"], color: ORANGE },
-  { file: "10_dima_outro", who: "dima", text: "Поставил четыре звезды — шкаф, сука, скрипит. А Валера уже пишет про диван с сюрпризом. Надо брать, хули.", keys: ["четыре", "диван"], color: ORANGE },
+  { file: "09_robber", who: "robber", text: "Всем лежать, это ограбление!", keys: ["ограбление!"], color: REDK },
+  { file: "10_nuance_roar", who: "nuance", text: "СВЕТ ВЫКЛЮЧИ, СУКА! И С ТЕБЯ ТРЕТЬ ЗА КОММУНАЛКУ!", keys: ["свет", "коммуналку!"], color: REDK },
+  { file: "12_robber_scream", who: "robber", text: "ДА НУ НАХУЙ!", keys: ["нахуй!"], color: REDK },
+  { file: "11_dima_outro", who: "dima", text: "Короче, шкаф себя окупил за одну ночь. Поставил пять звёзд. А Валера уже пишет про диван с сюрпризом... Беру, хули — как раз на ремонт хватит.", keys: ["окупил", "пять", "диван"], color: ORANGE },
 ];
 const src = (f: string) => staticFile(`audio/avito/${f}.mp3`);
 const PAUSE = 0.25;
@@ -82,48 +84,54 @@ const buildTimeline = (d: number[]): Timeline => {
   }
   // 4½. кухня: посуда и коммуналка
   {
-    const n12 = PAUSE + d[8] + PAUSE;
-    const d13 = n12 + d[9] + PAUSE;
-    say(8, PAUSE);
+    const n12 = PAUSE + d[7] + PAUSE;
+    const d13 = n12 + d[8] + PAUSE;
+    say(7, PAUSE);
     fx("dish", n12 - 0.05, 0.7);
-    say(9, n12);
-    say(10, d13);
-    scene(S5Kitchen, d13 + d[10] + 0.3, { dropAt: n12 - 0.4, shockFrom: n12 - 0.4, shockTo: d13 + d[10] });
+    say(8, n12);
+    say(9, d13);
+    scene(S5Kitchen, d13 + d[9] + 0.3, { dropAt: n12 - 0.4, shockFrom: n12 - 0.4, shockTo: d13 + d[9] });
   }
-  // 5. 03:15: скважина → пятка в шкаф → вор щёлкает светом → обморок (паузы 0.25 с)
+  // 5. кульминация: скважина → пятка в шкаф → грабитель со стволом и светом → древний ужас и коммуналка
   {
-    const keyEnd = 1.5;
+    const keyEnd = 1.2;
     const d8 = keyEnd + 0.1;
-    const bedEnd = d8 + d[6] + 0.25;
-    const openAt = bedEnd + 0.15;
-    const clickAt = openAt + 0.6;
-    const dropAt = clickAt + 0.25;
-    const cloudAt = clickAt + 0.3;
-    const n9 = clickAt + 0.25;
-    const fallAt = n9 + d[7] * 0.6;
-    fx("pick", 0.05, 0.7);
+    const bedEnd = d8 + d[6] + 0.2;
+    const kickAt = bedEnd + 0.1;
+    const clickAt = bedEnd + 0.55;
+    const robberAt = clickAt + 0.15;
+    const horrorAt = robberAt + d[10] + 0.1;
+    const roarAt = horrorAt + 0.25;
+    const dropAt = roarAt + d[11] * 0.55;
+    const billsAt = dropAt + 0.2;
+    const screamAt = roarAt + d[11] + 0.05;
+    const exitAt = screamAt + d[12] * 0.6;
+    fx("pick", 0.02, 0.7);
     say(6, d8);
-    fx("creak", openAt - 0.1, 0.5);
+    fx("doorkick", kickAt, 0.85);
     fx("switch", clickAt - 0.05, 0.8);
-    fx("thud", fallAt + 0.05, 0.85);
-    say(7, n9);
-    scene(S5Guard, n9 + d[7] + 0.3, { keyEnd, bedEnd, openAt, clickAt, dropAt, cloudAt, fallAt });
+    say(10, robberAt);
+    fx("horror", horrorAt, 0.7);
+    say(11, roarAt);
+    fx("gun", dropAt + 0.35, 0.7);
+    fx("cash", billsAt, 0.6);
+    say(12, screamAt);
+    scene(S5Climax, screamAt + d[12] + 0.4, { keyEnd, bedEnd, kickAt, clickAt, horrorAt, dropAt, billsAt, screamAt, exitAt });
   }
-  // 6. утро: отзыв 4 из 5, пуш про диван, плашка на последние 3 с
+  // 6. утро: окупился, 5 из 5, пуш про диван; плашка — последние 3 с
   {
-    const pushAt = PAUSE + d[11] * 0.6;
-    const plateAt = PAUSE + d[11] + PAUSE;
-    say(11, PAUSE);
+    const pushAt = PAUSE + d[13] * 0.55;
+    const plateAt = PAUSE + d[13] + PAUSE;
+    say(13, PAUSE);
     fx("whoosh", 0.2, 0.4);
     fx("push", pushAt, 0.8);
-    // без финальной плашки: ролик заканчивается на отзыве и пуше про диван
-    plate = cur + plateAt + 1.2;
-    scene(S6Review, plateAt + 1.2, { pushAt });
+    plate = cur + plateAt;
+    scene(S6Payoff, plateAt + 3.0, { pushAt, plateAt });
   }
   return { placed, vo, sfx, total: cur, plate };
 };
 
-const FALLBACK = [7.91, 6.22, 5.32, 7.02, 6.99, 4.23, 3.38, 6.05, 6.17, 5.62, 1.04, 6.39];
+const FALLBACK = [7.91, 6.22, 5.32, 7.02, 6.99, 4.23, 3.38, 6.17, 5.62, 1.04, 2.19, 6.4, 1.57, 7.68];
 export const calcAvitoMetadata: CalculateMetadataFunction<AvitoProps> = async () => {
   const durs = await Promise.all(LINES.map((l) => getAudioDurationInSeconds(src(l.file))));
   return { durationInFrames: Math.ceil(buildTimeline(durs).total * 30), props: { durs } };
@@ -174,7 +182,7 @@ const Subs = ({ t, chunks, plate }: { t: number; chunks: Chunk[]; plate: number 
 };
 
 /* ── капсула статуса ── */
-const NAV_TEXT = ["АВИТО • СДЕЛКА ЗА 500 ₽", "СПОР ПО ТОВАРУ", "", "ОТРАБОТКА В ПРИХОЖЕЙ", "ВЕЧЕР • КУХНЯ И КОММУНАЛКА", "03:15 • ВЗЛОМ ЗАМКА", "ОТЗЫВ: 4 ИЗ 5"];
+const NAV_TEXT = ["АВИТО • СДЕЛКА ЗА 500 ₽", "СПОР ПО ТОВАРУ", "", "ОТРАБОТКА В ПРИХОЖЕЙ", "ВЕЧЕР • КУХНЯ И КОММУНАЛКА", "03:15 • ОГРАБЛЕНИЕ", "ОТЗЫВ: 5 ИЗ 5"];
 const Nav = ({ t, placed }: { t: number; placed: Placed[] }) => {
   const marks = placed.map((p, i) => [p.from, NAV_TEXT[i]] as [number, string]).filter(([, s]) => s);
   const i = marks.reduce((acc, [a], j) => (t >= a ? j : acc), 0);
@@ -213,7 +221,7 @@ export const AvitoWardrobe = ({ durs }: AvitoProps) => {
   const audio = LINES.map((l) => useAudioData(src(l.file)));
   const talking = (tt: number) => tl.vo.some(([i, a]) => tt > a - 0.1 && tt < a + d[i] + 0.1);
   // lip-sync: рот двигается только у того, чья реплика звучит
-  const mouth = { dima: 0, nuance: 0 };
+  const mouth = { dima: 0, nuance: 0, robber: 0 };
   for (const [i, a] of tl.vo) {
     if (t >= a && t < a + d[i]) mouth[LINES[i].who] = speechEnergy(audio[i], f - Math.round(a * 30), 30);
   }

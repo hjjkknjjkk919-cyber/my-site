@@ -260,6 +260,7 @@ export type NuancePose = {
   apron?: boolean;
   happy?: number;
   squint?: number;
+  horror?: number;
 };
 
 /**
@@ -318,7 +319,7 @@ export const Nuance = ({ x, y, s = 1, t, pose }: { x: number; y: number; s?: num
           {/* сутулость: голова ниже линии плеч, шея выгнута вперёд */}
           <g transform={`translate(0 40) rotate(${pose.head ?? 0} 0 -1000)`}>
             <path d="M-16 -1000 C-20 -1040 -10 -1070 0 -1086 C10 -1070 20 -1040 16 -1000 Z" fill={MON_SH} {...OUT} strokeWidth={2.5} />
-            <NuanceHead guilty={pose.guilty ?? 0} mouth={pose.mouth ?? 0} t={t} goggles={pose.goggles} happy={pose.happy ?? 0} squint={pose.squint ?? 0} />
+            <NuanceHead guilty={pose.guilty ?? 0} mouth={pose.mouth ?? 0} t={t} goggles={pose.goggles} happy={pose.happy ?? 0} squint={pose.squint ?? 0} horror={pose.horror ?? 0} />
           </g>
           {/* торс: горб, узкая талия, выступающие рёбра и ключицы */}
           <path d="M-46 -560 C-60 -700 -116 -880 -118 -950 C-118 -1000 -70 -1030 0 -1024 C70 -1030 118 -1000 118 -950 C116 -880 60 -700 46 -560 Z" fill={`url(#${id}-b)`} {...OUT} strokeWidth={2.5} />
@@ -351,7 +352,7 @@ export const Nuance = ({ x, y, s = 1, t, pose }: { x: number; y: number; s?: num
 };
 
 /** Голова Нюанса (центр 0,-1150): череп, растрёпанные пряди, провалы глазниц с асимметричными огоньками, кривая ухмылка с острыми зубами. */
-export const NuanceHead = ({ guilty = 0, mouth = 0, t = 0, goggles = false, happy = 0, squint = 0 }: { guilty?: number; mouth?: number; t?: number; goggles?: boolean; happy?: number; squint?: number }) => {
+export const NuanceHead = ({ guilty = 0, mouth = 0, t = 0, goggles = false, happy = 0, squint = 0, horror = 0 }: { guilty?: number; mouth?: number; t?: number; goggles?: boolean; happy?: number; squint?: number; horror?: number }) => {
   const id = uid();
   const amp = React.useContext(MouthCtx).nuance;
   const flick = 0.8 + 0.2 * Math.sin(t * 7);
@@ -368,7 +369,16 @@ export const NuanceHead = ({ guilty = 0, mouth = 0, t = 0, goggles = false, happ
       {/* надбровья: виноватая мина — внутренние концы вверх */}
       <path d={`M-58 ${-1196 + guilty * 6} L-12 ${-1190 - guilty * 14} M12 ${-1190 - guilty * 14} L58 ${-1196 + guilty * 6}`} stroke="#0c0d10" strokeWidth={9} strokeLinecap="round" />
       {/* провалы глазниц: огоньки разного размера и высоты */}
-      {squint > 0.5 ? (
+      {horror > 0.5 ? (
+        // режим древнего ужаса: огромные светящиеся провалы глаз
+        [-30, 31].map((cx) => (
+          <g key={cx}>
+            <ellipse cx={cx} cy={-1166} rx={30} ry={38} fill="#ffffff" opacity={0.35} />
+            <ellipse cx={cx} cy={-1166} rx={22} ry={30} fill="#ffffff" />
+            <ellipse cx={cx} cy={-1166} rx={8} ry={10} fill="#ffe9e9" />
+          </g>
+        ))
+      ) : squint > 0.5 ? (
         // зажмурился от яркого света
         [-30, 31].map((cx) => <path key={cx} d={`M${cx - 18} -1158 L${cx + 18} -1158`} stroke="#ffffff" strokeWidth={6} strokeLinecap="round" />)
       ) : happy > 0.5 ? (
@@ -388,8 +398,16 @@ export const NuanceHead = ({ guilty = 0, mouth = 0, t = 0, goggles = false, happ
           <path d="M-52 -1176 l12 0" stroke="#fff" strokeWidth={3} opacity={0.8} />
         </g>
       )}
+      {horror > 0.5 && (
+        // пасть на пол-головы, два ряда острых зубов
+        <g>
+          <ellipse cx={0} cy={-1060} rx={62} ry={30 + 26 * horror + amp * 20} fill="#0a0002" stroke="#000" strokeWidth={3} />
+          {Array.from({ length: 9 }, (_, i) => <path key={i} d={`M${-56 + i * 14} ${-1086 + Math.abs(i - 4) * 3} l7 22 l7 -22 Z`} fill="#f1ede2" stroke="#000" strokeWidth={1.5} />)}
+          {Array.from({ length: 8 }, (_, i) => <path key={`b${i}`} d={`M${-50 + i * 14} ${-1034 + horror * 26 - Math.abs(i - 3.5) * 3} l7 -20 l7 20 Z`} fill="#f1ede2" stroke="#000" strokeWidth={1.5} />)}
+        </g>
+      )}
       {/* рот: LipSyncMouth по энергии его реплики; вне реплик — оскал */}
-      <g transform="translate(0 -1104) scale(1.7) translate(0 1104)">
+      <g transform="translate(0 -1104) scale(1.7) translate(0 1104)" opacity={horror > 0.5 ? 0 : 1}>
         <LipSyncMouth viseme={amp > 0 ? visemeOf(amp) : mouth > 0.6 ? "wide" : mouth > 0.2 ? "narrow" : "closed"} variant="nuance" x={0} y={-1104} />
       </g>
     </g>
@@ -397,7 +415,7 @@ export const NuanceHead = ({ guilty = 0, mouth = 0, t = 0, goggles = false, happ
 };
 
 /** Вор в балаклаве и куртке, с мешком «₽». drop — уронил отмычку, dizzy — спиральки @_@. */
-export const Thief = ({ x, y, s = 1, t, dizzy = 0 }: { x: number; y: number; s?: number; t: number; dizzy?: number }) => {
+export const Thief = ({ x, y, s = 1, t, dizzy = 0, gun = false, grey = 0 }: { x: number; y: number; s?: number; t: number; dizzy?: number; gun?: boolean; grey?: number }) => {
   const shake = Math.sin(t * 60) * 2 * dizzy;
   return (
     <g transform={`translate(${x + shake} ${y}) scale(${s})`}>
@@ -412,7 +430,7 @@ export const Thief = ({ x, y, s = 1, t, dizzy = 0 }: { x: number; y: number; s?:
       <path d="M0 -572 V-310" stroke="#2a2c33" strokeWidth={4} />
       <rect x={-16} y={-610} width={32} height={50} fill="#101114" {...OUT} />
       {/* балаклава с прорезью для глаз */}
-      <ellipse cx={0} cy={-670} rx={62} ry={72} fill="#101114" {...OUT} />
+      <ellipse cx={0} cy={-670} rx={62} ry={72} fill={grey > 0.5 ? "#d9d9d6" : "#101114"} {...OUT} />
       <rect x={-48} y={-690} width={96} height={40} rx={18} fill={SKIN} {...OUT} />
       {dizzy > 0.5 ? (
         [-22, 22].map((ex) => <path key={ex} d={`M${ex} -670 m-10 0 a10 10 0 1 1 10 10 a6 6 0 1 1 -6 -6`} stroke={LINE} strokeWidth={3} fill="none" />)
@@ -423,10 +441,24 @@ export const Thief = ({ x, y, s = 1, t, dizzy = 0 }: { x: number; y: number; s?:
         </>
       )}
       {[-1, 1].map((d) => (
-        <g key={`a${d}`} transform={`rotate(${d * (dizzy > 0.5 ? 20 : 140)} ${d * 70} -540)`}>
+        <g key={`a${d}`} transform={`rotate(${gun && d === 1 ? -95 : d * (dizzy > 0.5 ? 20 : gun ? 14 : 140)} ${d * 70} -540)`}>
           <line x1={d * 70} y1={-540} x2={d * 70} y2={-300} stroke={LINE} strokeWidth={38} strokeLinecap="round" />
           <line x1={d * 70} y1={-540} x2={d * 70} y2={-300} stroke="#15161a" strokeWidth={32} strokeLinecap="round" />
-          <GripHand x={d * 70} y={-300} open />
+          {gun && d === 1 ? (
+            <GripHand
+              x={d * 70}
+              y={-300}
+              itemRot={95}
+              item={
+                <g>
+                  <rect x={-8} y={-6} width={22} height={40} rx={4} fill="#2a2a2e" {...OUT} />
+                  <rect x={-8} y={-26} width={84} height={24} rx={4} fill="#3a3a40" {...OUT} />
+                </g>
+              }
+            />
+          ) : (
+            <GripHand x={d * 70} y={-300} open />
+          )}
         </g>
       ))}
       {dizzy > 0 &&

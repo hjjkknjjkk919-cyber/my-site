@@ -1,8 +1,9 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
+import { FlyingBills, LightFlashOverlay } from "./ClimaxEffects";
 import { DurCtx, ez, MONT, useLT, useSpr } from "../../pelmeni/kit";
-import { AMBER, AvitoCard, ChatScreen, Cloud, Receipt, ReviewCard, Sink, doorHandle, Drill, FLOOR_Y, FrontDoor, HallDecor, Level, Mug, Nightstand, NightWindow, PhoneItem, Push, Room, Rug, Shelf, Wardrobe } from "./props";
-import { Dima, DimaHead, dimaReach, LINE, Nuance, nuanceReach, OUT, RIM, SOCK, Thief, ThiefDown } from "./rig";
+import { AMBER, AvitoCard, BillsFan, ChatScreen, Cloud, Receipt, ReviewCard5, Sink, doorHandle, Drill, FLOOR_Y, FrontDoor, HallDecor, Level, Mug, Nightstand, NightWindow, PhoneItem, Push, Room, Rug, Shelf, Wardrobe } from "./props";
+import { Dima, DimaHead, dimaReach, LINE, Nuance, nuanceReach, OUT, RIM, SOCK, Thief } from "./rig";
 
 /** Кадр: плавный наезд 1.0 → 1.07 за время плана. */
 const Shot = ({ from = 0, to, origin = [540, 960], bg = "#101216", children }: { from?: number; to: number; origin?: [number, number]; bg?: string; children: React.ReactNode }) => {
@@ -216,7 +217,7 @@ export const S4Shelf = ({ drillOn, drillOff, fixAt }: { drillOn: number; drillOf
 };
 
 /* ── 5. 03:15: скважина → Дима лицом в подушку стучит пяткой → Нюанс открывает вору ── */
-export const S5Guard = ({ keyEnd, bedEnd, openAt, clickAt, dropAt, cloudAt, fallAt }: { keyEnd: number; bedEnd: number; openAt: number; clickAt: number; dropAt: number; cloudAt: number; fallAt: number }) => {
+export const S5Climax = ({ keyEnd, bedEnd, kickAt, clickAt, horrorAt, dropAt, billsAt, screamAt, exitAt }: { keyEnd: number; bedEnd: number; kickAt: number; clickAt: number; horrorAt: number; dropAt: number; billsAt: number; screamAt: number; exitAt: number }) => {
   const t = useLT();
   const dur = React.useContext(DurCtx);
   if (t < keyEnd) {
@@ -267,57 +268,102 @@ export const S5Guard = ({ keyEnd, bedEnd, openAt, clickAt, dropAt, cloudAt, fall
       </Shot>
     );
   }
-  const open = ez(t, openAt, openAt + 0.7);
-  const down = t >= fallAt;
-  const dropped = ez(t, dropAt, dropAt + 0.35);
-  const DX = 420;
-  const hd = doorHandle(DX, 360, open);
-  const NX = 740;
-  const light = ez(t, clickAt, clickAt + 0.12) * (0.85 + 0.15 * Math.abs(Math.sin(t * 40)));
-  const landing = (
-    <g>
-      {!down && <Thief x={DX - 30} y={FLOOR_Y} s={0.88} t={t} dizzy={ez(t, cloudAt, cloudAt + 0.3)} />}
-      {/* выроненная отмычка падает на пол площадки */}
-      <rect x={DX - 120} y={FLOOR_Y - 400 + dropped * 392} width={80} height={8} rx={4} fill="#c9ccd2" {...OUT} transform={`rotate(${dropped * 70} ${DX - 80} ${FLOOR_Y - 396 + dropped * 392})`} opacity={t > dropAt - 0.1 ? 1 : 0} />
+  // выбитая дверь, вспышка света, режим древнего ужаса, грабитель седеет и вылетает
+  const open = ez(t, kickAt, kickAt + 0.18);
+  const lit = t >= clickAt;
+  const horror = ez(t, horrorAt, horrorAt + 0.25);
+  const exit = ez(t, exitAt, exitAt + 0.5);
+  const DX = 300;
+  const NX = 780;
+  const shake = horror > 0 ? `translate(${Math.sin(t * 57) * 9 * horror} ${Math.cos(t * 43) * 7 * horror})` : "";
+  const gunFall = ez(t, dropAt, dropAt + 0.4);
+  const robberX = DX + 10 - exit * 40;
+  const robber = exit < 1 && (
+    <g opacity={1 - exit} transform={`translate(${robberX} ${FLOOR_Y}) scale(${1 - exit * 0.5}) translate(${-robberX} ${-FLOOR_Y})`}>
+      <Thief x={robberX} y={FLOOR_Y} s={0.9} t={t} gun={t < dropAt} grey={t > horrorAt + 0.8 ? 1 : 0} dizzy={t > screamAt ? 1 : 0} />
     </g>
   );
   return (
-    <Shot from={bedEnd} to={dur} origin={[540, 1000]} bg="#0f1114">
-      <Room wall="#2f3530" pattern="#363d37" floor="#2c2420" />
-      <FrontDoor x={DX} open={open} landing={landing} />
-      <Backlight x={DX} y={900} r={460} o={0.28 * open} color="#fff2c4" />
-      <Nuance x={NX} y={FLOOR_Y} s={0.95} t={t} pose={{ armL: t > openAt - 0.4 ? nuanceReach(-1, hd.x, hd.y - 50, NX, FLOOR_Y, 0.95, 0, 1) : nuanceReach(-1, 620, 1020, NX, FLOOR_Y, 0.95, 0, 1), gripL: t > openAt - 0.4 ? 1 : 0, armR: { sh: -4, el: -6 }, head: -10, squint: light > 0.5 ? 1 : 0 }} />
-      {/* настенный выключатель у двери и верхний свет */}
-      <rect x={110} y={860} width={54} height={80} rx={8} fill="#efeae0" {...OUT} />
-      <rect x={126} y={light > 0 ? 872 : 896} width={22} height={32} rx={4} fill="#d9d2c4" {...OUT} />
-      <path d="M540 0 V140" stroke={LINE} strokeWidth={6} />
-      <ellipse cx={540} cy={150} rx={70} ry={22} fill={light > 0 ? "#fffbe0" : "#3a3a3a"} {...OUT} />
-      {light > 0 && <rect width={1080} height={1920} fill="#fff6d0" opacity={0.28 * light} style={{ mixBlendMode: "screen" }} />}
-      {light > 0 && <path d="M470 160 L170 1380 L910 1380 L610 160 Z" fill="#fffbe0" opacity={0.18 * light} />}
-      {t > clickAt && t < clickAt + 0.8 && <text x={190} y={830} fontFamily={MONT} fontWeight={900} fontSize={64} fill="#fff" stroke={LINE} strokeWidth={8} paintOrder="stroke" transform="rotate(-8 190 830)">ЩЕЛК!</text>}
-      {down && <ThiefDown x={380} y={1580} s={0.9} t={t} />}
-      {down && <rect x={560} y={1566} width={80} height={8} rx={4} fill="#c9ccd2" {...OUT} transform="rotate(12 600 1570)" />}
-      {t > cloudAt && !down && <Cloud x={DX - 30} y={300} text="ДА НУ НАХУЙ" k={ez(t, cloudAt, cloudAt + 0.25)} />}
-    </Shot>
+    <AbsoluteFill style={{ background: "#0f1114" }}>
+      <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
+        <g transform={shake}>
+          <Room wall="#2f3530" pattern="#363d37" floor="#2c2420" />
+          <FrontDoor x={DX} open={open} landing={robber} />
+          <rect x={110} y={860} width={54} height={80} rx={8} fill="#efeae0" {...OUT} />
+          <rect x={126} y={lit ? 872 : 896} width={22} height={32} rx={4} fill="#d9d2c4" {...OUT} />
+          <path d="M540 0 V140" stroke={LINE} strokeWidth={6} />
+          <ellipse cx={540} cy={150} rx={70} ry={22} fill={lit ? "#fffbe0" : "#3a3a3a"} {...OUT} />
+          {/* чёрно-багровая аура вокруг Нюанса */}
+          {horror > 0 && (
+            <>
+              <defs>
+                <radialGradient id="aura">
+                  <stop offset="0%" stopColor="#3a0008" stopOpacity={0.9} />
+                  <stop offset="60%" stopColor="#14000a" stopOpacity={0.7} />
+                  <stop offset="100%" stopColor="#000" stopOpacity={0} />
+                </radialGradient>
+              </defs>
+              <circle cx={NX} cy={760} r={(520 + Math.sin(t * 12) * 40) * horror} fill="url(#aura)" />
+            </>
+          )}
+          <Nuance
+            x={NX}
+            y={FLOOR_Y}
+            s={0.95}
+            t={t}
+            pose={{
+              apron: true,
+              crouch: 0.25 * horror,
+              head: -14 * horror,
+              horror,
+              squint: lit && horror === 0 ? 1 : 0,
+              armL: horror > 0 ? nuanceReach(-1, 520, 760, NX, FLOOR_Y, 0.95, 0.25 * horror) : nuanceReach(-1, 640, 1060, NX, FLOOR_Y, 0.95),
+              gripL: horror > 0 ? 1 : 0,
+              itemL: horror > 0 ? <g transform="scale(0.55)"><Receipt /></g> : undefined,
+              armR: horror > 0 ? nuanceReach(1, 1010, 620, NX, FLOOR_Y, 0.95, 0.25 * horror) : { sh: -4, el: -6 },
+            }}
+          />
+          {/* выроненный пистолет */}
+          {t >= dropAt && <g transform={`translate(${DX + 110 - gunFall * 30} ${FLOOR_Y - 330 + gunFall * 318}) rotate(${gunFall * 160})`}><rect x={-8} y={-6} width={22} height={40} rx={4} fill="#2a2a2e" {...OUT} /><rect x={-8} y={-26} width={84} height={24} rx={4} fill="#3a3a40" {...OUT} /></g>}
+          <FlyingBills startFrame={Math.round(billsAt * 30)} />
+          {t >= screamAt && exit < 1 && <Cloud x={robberX} y={360} text="ДА НУ НАХУЙ" k={ez(t, screamAt, screamAt + 0.2) * (1 - exit)} />}
+          {t >= clickAt && t < clickAt + 0.8 && <text x={190} y={830} fontFamily={MONT} fontWeight={900} fontSize={64} fill="#fff" stroke={LINE} strokeWidth={8} paintOrder="stroke" transform="rotate(-8 190 830)">ЩЕЛК!</text>}
+        </g>
+        {!lit && <rect width={1080} height={1920} fill="#05081a" opacity={0.45} />}
+        {lit && horror === 0 && <rect width={1080} height={1920} fill="#fff6d0" opacity={0.2} style={{ mixBlendMode: "screen" }} />}
+      </svg>
+      <LightFlashOverlay triggerFrame={Math.round(clickAt * 30)} />
+      <AbsoluteFill style={{ background: `radial-gradient(70% 55% at 60% 45%, rgba(0,0,0,0) 40%, rgba(40,0,8,${0.6 * horror}) 100%)`, pointerEvents: "none" }} />
+    </AbsoluteFill>
   );
 };
 
-/* ── 6. Утро: отзыв 4 из 5, пуш про диван, плашка ── */
-export const S6Review = ({ pushAt }: { pushAt: number }) => {
+/* ── 6. Утро: шкаф окупился — веер 5000 ₽, отзыв 5 из 5, пуш про диван, плашка ── */
+export const S6Payoff = ({ pushAt, plateAt }: { pushAt: number; plateAt: number }) => {
   const t = useLT();
   const dur = React.useContext(DurCtx);
-  const card = useSpr(0.2, 16, 100);
+  const card = useSpr(0.3, 16, 100);
   const push = useSpr(pushAt, 13, 120);
+  const plate = useSpr(plateAt, 12, 110);
+  const NX = 850;
+  const NS = 1.25;
   return (
-    <Shot to={dur} bg="#f1e9dc">
+    <Shot to={dur} bg="#f1e9dc" origin={[540, 1000]}>
       <Room wall="#d9cdb6" pattern="#cdbfa5" floor="#a07a52" />
       <rect x={60} y={300} width={300} height={430} fill="#bfe3ff" {...OUT} />
       <path d="M60 515 H360 M210 300 V730" stroke="#efe8da" strokeWidth={12} />
-      <Wardrobe x={820} w={380} open={0.3} />
-      <rect width={1080} height={1920} fill="#fff8e8" opacity={0.25} />
-      <Backlight x={210} y={500} r={900} o={0.5} color="#fff6d8" />
-      <ReviewCard k={card} stars={ez(t, 0.6, 1.6, 0, 4)} />
-      <Push k={push} />
+      <Wardrobe x={930} w={380} open={0.3} />
+      <rect width={1080} height={1920} fill="#fff8e8" opacity={0.22} />
+      <Backlight x={210} y={500} r={900} o={0.45} color="#fff6d8" />
+      <Nuance x={NX} y={DY} s={NS} t={t} pose={{ apron: true, armL: { sh: 4, el: 2 }, armR: { sh: -4, el: -2 }, head: -4 }} />
+      <Dima x={290} y={DY} s={DS} t={t} pose={{ armR: dimaReach(1, 470, 1250, 290, DY, DS), itemR: <BillsFan />, armL: dimaReach(-1, 150, 1330, 290, DY, DS), itemL: <Mug t={t} steam flip />, head: 3 }} />
+      <ReviewCard5 k={card} />
+      <Push k={push} y={268} />
+      <g opacity={plate} transform={`translate(540 ${1500 + (1 - plate) * 80})`}>
+        <rect x={-490} y={-130} width={980} height={260} rx={30} fill="#111" stroke={RIM} strokeWidth={6} />
+        <text x={0} y={-22} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={56} fill="#fff">ЖДЁШЬ СЕРИЮ ПРО ДИВАН?</text>
+        <text x={0} y={62} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={56} fill="#F5A623">СТАВЬ + В КОММЕНТАХ</text>
+      </g>
     </Shot>
   );
 };
@@ -347,8 +393,9 @@ export const S5Kitchen = ({ dropAt, shockFrom, shockTo }: { dropAt: number; shoc
           head: 14 - shock * 18,
           guilty: shock,
           // моет посуду, а от шока вскидывает лапы по бокам головы
-          armL: nuanceReach(-1, 690 + scrub - shock * 150, 1060 - shock * 420, NX, FLOOR_Y, 0.95, 0.62),
-          armR: nuanceReach(1, 830 - scrub + shock * 150, 1060 - shock * 420, NX, FLOOR_Y, 0.95, 0.62),
+          // испуг «\o/»: лапы согнуты вверх над плечами, не уходят к Диме и за край кадра
+          armL: nuanceReach(-1, 690 + scrub - shock * 90, 1060 - shock * 690, NX, FLOOR_Y, 0.95, 0.62),
+          armR: nuanceReach(1, 830 - scrub + shock * 90, 1060 - shock * 690, NX, FLOOR_Y, 0.95, 0.62),
           gripR: t < dropAt ? 1 : 0,
           itemR: t < dropAt ? <ellipse cx={0} cy={0} rx={60} ry={14} fill="#f4f1ea" stroke={LINE} strokeWidth={3} /> : undefined,
         }}
