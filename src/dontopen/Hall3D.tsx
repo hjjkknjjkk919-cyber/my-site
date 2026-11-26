@@ -967,22 +967,26 @@ const drawMid = (g: CanvasRenderingContext2D) => {
   g.save();
   g.translate(560, 560);
   g.rotate(-0.42);
-  // волосы сзади
-  // волосы сзади: рваные пряди, а не ровный капюшон
-  g.fillStyle = "#100b09";
-  g.beginPath();
-  g.ellipse(0, -55, 80, 85, 0, 0, Math.PI * 2);
-  g.fill();
-  g.strokeStyle = "#100b09";
-  g.lineCap = "round";
-  for (let i = 0; i < 14; i++) {
-    const a = Math.PI * (0.05 + (i / 13) * 0.9);
-    g.lineWidth = 6 + rnd(i + 9700) * 6;
+  // длинные волосы сзади: пряди от пробора по макушке вниз, ниже плеч
+  const strand = (x0: number, y0: number, x1: number, y1: number, sway: number, w: number, col: string) => {
+    g.strokeStyle = col;
+    g.lineWidth = w;
+    g.lineCap = "round";
     g.beginPath();
-    g.moveTo(Math.cos(a) * 70, -40 - Math.sin(a) * 60);
-    g.quadraticCurveTo(Math.cos(a) * 95, 20, Math.cos(a) * (80 + rnd(i + 9701) * 30), 60 + rnd(i + 9702) * 90);
+    g.moveTo(x0, y0);
+    g.bezierCurveTo(x0 + sway * 0.6, y0 + (y1 - y0) * 0.3, x1 - sway, y0 + (y1 - y0) * 0.65, x1, y1);
     g.stroke();
+  };
+  for (let i = 0; i < 70; i++) {
+    const a = Math.PI * (1.05 + (i / 69) * 0.9); // по макушке от уха до уха
+    const x0 = Math.cos(a) * 66;
+    const y0 = -12 + Math.sin(a) * 118;
+    const side = Math.cos(a);
+    const x1 = side * (70 + rnd(i + 9800) * 60) + (rnd(i + 9801) - 0.5) * 30;
+    const y1 = 220 + rnd(i + 9802) * 260;
+    strand(x0, y0, x1, y1, side * 40 + (rnd(i + 9803) - 0.5) * 40, 3 + rnd(i + 9804) * 5, i % 5 ? "#0f0a08" : "#1d1410");
   }
+
   // вытянутое бледное лицо
   const fg = g.createLinearGradient(-70, 0, 70, 0);
   fg.addColorStop(0, PALE_SH);
@@ -995,22 +999,28 @@ const drawMid = (g: CanvasRenderingContext2D) => {
   g.strokeStyle = LINE2;
   g.lineWidth = 6;
   g.stroke();
-  // мамина причёска, растрёпанная, пряди падают на лицо
-  g.strokeStyle = "#140e0b";
-  g.lineCap = "round";
-  for (let i = 0; i < 26; i++) {
-    const x0 = -80 + rnd(i + 9500) * 160;
-    const len = 60 + rnd(i + 9501) * 150;
-    g.lineWidth = 4 + rnd(i + 9502) * 6;
-    g.beginPath();
-    g.moveTo(x0 * 0.6, -120);
-    g.bezierCurveTo(x0, -80, x0 + (rnd(i + 9503) - 0.5) * 60, -60 + len * 0.4, x0 + (rnd(i + 9504) - 0.5) * 40, -100 + len);
-    g.stroke();
+  // передние пряди: от пробора на лоб и по бокам лица, свисают вниз; тусклый блеск
+  for (let i = 0; i < 34; i++) {
+    const t = i / 33;
+    const a = Math.PI * (1.15 + t * 0.7);
+    const x0 = Math.cos(a) * 40;
+    const y0 = -118 + Math.abs(Math.cos(a)) * 30;
+    const side = x0 < 0 ? -1 : 1;
+    // пряди по краям лица длиннее; середина откинута, чтобы глаза читались
+    const edge = Math.abs(t - 0.5) * 2;
+    const x1 = side * (30 + edge * 50) + (rnd(i + 9900) - 0.5) * 24;
+    const y1 = -60 + edge * (200 + rnd(i + 9901) * 160);
+    strand(x0, y0, x1, y1, side * (20 + edge * 30), 2.5 + rnd(i + 9902) * 4, "#120c09");
   }
-  g.fillStyle = "#140e0b";
-  g.beginPath();
-  g.ellipse(0, -100, 85, 45, 0, Math.PI, Math.PI * 2);
-  g.fill();
+  for (let i = 0; i < 10; i++) {
+    const side = i % 2 ? -1 : 1;
+    const x0 = side * (20 + rnd(i + 9950) * 25);
+    strand(x0, -112, side * (46 + rnd(i + 9951) * 30), 80 + rnd(i + 9952) * 180, side * 20, 1.4, "rgba(120,110,100,.35)");
+  }
+  // пара прядей падает прямо на лицо, через переносицу
+  strand(-8, -110, 18, 70, 30, 3, "#120c09");
+  strand(10, -112, -24, 30, -26, 2.5, "#120c09");
+
   // глаза: чёрные провалы на разной высоте с крошечными белыми зрачками
   const socket = (x: number, y: number, rx: number, ry: number, rot: number, px: number, py: number) => {
     g.save();
