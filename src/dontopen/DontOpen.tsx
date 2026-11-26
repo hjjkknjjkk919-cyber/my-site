@@ -143,7 +143,7 @@ export const DontOpen1 = () => {
         Array.from({ length: 6 }, (_, i) => (
           <div key={i} style={{ position: "absolute", left: 0, right: 0, top: ((steps * 37 + i * 311) % 1800) + 40, height: 8 + ((i * 13) % 30), background: i % 2 ? "rgba(255,255,255,.12)" : "rgba(0,0,0,.6)", transform: `translateX(${(i % 2 ? 1 : -1) * 40}px)` }} />
         ))}
-      {t >= 4.3 && t < 7.0 && <Plate text="5 МИНУТ СПУСТЯ" />}
+      {t >= 4.3 && t < 5.8 && <Plate text="5 МИНУТ СПУСТЯ" />}
       {t >= 7.0 && t < 8.5 && <Plate text="5 МИНУТ ДО ЭТОГО" />}
       {/* единое плёночное зерно и глубокая виньетка поверх 2D и 3D */}
       <AbsoluteFill style={{ mixBlendMode: "overlay", opacity: 0.18, pointerEvents: "none" }}>

@@ -125,10 +125,10 @@ export const BedSitUp = () => {
           <path d="M440 1330 C470 1380 610 1380 640 1330" fill="none" stroke={LINE} strokeWidth="6" />
           <path d="M300 1520 C340 1560 360 1620 370 1700 M780 1520 C740 1570 720 1630 712 1700" stroke={TEE_SH} strokeWidth="8" fill="none" />
           {/* голова */}
-          <g transform={`translate(0 0) translate(540 900) scale(0.62) translate(-540 -900) rotate(${(1 - up) * 14} 540 1300)`}>
+          <g transform={`translate(0 0) translate(540 1075) scale(0.62) translate(-540 -900) rotate(${(1 - up) * 14} 540 1300)`} style={{ filter: "drop-shadow(5px -2px 3px rgba(217,155,56,.55))" }}>
             <defs>
               <clipPath id="doHead">
-                <rect x="-200" y="-200" width="1480" height="1520" />
+                <rect x="-200" y="-200" width="1480" height="1430" />
               </clipPath>
             </defs>
             <g clipPath="url(#doHead)">
@@ -205,9 +205,10 @@ const Mom = ({ t, smile, near, talk }: { t: number; smile: number; near: number;
       {/* рот: слишком широкая улыбка → ровная линия */}
       {smile > 0.5 ? (
         <g transform={`translate(540 1068) scale(1 ${1 + talk * 0.9}) translate(-540 -1068)`}>
-          <path d="M420 1060 C470 1110 610 1110 660 1060 C620 1080 460 1080 420 1060 Z" fill="#5a1d1d" stroke={LINE} strokeWidth="5" />
-          <path d="M440 1066 C490 1082 590 1082 640 1066" stroke="#f1ece0" strokeWidth="9" fill="none" />
-          <path d="M410 1055 l-14 -6 M670 1055 l14 -6" stroke={LINE} strokeWidth="4" />
+          <path d="M372 1030 C440 1130 640 1130 708 1030 C640 1075 440 1075 372 1030 Z" fill="#3a0c0c" stroke={LINE} strokeWidth="6" />
+          <path d="M392 1042 C460 1072 620 1072 688 1042 L680 1056 C620 1080 460 1080 400 1056 Z" fill="#f1ece0" stroke={LINE} strokeWidth="2.5" />
+          {Array.from({ length: 13 }, (_, i) => <path key={i} d={`M${410 + i * 21} 1050 v14`} stroke={LINE} strokeWidth="2" />)}
+          <path d="M360 1022 l-16 -10 M720 1022 l16 -10" stroke={LINE} strokeWidth="5" />
         </g>
       ) : (
         <path d="M480 1075 C510 1072 570 1072 600 1075" stroke={LINE} strokeWidth="6" fill="none" />

@@ -5,7 +5,7 @@ import { Outlines, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { clamp } from "../components/fx";
 import { lamp } from "../train/lamp";
-import { Box, CamRig, Dust, INK, makeTex, OL, rnd, useMonsterTexture, type Pose } from "../train/Pov3D";
+import { Box, CamRig, Dust, INK, makeTex, OL, rnd, type Pose } from "../train/Pov3D";
 
 /**
  * «Не открывай», серия 1 — обжитая 3D-квартира: спальня → кухня → прихожая → подъезд.
@@ -14,8 +14,10 @@ import { Box, CamRig, Dust, INK, makeTex, OL, rnd, useMonsterTexture, type Pose 
 const FPS = 30;
 const W = 1080;
 const H = 1920;
-const PHONE = "#b8dcff";
-const WARM = "#d9a043";
+const PHONE = "#9ec5ff";
+const WARM = "#d99b38";
+const RED = "#b81414";
+const SHADOW = "#070a10";
 
 // геометрия (метры): коридор вдоль −z, спальня у z=0, входная дверь на z=DOOR, кухня слева у z≈−1.2
 const HW = 0.72;
@@ -173,7 +175,11 @@ const makeBloodText = (font: string) =>
       while (g.measureText(txt).width > maxW && s > 10) g.font = `${--s}px ${F}`;
       const w = g.measureText(txt).width;
       const x0 = 512 - w / 2;
-      g.fillStyle = "rgba(18,2,3,.97)";
+      g.lineJoin = "round";
+      g.lineWidth = size * 0.12;
+      g.strokeStyle = "rgba(20,0,0,.97)";
+      g.strokeText(txt, x0, y);
+      g.fillStyle = "rgba(20,0,0,.98)";
       g.fillText(txt, x0, y);
       g.fillStyle = "rgba(60,6,8,.7)";
       g.fillText(txt, x0 + 2, y - 2);
@@ -220,7 +226,16 @@ const coatGeo = (len: number, r0: number, r1: number) => {
 
 const useHallMats = () =>
   useMemo(() => {
-    const std = (color: string, o: Partial<THREE.MeshStandardMaterialParameters> = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...o });
+    const std = (color: string, o: Partial<THREE.MeshStandardMaterialParameters> = {}) => {
+      const m = new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...o });
+      // процедурный PBR: та же карта служит рельефом и картой шероховатости
+      if (m.map) {
+        m.bumpMap = m.map;
+        m.bumpScale = 0.6;
+        m.roughnessMap = m.map;
+      }
+      return m;
+    };
     return {
       wall: std("#b8ad8c", { roughness: 0.9, map: makeWallpaper() }),
       floor: std("#9a7a5a", { roughness: 0.75, map: makeParquet() }),
@@ -240,9 +255,14 @@ const useHallMats = () =>
       mirror: std("#141a1c", { roughness: 0.05, metalness: 0.9 }),
       paper: std("#cfc7b0", { roughness: 1 }),
       mug: std("#c0392b", { roughness: 0.4 }),
-      skin: std("#8f8674", { roughness: 0.85, map: makeTex("grime", 2, 2) }),
-      skinDark: std("#4f473c", { roughness: 0.9 }),
-      claw: std("#1a1410", { roughness: 0.4 }),
+      skin: new THREE.MeshPhysicalMaterial({ color: "#403d38", roughness: 0.35, clearcoat: 0.18, clearcoatRoughness: 0.5, bumpMap: makeTex("grime", 3, 3), bumpScale: 1.5 }),
+      skinDark: std("#2e2d2a", { roughness: 0.5 }),
+      claw: std("#0d0b09", { roughness: 0.25 }),
+      eye: new THREE.MeshPhysicalMaterial({ color: "#16120e", roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.02 }),
+      pupil: new THREE.MeshPhysicalMaterial({ color: "#050505", roughness: 0.05, clearcoat: 1 }),
+      maw: new THREE.MeshStandardMaterial({ color: "#1a0303", roughness: 0.5, side: THREE.DoubleSide }),
+      tooth: new THREE.MeshPhysicalMaterial({ color: "#bfb38c", roughness: 0.3, clearcoat: 0.6 }),
+      blood: new THREE.MeshPhysicalMaterial({ color: "#140000", roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.1, transparent: true }),
       concrete: std("#8a8a82", { roughness: 0.95, map: makeConcrete() }),
       rug: std("#7a3030", { roughness: 1, map: makeRug() }),
       slipper: std("#3d4d63", { roughness: 0.9 }),
@@ -464,14 +484,14 @@ const FrontDoor = ({ g, hm }: { g: number; hm: HM }) => {
         </group>
       </group>
       {/* планка цепочки на коробке */}
-      <Box p={[0.5, 1.42, DOOR + 0.09]} s={[0.035, 0.14, 0.02]} m={hm.chrome} ol />
+      <Box p={[0.49, 1.42, DOOR + 0.086]} s={[0.035, 0.14, 0.012]} m={hm.chrome} ol />
       {g < T.finale &&
         Array.from({ length: links }, (_, i) => {
           const k = i / (links - 1);
           const sag = (1 - rat) * Math.sin(k * Math.PI) * 0.06;
           const jit = rat * Math.sin(g * 47 + i) * 0.005;
           return (
-            <mesh key={i} position={[0.49 - k * 0.2, 1.42 - sag + jit, DOOR + 0.1 - k * 0.04 * (1 + rat)]} rotation={[Math.PI / 2, i % 2 ? Math.PI / 2 : 0, 0.15 * (1 - rat)]} material={hm.chrome} castShadow>
+            <mesh key={i} position={[0.48 - k * 0.19, 1.42 - sag + jit, DOOR + 0.092 - k * 0.04]} rotation={[0, i % 2 ? Math.PI / 2 : 0, 0.15 * (1 - rat)]} material={hm.chrome} castShadow>
               <torusGeometry args={[0.02, 0.0055, 10, 16]} />
             </mesh>
           );
@@ -655,132 +675,223 @@ const Stairwell = ({ g, hm, blood }: { g: number; hm: HM; blood: THREE.Texture |
       ))}
       <Box p={[0.55, 0.95, DOOR - 1.6]} s={[0.04, 0.04, 1.6]} m={hm.woodDark} ol />
       {blood && (
-        <mesh position={[0, 1.35, DOOR - 2.46]}>
+        <mesh position={[0, 1.55, DOOR - 2.46]}>
           <planeGeometry args={[2.2, 2.2]} />
-          <meshStandardMaterial map={blood} transparent opacity={Math.max(reveal(0), 0.001)} roughness={0.35} depthWrite={false} />
+          <meshPhysicalMaterial map={blood} color="#ffffff" transparent opacity={Math.max(reveal(0), 0.001)} roughness={0.2} clearcoat={1} clearcoatRoughness={0.08} depthWrite={false} />
         </mesh>
       )}
       <mesh position={[0, 2.55, DOOR - 1.6]}>
         <boxGeometry args={[0.2, 0.08, 0.1]} />
         <meshStandardMaterial color="#ff2a1a" emissive={new THREE.Color("#ff2a1a")} emissiveIntensity={3 * pulse} />
       </mesh>
-      <pointLight position={[0, 2.35, DOOR - 1.5]} color="#ff2a1a" intensity={9 * pulse} distance={5} decay={1.4} />
+      <pointLight position={[0, 2.35, DOOR - 1.5]} color={RED} intensity={7 * pulse} distance={5} decay={1.4} />
+      {/* мягкий локальный свет на надпись — чтобы читалась на телефоне */}
+      <pointLight position={[0, 1.7, DOOR - 1.75]} color="#efe4cc" intensity={4.5} distance={2.2} decay={1.4} />
+      <pointLight position={[0.6, 1.2, DOOR - 1.9]} color="#efe4cc" intensity={1.5} distance={1.6} decay={1.6} />
+      {/* объёмный красный конус от аварийной лампы */}
+      <mesh position={[0, 1.6, DOOR - 1.6]} rotation={[0, 0, 0]}>
+        <coneGeometry args={[1.1, 1.9, 24, 1, true]} />
+        <meshBasicMaterial color={RED} transparent opacity={0.05 * pulse} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
     </group>
   );
 };
 
-// ── существо: объёмная сгорбленная фигура ────────────────────────────
-const useFaceTex = (monster: THREE.Texture | null) =>
-  useMemo(() => {
-    if (!monster) return null;
-    const t = monster.clone();
-    // лицо из текстуры CreatureGlass: голова x 330–770, y 280–1200 из 1080×1920
-    t.offset.set(0.3, 0.37);
-    t.repeat.set(0.42, 0.49);
-    t.needsUpdate = true;
-    return t;
-  }, [monster]);
-
-/** Рука существа с вывернутым назад локтем; lag — инерция (затухающее раскачивание). */
-const CreatureArm = ({ hm, side, reach, lag }: { hm: HM; side: 1 | -1; reach: number; lag: number }) => (
-  <group position={[side * 0.24, 1.48, 0.05]} rotation={[-0.9 - reach * 0.7 + lag, 0, side * (0.35 - reach * 0.15)]}>
-    <mesh position={[0, -0.27, 0]} material={hm.skin} castShadow>
-      <capsuleGeometry args={[0.045, 0.48, 6, 10]} />
+// ── существо: костлявый длинноногий гигант (~2.5 м), маленькая голова, 20+ глаз, пасть-воронка ──
+const Cap = ({ a, b, r, m }: { a: [number, number, number]; b: [number, number, number]; r: number; m: THREE.Material }) => {
+  // капсула от точки a до точки b
+  const va = new THREE.Vector3(...a);
+  const vb = new THREE.Vector3(...b);
+  const mid = va.clone().add(vb).multiplyScalar(0.5);
+  const dir = vb.clone().sub(va);
+  const len = dir.length();
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  return (
+    <mesh position={mid} quaternion={q} material={m} castShadow>
+      <capsuleGeometry args={[r, Math.max(0.001, len - r * 2), 6, 10]} />
       <Outlines thickness={OL * 0.6} color={INK} />
     </mesh>
-    {/* локоть выгнут в обратную сторону */}
-    <group position={[0, -0.54, 0]} rotation={[-1.1 + reach * 0.6 - lag * 1.5, 0, 0]}>
-      <mesh material={hm.skinDark}>
-        <sphereGeometry args={[0.05, 10, 8]} />
+  );
+};
+
+// глаза: хаотично на верхней половине головы, висках и скулах (детерминированно)
+const EYES = Array.from({ length: 23 }, (_, i) => {
+  const th = -1.25 + rnd(i + 6000) * 2.5; // по горизонтали
+  const ph = -0.15 + rnd(i + 6001) * 1.25; // по вертикали (вверх)
+  const r = 0.005 + rnd(i + 6002) * 0.011;
+  return { th, ph, r };
+});
+
+const Leg = ({ hm, side, k }: { hm: HM; side: 1 | -1; k: number }) => {
+  const hip: [number, number, number] = [side * 0.12, 1.2, 0];
+  const knee: [number, number, number] = [side * 0.2, 1.55 - k * 0.1, 0.45]; // острые колени торчат вверх-вперёд
+  const ankle: [number, number, number] = [side * 0.2, 0.12, 0.25];
+  return (
+    <group>
+      <Cap a={hip} b={knee} r={0.045} m={hm.skin} />
+      <mesh position={knee} rotation={[-0.6, 0, 0]} material={hm.skinDark}>
+        <coneGeometry args={[0.04, 0.11, 8]} />
       </mesh>
-      <mesh position={[0, -0.3, 0]} material={hm.skin} castShadow>
-        <capsuleGeometry args={[0.036, 0.55, 6, 10]} />
-        <Outlines thickness={OL * 0.6} color={INK} />
+      <Cap a={knee} b={ankle} r={0.035} m={hm.skin} />
+      {/* длинная когтистая стопа */}
+      {[-0.04, 0, 0.04].map((x, i) => (
+        <group key={i}>
+          <Cap a={ankle} b={[ankle[0] + x * 2, 0.03, ankle[2] + 0.24]} r={0.012} m={hm.skin} />
+          <mesh position={[ankle[0] + x * 2, 0.03, ankle[2] + 0.29]} rotation={[Math.PI / 2, 0, 0]} material={hm.claw}>
+            <coneGeometry args={[0.01, 0.07, 6]} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+};
+
+/** Рука: плечо → вывернутый локоть → предплечье → кисть с когтями. reach тянет к камере (горлу). */
+const Arm = ({ hm, side, reach, lag }: { hm: HM; side: 1 | -1; reach: number; lag: number }) => {
+  const sh: [number, number, number] = [side * 0.2, 1.72, 0.62];
+  const elbow: [number, number, number] = [side * (0.42 - reach * 0.1), 1.45 + lag * 0.1, 0.55 - reach * 0.05];
+  const wrist: [number, number, number] = [side * (0.22 - reach * 0.08), 1.4 + reach * 0.05, 0.95 + reach * 0.35 + lag * 0.1];
+  return (
+    <group>
+      <Cap a={sh} b={elbow} r={0.032} m={hm.skin} />
+      <mesh position={elbow} material={hm.skinDark}>
+        <sphereGeometry args={[0.04, 10, 8]} />
       </mesh>
-      <group position={[0, -0.62, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <Hand hm={hm} curl={0.55 + reach * 0.3} s={1.6} />
+      <Cap a={elbow} b={wrist} r={0.026} m={hm.skin} />
+      <group position={wrist} rotation={[0, side > 0 ? -Math.PI / 2 - 0.3 : -Math.PI / 2 + 0.3, side * 0.4]}>
+        <Hand hm={hm} curl={0.5 + reach * 0.4} s={1.7} />
       </group>
     </group>
-  </group>
-);
+  );
+};
 
-const Creature3D = ({ g, pose, monster, hm }: { g: number; pose: Pose; monster: THREE.Texture | null; hm: HM }) => {
-  const face = useFaceTex(monster);
+const Head = ({ hm, g }: { hm: HM; g: number }) => {
+  const open = 0.85 + 0.15 * Math.sin(g * 6);
+  return (
+    <group>
+      <mesh scale={[0.85, 1.05, 1.1]} material={hm.skin} castShadow>
+        <sphereGeometry args={[0.085, 18, 14]} />
+        <Outlines thickness={OL * 0.6} color={INK} />
+      </mesh>
+      {/* мокрые глянцевые глаза */}
+      {EYES.map((e, i) => {
+        const x = Math.sin(e.th) * 0.072;
+        const z = Math.cos(e.th) * 0.085;
+        const y = Math.sin(e.ph) * 0.08;
+        const sc = Math.cos(e.ph);
+        return (
+          <group key={i} position={[x * sc, y + 0.01, z * sc]}>
+            <mesh material={hm.eye}>
+              <sphereGeometry args={[e.r, 10, 8]} />
+            </mesh>
+            <mesh position={[x * sc * 0.06, y * 0.04, e.r * 0.55]} material={hm.maw}>
+              <sphereGeometry args={[e.r * 0.35, 8, 6]} />
+            </mesh>
+          </group>
+        );
+      })}
+      {/* пасть-воронка: глубокая круглая, концентрические ряды игольчатых зубов внутрь */}
+      <group position={[0, -0.045, 0.075]} rotation={[Math.PI / 2 - 0.15, 0, 0]} scale={open}>
+        <mesh material={hm.maw}>
+          <cylinderGeometry args={[0.06, 0.008, 0.1, 24, 1, true]} />
+        </mesh>
+        {[0.057, 0.046, 0.035, 0.024].map((r, ring) =>
+          Array.from({ length: 18 - ring * 3 }, (_, i) => {
+            const a = (i / (18 - ring * 3)) * Math.PI * 2 + ring * 0.2;
+            const y = 0.046 - ring * 0.022;
+            return (
+              <mesh key={`${ring}-${i}`} position={[Math.cos(a) * r, y, Math.sin(a) * r]} rotation={[0, -a, Math.PI / 2 + 0.6]} material={hm.tooth}>
+                <coneGeometry args={[0.005, 0.03 - ring * 0.004, 5]} />
+              </mesh>
+            );
+          }),
+        )}
+      </group>
+    </group>
+  );
+};
+
+const Giant = ({ hm, g, reach, lag }: { hm: HM; g: number; reach: number; lag: number }) => {
+  // туловище сильно наклонено вперёд, шея длинная и согнута
+  const breathe = Math.sin(g * 4) * 0.01;
+  return (
+    <group>
+      <Leg hm={hm} side={1} k={reach} />
+      <Leg hm={hm} side={-1} k={reach} />
+      <mesh position={[0, 1.2, 0]} scale={[1.3, 0.7, 0.9]} material={hm.skin}>
+        <sphereGeometry args={[0.1, 12, 10]} />
+      </mesh>
+      {/* впалый живот и рёбра */}
+      <Cap a={[0, 1.22, 0]} b={[0, 1.45, 0.3]} r={0.07} m={hm.skin} />
+      <group position={[0, 1.58 + breathe, 0.47]} rotation={[1.05, 0, 0]}>
+        <mesh scale={[1.25, 1, 0.85]} material={hm.skin} castShadow>
+          <capsuleGeometry args={[0.11, 0.18, 8, 14]} />
+          <Outlines thickness={OL * 0.6} color={INK} />
+        </mesh>
+        {Array.from({ length: 6 }, (_, i) => (
+          <mesh key={i} position={[0, -0.12 + i * 0.05, 0.02]} rotation={[Math.PI / 2, 0, 0]} scale={[1.35, 1, 1]} material={hm.skinDark}>
+            <torusGeometry args={[0.1, 0.007, 6, 20, Math.PI]} />
+          </mesh>
+        ))}
+        {/* позвонки по спине */}
+        {Array.from({ length: 9 }, (_, i) => (
+          <mesh key={i} position={[0, -0.2 + i * 0.055, -0.1]} material={hm.skinDark}>
+            <sphereGeometry args={[0.018, 8, 6]} />
+          </mesh>
+        ))}
+      </group>
+      {/* острые ключицы */}
+      <Cap a={[-0.2, 1.72, 0.62]} b={[0, 1.66, 0.7]} r={0.014} m={hm.skinDark} />
+      <Cap a={[0.2, 1.72, 0.62]} b={[0, 1.66, 0.7]} r={0.014} m={hm.skinDark} />
+      {/* длинная тонкая шея, вперёд-вниз */}
+      <Cap a={[0, 1.7, 0.66]} b={[0, 1.55, 0.98]} r={0.028} m={hm.skin} />
+      <group position={[0, 1.52, 1.03]} rotation={[0.15 + lag * 0.3, Math.sin(g * 2.5) * 0.12, Math.sin(g * 7) * 0.06]}>
+        <Head hm={hm} g={g} />
+      </group>
+      <Arm hm={hm} side={1} reach={reach} lag={lag} />
+      <Arm hm={hm} side={-1} reach={reach} lag={-lag * 0.8} />
+    </group>
+  );
+};
+
+const Creature3D = ({ g, pose, hm }: { g: number; pose: Pose; hm: HM }) => {
   const glint = useMemo(() => new THREE.SpriteMaterial({ map: makeTex("glow"), color: "#ffe9b8", blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }), []);
-  const faceMat = useMemo(() => new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.05, roughness: 0.85, emissive: new THREE.Color("#ffffff"), emissiveIntensity: 0.02 }), []);
-  if (face && faceMat.map !== face) {
-    faceMat.map = face;
-    faceMat.emissiveMap = face;
-    faceMat.needsUpdate = true;
-  }
-  // до броска: два глаза в щели шкафа на разной высоте
+  // до броска: мокрые глаза в щели шкафа на разной высоте
   if (g < T.burst) {
     if (g < T.eyes) return null;
     const k = clamp((g - T.eyes) / 0.5);
     glint.opacity = (0.7 + 0.3 * Math.sin(g * 5)) * k;
     return (
       <group>
-        <sprite position={[WR_FRONT - 0.006, 1.6, GAP_Z - 0.018]} scale={[0.09, 0.09, 1]} material={glint} />
-        <sprite position={[WR_FRONT - 0.006, 2.0, GAP_Z - 0.02]} scale={[0.08, 0.08, 1]} material={glint} />
+        {[
+          [1.6, 0.016],
+          [2.0, 0.013],
+        ].map(([y, r], i) => (
+          <group key={i} position={[WR_FRONT - 0.004, y, GAP_Z - 0.018]}>
+            <mesh material={hm.eye} scale={k}>
+              <sphereGeometry args={[r, 12, 10]} />
+            </mesh>
+            <sprite scale={[0.05, 0.05, 1]} material={glint} />
+          </group>
+        ))}
       </group>
     );
   }
   if (g >= T.finale) return null;
-  const b = clamp((g - T.burst) / 0.32);
+  const b = clamp((g - T.burst) / 0.35);
   const e = 1 - Math.pow(1 - b, 3);
   const dir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, pose.yaw, 0, "YXZ"));
-  const near = new THREE.Vector3(pose.x, 0, pose.z).add(dir.clone().multiplyScalar(1.3));
-  const from = new THREE.Vector3(WR.x - 0.05, 0, WR.z);
+  const near = new THREE.Vector3(pose.x, 0, pose.z).add(dir.clone().multiplyScalar(2.0));
+  const from = new THREE.Vector3(WR.x - 0.1, 0, WR.z);
   const p = from.clone().lerp(near, e);
-  // инерция: перелёт и затухающее раскачивание после броска
-  const t2 = Math.max(0, g - T.burst - 0.32);
-  const wob = Math.sin(t2 * 9) * Math.exp(-t2 * 3) * 0.25;
-  p.add(dir.clone().multiplyScalar(wob * 0.15));
-  const yaw = pose.yaw + (1 - e) * 1.3; // лицом к камере
-  const lean = 0.25 + wob * 0.2; // сгорблен к камере
-  glint.opacity = 0.9;
+  // вес и инерция: перелёт и затухающее раскачивание
+  const t2 = Math.max(0, g - T.burst - 0.35);
+  const wob = Math.sin(t2 * 8) * Math.exp(-t2 * 2.6) * 0.3;
+  p.add(dir.clone().multiplyScalar(wob * 0.12));
+  const yaw = pose.yaw + (1 - e) * 1.4;
   return (
-    <group position={[p.x, -0.5 + Math.sin(g * 37) * 0.008, p.z]} rotation={[0, yaw, 0]}>
-      <group rotation={[lean, 0, Math.sin(g * 7) * 0.05]} position={[0, 0.2, 0]}>
-        {/* туловище и рёбра */}
-        <mesh position={[0, 1.05, 0]} material={hm.skin} castShadow>
-          <capsuleGeometry args={[0.16, 0.6, 8, 14]} />
-          <Outlines thickness={OL} color={INK} />
-        </mesh>
-        {[0, 1, 2, 3].map((i) => (
-          <mesh key={i} position={[0, 1.1 + i * 0.08, 0.14]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1, 0.4]} material={hm.skinDark}>
-            <torusGeometry args={[0.12, 0.008, 6, 20, Math.PI]} />
-          </mesh>
-        ))}
-        {/* сутулые плечи и вытянутая шея */}
-        <mesh position={[0, 1.45, 0]} scale={[1.7, 0.55, 0.8]} material={hm.skin} castShadow>
-          <sphereGeometry args={[0.16, 14, 10]} />
-          <Outlines thickness={OL} color={INK} />
-        </mesh>
-        <mesh position={[0, 1.58, 0.1]} rotation={[0.7, 0, 0]} material={hm.skin}>
-          <capsuleGeometry args={[0.05, 0.22, 6, 10]} />
-        </mesh>
-        {/* голова с лицом из текстуры: глубокие глазницы без зрачков, пасть */}
-        <group position={[0, 1.78, 0.2]} rotation={[-0.45 + wob * 0.2, 0, Math.sin(g * 3) * 0.1]}>
-          <mesh scale={[0.85, 1.3, 0.9]} material={hm.skin} castShadow>
-            <sphereGeometry args={[0.13, 16, 12]} />
-            <Outlines thickness={OL} color={INK} />
-          </mesh>
-          {face && (
-            <mesh position={[0, -0.01, 0.105]} material={faceMat}>
-              <planeGeometry args={[0.24, 0.38]} />
-            </mesh>
-          )}
-          {[
-            [-0.042, 0.05],
-            [0.04, 0.052],
-          ].map(([x, y], i) => (
-            <sprite key={i} position={[x, y, 0.12]} scale={[0.012, 0.012, 1]} material={glint} />
-          ))}
-        </group>
-        <CreatureArm hm={hm} side={1} reach={e} lag={wob} />
-        <CreatureArm hm={hm} side={-1} reach={e} lag={-wob * 0.8} />
-      </group>
+    <group position={[p.x, -0.02 + Math.sin(g * 31) * 0.006, p.z]} rotation={[0, yaw, wob * 0.05]}>
+      <Giant hm={hm} g={g} reach={e} lag={wob} />
     </group>
   );
 };
@@ -797,54 +908,67 @@ const Lights = ({ g, pose }: { g: number; pose: Pose }) => {
   const fin = g >= T.finale ? 0.25 : 1;
   return (
     <>
-      <ambientLight color="#8a7a55" intensity={0.03} />
-      <hemisphereLight args={["#3a3428", "#000000", 0.05]} />
+      <ambientLight color="#3a4458" intensity={0.03} />
+      <hemisphereLight args={["#3a3428", SHADOW, 0.05]} />
+      {/* объёмные конусы: из кухонного проёма и тонкий веер из щели под дверью */}
+      <mesh position={[-0.55, 1.0, KZ - 0.55]} rotation={[0, 0, 0.9]}>
+        <coneGeometry args={[0.6, 1.6, 20, 1, true]} />
+        <meshBasicMaterial color={WARM} transparent opacity={0.045 * warmK * fin} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      {g < T.finale && (
+        <mesh position={[0, 0.02, DOOR + 0.25]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.85, 0.45]} />
+          <meshBasicMaterial color="#ffcf7a" transparent opacity={0.07 * lamp(g + 3)} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+      )}
       {/* узкий тёплый клин из кухни на пол прихожей: длинные тени от вешалки, шкаф не заливает */}
       <primitive object={tgt} />
-      <spotLight position={[-1.4, 1.75, KZ]} target={tgt} color={WARM} intensity={26 * warmK * fin} angle={0.32} penumbra={0.3} distance={6} decay={1.5} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-bias={-0.0004} />
+      <spotLight position={[-1.4, 1.75, KZ]} target={tgt} color={WARM} intensity={26 * warmK * fin} angle={0.32} penumbra={0.3} distance={6} decay={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0004} />
       {/* свет подъезда в щели под дверью — без тени ног */}
       <pointLight position={[0, 0.03, DOOR - 0.15]} color="#ffcf7a" intensity={2.2 * lamp(g + 3) * (g < T.finale ? 1 : 0)} distance={1.2} decay={2} />
       <pointLight position={[0.3, 1.5, DOOR + 0.55]} color={WARM} intensity={g > 35.9 && g < 38 ? 2.4 : 0.8} distance={1.6} decay={2} />
       {/* бледный боковой свет на кисти из шкафа */}
       <pointLight position={[WR_FRONT - 0.45, 1.7, GAP_Z + 0.35]} color="#d8cdb0" intensity={g > T.fingers && g < T.burst ? 1.1 * clamp((g - T.fingers) / 1.2) : 0} distance={1.3} decay={2} />
       {/* экран телефона: холодный, снизу-спереди */}
-      <pointLight position={[pose.x + dir.x, pose.y + dir.y, pose.z + dir.z]} color={PHONE} intensity={7 * phoneOn} distance={4.5} decay={1.5} />
+      <pointLight position={[pose.x + dir.x, pose.y + dir.y, pose.z + dir.z]} color={PHONE} intensity={9 * phoneOn} distance={4.5} decay={1.5} />
       {flash > 0 && <pointLight position={[pose.x, pose.y + 0.3, pose.z - 0.5]} color="#fff1d0" intensity={6 * flash} distance={4} decay={1.5} />}
       {/* холодный верхний свет на существо (телефон в трясущейся руке) */}
-      {g >= T.burst && g < T.finale && <pointLight position={[pose.x + 0.15, pose.y + 0.55, pose.z + 0.15]} color={PHONE} intensity={2.4} distance={3} decay={1.6} />}
+      {g >= T.burst && g < T.finale && <pointLight position={[pose.x + 0.2, pose.y + 0.45, pose.z - 0.15]} color={PHONE} intensity={4} distance={3} decay={1.6} />}
+      {/* контровой блик на существо из кухни */}
+      {g >= T.burst && g < T.finale && <pointLight position={[pose.x - 0.4, pose.y + 0.6, pose.z - 2.2]} color={WARM} intensity={3} distance={3} decay={1.5} />}
       {g >= T.finale && <pointLight position={[0, 1.7, DOOR + 0.3]} color="#d8cfb8" intensity={1.6} distance={3.5} decay={1.6} />}
     </>
   );
 };
 
-const HallScene = ({ g, pose, monster, blood }: { g: number; pose: Pose; monster: THREE.Texture | null; blood: THREE.Texture | null }) => {
+const HallScene = ({ g, pose, blood }: { g: number; pose: Pose; blood: THREE.Texture | null }) => {
   const hm = useHallMats();
   return (
     <>
       <CamRig pose={pose} />
       <color attach="background" args={["#000"]} />
-      <fog attach="fog" args={["#030302", 2.5, 9]} />
+      <fog attach="fog" args={[SHADOW, 2.5, 9]} />
       <Lights g={g} pose={pose} />
       <Kitchen g={g} hm={hm} />
       <Hallway g={g} hm={hm} />
       <Stairwell g={g} hm={hm} blood={blood} />
-      <Creature3D g={g} pose={pose} monster={monster} hm={hm} />
+      <Creature3D g={g} pose={pose} hm={hm} />
       <Dust u={g} cz={pose.z} />
     </>
   );
 };
 
-/** Тёмные преломляющие трещины по краям кадра и размазанные брызги. */
+/** Органичные тёмные преломляющие трещины только по краям кадра и размазанные брызги. */
 const LensHit = ({ g }: { g: number }) => {
-  const k = clamp((g - T.burst - 0.28) / 0.1);
+  const k = clamp((g - T.burst - 0.3) / 0.1);
   if (k <= 0 || g >= T.finale) return null;
   const crack = (x0: number, y0: number, a0: number, seed: number) => {
     let x = x0;
     let y = y0;
     let d = `M${x} ${y}`;
-    for (let s = 0; s < 7; s++) {
-      const an = a0 + (rnd(seed + s) - 0.5) * 0.9;
-      const len = 50 + rnd(seed + s + 50) * 110;
+    for (let s = 0; s < 3; s++) {
+      const an = a0 + (rnd(seed + s) - 0.5) * 0.8;
+      const len = 40 + rnd(seed + s + 50) * 70;
       x += Math.cos(an) * len;
       y += Math.sin(an) * len;
       d += ` L${x.toFixed(0)} ${y.toFixed(0)}`;
@@ -852,35 +976,40 @@ const LensHit = ({ g }: { g: number }) => {
     return d;
   };
   const origins: [number, number, number][] = [
-    [0, 260, 0.4],
-    [1080, 420, Math.PI - 0.3],
-    [0, 1500, -0.5],
-    [1080, 1700, Math.PI + 0.4],
-    [200, 1920, -1.2],
-    [900, 0, 1.9],
+    [0, 300, 0.3],
+    [1080, 480, Math.PI - 0.3],
+    [0, 1560, -0.4],
+    [1080, 1700, Math.PI + 0.35],
+    [160, 1920, -1.3],
+    [920, 0, 1.9],
   ];
   return (
     <AbsoluteFill style={{ opacity: k, pointerEvents: "none" }}>
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         <defs>
+          <filter id="crk">
+            <feGaussianBlur stdDeviation="2.2" />
+          </filter>
           <filter id="smear">
-            <feGaussianBlur stdDeviation="9 26" />
+            <feGaussianBlur stdDeviation="10 28" />
           </filter>
         </defs>
-        {origins.map(([x, y, a], i) =>
-          [0, 1, 2].map((j) => {
-            const d = crack(x, y, a + (j - 1) * 0.35, i * 31 + j * 7 + 4000);
-            return (
-              <g key={`${i}${j}`}>
-                <path d={d} stroke="rgba(5,4,3,.85)" strokeWidth="7" fill="none" strokeLinejoin="round" />
-                <path d={d} stroke="rgba(220,215,200,.35)" strokeWidth="1.5" fill="none" transform="translate(3 -2)" />
-              </g>
-            );
-          }),
-        )}
+        <g filter="url(#crk)">
+          {origins.map(([x, y, a], i) =>
+            [0, 1].map((j) => {
+              const d = crack(x, y, a + (j - 0.5) * 0.5, i * 31 + j * 7 + 4000);
+              return (
+                <g key={`${i}${j}`}>
+                  <path d={d} stroke="rgba(4,4,6,.75)" strokeWidth="16" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+                  <path d={d} stroke="rgba(200,210,225,.28)" strokeWidth="3" fill="none" transform="translate(5 -3)" />
+                </g>
+              );
+            }),
+          )}
+        </g>
         <g filter="url(#smear)">
-          {Array.from({ length: 9 }, (_, i) => (
-            <ellipse key={i} cx={rnd(i + 4300) > 0.5 ? 60 + rnd(i + 4301) * 260 : 760 + rnd(i + 4302) * 280} cy={200 + rnd(i + 4303) * 1500} rx={18 + rnd(i + 4304) * 30} ry={60 + rnd(i + 4305) * 120} fill="rgba(40,4,6,.85)" />
+          {Array.from({ length: 8 }, (_, i) => (
+            <ellipse key={i} cx={rnd(i + 4300) > 0.5 ? 50 + rnd(i + 4301) * 200 : 830 + rnd(i + 4302) * 200} cy={200 + rnd(i + 4303) * 1500} rx={18 + rnd(i + 4304) * 30} ry={60 + rnd(i + 4305) * 120} fill="rgba(30,2,4,.85)" />
           ))}
         </g>
       </svg>
@@ -909,12 +1038,11 @@ export const Hall3D = ({ timeAt, font }: { timeAt: (localSec: number) => number;
   const frame = useCurrentFrame();
   const g = timeAt(frame / FPS);
   const pose = hallPose(g);
-  const monster = useMonsterTexture();
   const blood = useBloodTexture(font);
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <ThreeCanvas width={W} height={H} shadows="soft" dpr={1.5} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.35, preserveDrawingBuffer: true }}>
-        <HallScene g={g} pose={pose} monster={monster} blood={blood} />
+      <ThreeCanvas width={W} height={H} shadows="soft" dpr={1.5} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05, preserveDrawingBuffer: true }}>
+        <HallScene g={g} pose={pose} blood={blood} />
       </ThreeCanvas>
       <LensHit g={g} />
     </AbsoluteFill>
