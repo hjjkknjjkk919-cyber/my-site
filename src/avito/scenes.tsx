@@ -47,14 +47,14 @@ export const S1Hook = ({ ovalAt }: { ovalAt: number }) => {
   const out = ez(t, 0, 1.6, 0, 1);
   return (
     <Shot to={dur} origin={[540, 1100]}>
-      <Room glow={{ x: 790, w: 400 }} />
+      <Room glow={{ x: 800, w: 320 }} />
       <NightWindow x={200} t={t} />
       <Rug x={540} w={760} />
       <Nightstand x={470} />
-      <Backlight x={790} y={900} r={620} o={0.45} />
-      <Wardrobe x={790} w={400} />
-      <Nuance x={790 - out * 20} y={FLOOR_Y} s={0.92} t={t} pose={{ armL: nuanceReach(-1, 640, 1030, 770, FLOOR_Y, 0.92, 0, 1), armR: nuanceReach(1, 930, 1030, 770, FLOOR_Y, 0.92, 0, -1), head: 6, mouth: 0.3 }} />
-      <Dima x={250} y={FLOOR_Y} s={0.92} t={t} pose={{ armR: dimaReach(1, 262, 846, 250, FLOOR_Y, 0.92, -1), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 214, 1006, 250, FLOOR_Y, 0.92, 1), itemL: <PhoneItem t={t} mode="avito" s={0.9} />, head: 8, look: -0.2 }} />
+      <Backlight x={800} y={900} r={600} o={0.45} />
+      <Wardrobe x={690} w={400} />
+      <Nuance x={820 - out * 20} y={FLOOR_Y} s={0.9} t={t} pose={{ armL: nuanceReach(-1, 680, 1030, 800, FLOOR_Y, 0.9, 0, 1), armR: nuanceReach(1, 950, 1030, 800, FLOOR_Y, 0.9, 0, -1), head: 6, mouth: 0.3 }} />
+      <Dima x={250} y={FLOOR_Y} s={0.92} t={t} pose={{ armR: dimaReach(1, 262, 846, 250, FLOOR_Y, 0.92, -1), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 214, 1006, 250, FLOOR_Y, 0.92, 1), itemL: <PhoneItem t={t} mode="avito" s={0.9} />, head: 8, look: -0.2, yawn: ez(t, 6.8, 7.3) * (1 - ez(t, 8.2, 8.7)) }} />
       <AvitoCard x={540} y={1530} k={card} oval={ez(t, ovalAt, ovalAt + 0.8)} />
     </Shot>
   );
@@ -74,6 +74,9 @@ export const S2Voice = ({ cut1, cut2 }: { cut1: number; cut2: number }) => {
     };
     return (
       <Shot to={cut1} origin={[540, 900]} bg="#0c0d10">
+        <Room glow={{ x: 540, w: 400 }} />
+        <Wardrobe x={900} w={400} />
+        <rect width={1080} height={1920} fill="#05060a" opacity={0.55} />
         <Backlight x={540} y={700} r={760} o={0.5} />
         <Nuance x={540} y={2785} s={1.9} t={t} pose={{ armL: claw(-1, 300 + lunge * 20, 1330 - lunge * 40), armR: claw(1, 780 - lunge * 20, 1330 - lunge * 40), hand: 1.6 + lunge * 0.4, head: -4, mouth: 1 }} />
       </Shot>
@@ -84,15 +87,18 @@ export const S2Voice = ({ cut1, cut2 }: { cut1: number; cut2: number }) => {
       <Shot from={cut1} to={cut2} origin={[540, 900]} bg="#0c0d10">
         <Room glow={{ x: 820, w: 300 }} />
         <Backlight x={820} y={800} r={620} o={0.4} />
-        <Nuance x={820} y={1950} s={1.15} t={t} pose={{ armL: { sh: 10, el: 0 }, armR: { sh: -10, el: 0 }, behind: true, guilty: q, head: 6 }} />
+        <Nuance x={820} y={1950} s={1.15} t={t} pose={{ armL: nuanceReach(-1, 800, 1076, 820, 1950, 1.15, 0, -1), armR: nuanceReach(1, 840, 1076, 820, 1950, 1.15, 0, 1), gripL: 1, gripR: 1, behind: true, guilty: q, head: 6 }} />
         <Question x={820} y={470} k={q} />
-        <Dima x={290} y={1800} s={1.45} t={t} pose={{ armR: dimaReach(1, 440, 836, 290, 1800, 1.45, 1), itemR: <PhoneItem t={t} mode="wave" s={1.05} />, armL: dimaReach(-1, 236, 1170, 290, 1800, 1.45, 1), itemL: <Mug t={t} />, head: 4 }} />
+        <Dima x={290} y={1800} s={1.45} t={t} pose={{ armR: dimaReach(1, 610, 990, 290, 1800, 1.45, 1), itemR: <PhoneItem t={t} mode="wave" s={1.05} />, armL: dimaReach(-1, 236, 1170, 290, 1800, 1.45, 1), itemL: <Mug t={t} flip />, head: 4 }} />
       </Shot>
     );
   return (
     <Shot from={cut2} to={dur} origin={[540, 700]} bg="#0c0d10">
+        <Room glow={{ x: 540, w: 400 }} />
+        <Wardrobe x={900} w={400} />
+        <rect width={1080} height={1920} fill="#05060a" opacity={0.55} />
       <Backlight x={540} y={760} r={760} o={0.4} />
-      <Nuance x={540} y={2785} s={1.9} t={t} pose={{ armL: { sh: 12, el: 0 }, armR: { sh: -12, el: 0 }, behind: true, head: 8, guilty: 1, mouth: t < dur - 0.4 ? 0.8 : 0 }} />
+      <Nuance x={540} y={2785} s={1.9} t={t} pose={{ armL: nuanceReach(-1, 520, 1341, 540, 2785, 1.9, 0, -1), armR: nuanceReach(1, 560, 1341, 540, 2785, 1.9, 0, 1), gripL: 1, gripR: 1, behind: true, head: 8, guilty: 1, mouth: t < dur - 0.4 ? 0.8 : 0 }} />
       <Question x={540} y={400} k={1} size={170} />
     </Shot>
   );
@@ -121,13 +127,13 @@ export const S3Recruit = ({ chatEnd, handAt }: { chatEnd: number; handAt: number
         s={0.95}
         t={t}
         pose={{
-          armL: given ? nuanceReach(-1, 660, 1000, 800, FLOOR_Y, 0.95, 0, 1) : nuanceReach(-1, 780 - reach * 30, 1010, 800, FLOOR_Y, 0.95, 0, 1),
-          armR: nuanceReach(1, 930, 1010, 800, FLOOR_Y, 0.95, 0, -1),
+          armL: given ? nuanceReach(-1, 640, 960, 800, FLOOR_Y, 0.95, 0, 1) : nuanceReach(-1, 780 - reach * 30, 1010, 800, FLOOR_Y, 0.95, 0, 1),
+          armR: nuanceReach(1, 985, 960, 800, FLOOR_Y, 0.95, 0, -1),
           head: 10,
           gripL: given ? 1 : 0,
-          itemL: given ? <Drill t={t} /> : undefined,
+          itemL: given ? <Drill t={t} flip /> : undefined,
           gripR: given ? 1 : 0,
-          itemR: given ? <Level w={220} /> : undefined,
+          itemR: given ? <Level w={150} /> : undefined,
         }}
       />
       <Dima
@@ -151,7 +157,7 @@ export const S4Shelf = ({ drillOn, drillOff, fixAt }: { drillOn: number; drillOf
   const t = useLT();
   const dur = React.useContext(DurCtx);
   const tilt = ez(t, fixAt, fixAt + 0.8, 4, 0);
-  const NX = 600;
+  const NX = 520;
   const S = 0.95;
   const crouch = 0.62;
   const lx = 330;
@@ -190,8 +196,8 @@ export const S4Shelf = ({ drillOn, drillOff, fixAt }: { drillOn: number; drillOf
           mouth: 0.6,
         }}
       />
-      <Dima x={760} y={FLOOR_Y} s={0.82} t={t} pose={{ lean: 3, armL: dimaReach(-1, 640, 870, 760, FLOOR_Y, 0.82, -1), pointL: true, armR: dimaReach(1, 790, 1000, 760, FLOOR_Y, 0.82, -1), itemR: <Mug t={t} steam />, head: -4 }} />
-      {on && <text x={60} y={470} fontFamily={MONT} fontWeight={900} fontSize={76} fill="#fff" stroke={LINE} strokeWidth={8} paintOrder="stroke" transform="rotate(-8 60 470)">ВЖЖЖ!</text>}
+      <Dima x={760} y={FLOOR_Y} s={0.82} t={t} pose={{ lean: 3, armL: dimaReach(-1, 712, 770, 760, FLOOR_Y, 0.82, -1), pointL: true, armR: dimaReach(1, 790, 1000, 760, FLOOR_Y, 0.82, -1), itemR: <Mug t={t} steam />, head: -4 }} />
+      {on && <text x={70 + Math.sin(t * 70) * 5} y={470 + Math.cos(t * 60) * 4} fontFamily={MONT} fontWeight={900} fontSize={72} fill="#fff" stroke={LINE} strokeWidth={8} paintOrder="stroke" transform="rotate(-8 70 470)">ВЖЖЖ!</text>}
     </Shot>
   );
 };
@@ -255,7 +261,7 @@ export const S5Guard = ({ keyEnd, bedEnd, openAt, dropAt, cloudAt, fallAt, talkA
   const talk = t > talkAt && t < talkEnd ? 0.8 : 0;
   const landing = (
     <g>
-      {down ? <ThiefDown x={DX} y={FLOOR_Y} s={0.55} t={t} /> : <Thief x={DX - 30} y={FLOOR_Y} s={0.88} t={t} dizzy={ez(t, cloudAt, cloudAt + 0.3)} />}
+      {!down && <Thief x={DX - 30} y={FLOOR_Y} s={0.88} t={t} dizzy={ez(t, cloudAt, cloudAt + 0.3)} />}
       {/* выроненная отмычка падает на пол площадки */}
       <rect x={DX - 120} y={FLOOR_Y - 400 + dropped * 392} width={80} height={8} rx={4} fill="#c9ccd2" {...OUT} transform={`rotate(${dropped * 70} ${DX - 80} ${FLOOR_Y - 396 + dropped * 392})`} opacity={t > dropAt - 0.1 ? 1 : 0} />
     </g>
@@ -266,7 +272,9 @@ export const S5Guard = ({ keyEnd, bedEnd, openAt, dropAt, cloudAt, fallAt, talkA
       <FrontDoor x={DX} open={open} landing={landing} />
       <Backlight x={DX} y={900} r={460} o={0.28 * open} color="#fff2c4" />
       <Nuance x={NX} y={FLOOR_Y} s={0.95} t={t} pose={{ armL: t > openAt - 0.4 ? nuanceReach(-1, hd.x, hd.y - 50, NX, FLOOR_Y, 0.95, 0, 1) : nuanceReach(-1, 620, 1020, NX, FLOOR_Y, 0.95, 0, 1), gripL: t > openAt - 0.4 ? 1 : 0, armR: nuanceReach(1, 880, 1020, NX, FLOOR_Y, 0.95, 0, -1), head: -10, mouth: talk }} />
-      {t > cloudAt && t < fallAt + 0.6 && <Cloud x={DX - 30} y={300} text="ДА НУ НАХУЙ" k={ez(t, cloudAt, cloudAt + 0.25)} />}
+      {down && <ThiefDown x={380} y={1580} s={0.9} t={t} />}
+      {down && <rect x={560} y={1566} width={80} height={8} rx={4} fill="#c9ccd2" {...OUT} transform="rotate(12 600 1570)" />}
+      {t > cloudAt && <Cloud x={down ? 300 : DX - 30} y={down ? 1300 : 300} text="ДА НУ НАХУЙ" k={ez(t, cloudAt, cloudAt + 0.25)} />}
     </Shot>
   );
 };
@@ -280,8 +288,12 @@ export const S6Review = ({ pushAt, plateAt }: { pushAt: number; plateAt: number 
   const plate = useSpr(plateAt, 12, 110);
   return (
     <Shot to={dur} bg="#f1e9dc">
-      <rect width={1080} height={1920} fill="#e9dfcf" />
-      <Backlight x={900} y={300} r={900} o={0.6} color="#fff6d8" />
+      <Room wall="#d9cdb6" pattern="#cdbfa5" floor="#a07a52" />
+      <rect x={60} y={300} width={300} height={430} fill="#bfe3ff" {...OUT} />
+      <path d="M60 515 H360 M210 300 V730" stroke="#efe8da" strokeWidth={12} />
+      <Wardrobe x={820} w={380} open={0.3} />
+      <rect width={1080} height={1920} fill="#fff8e8" opacity={0.25} />
+      <Backlight x={210} y={500} r={900} o={0.5} color="#fff6d8" />
       <ReviewCard k={card} stars={ez(t, 0.6, 1.6, 0, 4)} />
       <Push k={push} />
       <g opacity={plate} transform={`translate(540 ${1500 + (1 - plate) * 80})`}>

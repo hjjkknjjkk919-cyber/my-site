@@ -8,18 +8,21 @@ export const REDK = "#FF4D4D";
 export const FLOOR_Y = 1380;
 
 /* ── предметы в руке: начало координат — точка хвата ── */
-export const Mug = ({ t = 0, steam = false }: { t?: number; steam?: boolean }) => (
+/** Кружка «МНЕ ПОХУЙ»; flip — ручка наружу для левой руки (ручка всегда от корпуса). */
+export const Mug = ({ t = 0, steam = false, flip = false }: { t?: number; steam?: boolean; flip?: boolean }) => (
   <g>
     {steam &&
       [-12, 10].map((x, i) => (
-        <path key={i} d={`M${x} -56 c-14 -20 14 -34 0 -56`} stroke="#fff" strokeWidth={5} fill="none" strokeLinecap="round" opacity={0.35 + 0.2 * Math.sin(t * 4 + i)} transform={`translate(${Math.sin(t * 2 + i) * 4} ${-((t * 20 + i * 12) % 14)})`} />
+        <path key={i} d={`M${x} -66 c-14 -20 14 -34 0 -56`} stroke="#fff" strokeWidth={5} fill="none" strokeLinecap="round" opacity={0.35 + 0.2 * Math.sin(t * 4 + i)} transform={`translate(${Math.sin(t * 2 + i) * 4} ${-((t * 20 + i * 12) % 14)})`} />
       ))}
-    <rect x={-34} y={-50} width={68} height={76} rx={8} fill="#f1ece2" {...OUT} />
-    <path d="M34 -32 C58 -32 58 6 34 6" fill="none" stroke={LINE} strokeWidth={9} />
-    <path d="M34 -32 C58 -32 58 6 34 6" fill="none" stroke="#f1ece2" strokeWidth={5} />
-    <ellipse cx={0} cy={-50} rx={34} ry={7} fill="#7a4a24" {...OUT} />
-    <text x={0} y={-16} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={12} fill="#c0392b">МНЕ</text>
-    <text x={0} y={2} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={12} fill="#c0392b">ПОХУЙ</text>
+    <g transform={`scale(${flip ? -1 : 1} 1)`}>
+      <path d="M40 -40 C70 -40 70 10 40 10" fill="none" stroke={LINE} strokeWidth={11} />
+      <path d="M40 -40 C70 -40 70 10 40 10" fill="none" stroke="#f1ece2" strokeWidth={6} />
+    </g>
+    <rect x={-42} y={-60} width={84} height={92} rx={9} fill="#f1ece2" {...OUT} />
+    <ellipse cx={0} cy={-60} rx={42} ry={8} fill="#7a4a24" {...OUT} />
+    <text x={0} y={-22} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={21} fill="#c0392b">МНЕ</text>
+    <text x={0} y={6} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={21} fill="#c0392b">ПОХУЙ</text>
   </g>
 );
 
@@ -83,9 +86,12 @@ export const Level = ({ w = 360, tilt = 0 }: { w?: number; tilt?: number }) => (
 export const Room = ({ wall = "#2a2f3a", pattern = "#323848", floor = "#3b2a20", ceiling = 120, glow }: { wall?: string; pattern?: string; floor?: string; ceiling?: number; glow?: { x: number; w: number } }) => (
   <g>
     <rect width={1080} height={1920} fill={wall} />
-    {Array.from({ length: 9 }, (_, c) =>
-      Array.from({ length: 10 }, (_, r) => <path key={`${c}-${r}`} d={`M${c * 130 + (r % 2) * 65} ${ceiling + 40 + r * 130} l20 30 l-20 30 l-20 -30 Z M${c * 130 + (r % 2) * 65} ${ceiling + 70 + r * 130} m-6 0 a6 6 0 1 0 12 0 a6 6 0 1 0 -12 0`} fill={pattern} />)
-    )}
+    {Array.from({ length: 12 }, (_, c) => (
+      <g key={c}>
+        <rect x={c * 90 + 34} y={ceiling} width={22} height={FLOOR_Y - ceiling} fill={pattern} />
+        {Array.from({ length: 12 }, (_, r) => <path key={r} d={`M${c * 90} ${ceiling + 60 + r * 110} l12 18 l-12 18 l-12 -18 Z`} fill={pattern} />)}
+      </g>
+    ))}
     <rect width={1080} height={ceiling} fill="#14161c" />
     <rect y={ceiling - 10} width={1080} height={12} fill="#1c1f26" {...OUT} />
     <rect y={FLOOR_Y} width={1080} height={1920 - FLOOR_Y} fill={floor} />
@@ -118,7 +124,9 @@ export const NightWindow = ({ x, t }: { x: number; t: number }) => (
     <rect x={x - 220} y={256} width={440} height={16} rx={6} fill="#8a6a40" {...OUT} />
     {/* лунный свет на полу */}
     <path d={`M${x - 150} ${FLOOR_Y} L${x + 150} ${FLOOR_Y} L${x + 260} 1700 L${x - 40} 1700 Z`} fill="#9fb8ff" opacity={0.08} />
-    {/* чугунная батарея */}
+    {/* чугунная батарея с вертикальными трубами */}
+    <path d={`M${x + 150} 820 V250 M${x + 150} 980 V${FLOOR_Y - 26}`} stroke="#b9b4a8" strokeWidth={14} />
+    <path d={`M${x + 150} 820 V250 M${x + 150} 980 V${FLOOR_Y - 26}`} stroke={LINE} strokeWidth={3} strokeDasharray="0" opacity={0.4} />
     <rect x={x - 140} y={820} width={280} height={160} rx={10} fill="#b9b4a8" {...OUT} />
     {Array.from({ length: 8 }, (_, i) => <rect key={i} x={x - 128 + i * 33} y={826} width={26} height={148} rx={12} fill="#cfc9bc" {...OUT} />)}
   </g>
@@ -155,19 +163,21 @@ export const Wardrobe = ({ x, w = 420, h = 980, open = 1 }: { x: number; w?: num
       <rect x={x - w / 2 + 14} y={top - 136} width={w / 2 - 20} height={122} fill="#6b4630" {...OUT} />
       <rect x={x + 6} y={top - 136} width={w / 2 - 20} height={122} fill="#6b4630" {...OUT} />
       <rect x={x - w / 2} y={top} width={w} height={h} fill="#5a3a24" {...OUT} />
-      <rect x={x - w / 2 + 16} y={top + 20} width={w - 32} height={h - 70} fill="#1a120b" {...OUT} />
-      <rect x={x - w / 2 + 16} y={top + 20} width={w - 32} height={h - 70} fill={AMBER} opacity={0.35 * open} />
-      <rect x={x + 4} y={top + 20} width={w / 2 - 20} height={h - 70} fill="#6b4630" {...OUT} />
-      <rect x={x + 24} y={top + 50} width={w / 2 - 60} height={h - 140} fill="none" stroke="#4e321f" strokeWidth={6} />
-      <circle cx={x + 20} cy={top + h / 2} r={7} fill="#c9a24a" {...OUT} />
-      {/* табличка, криво приклеена скотчем */}
-      <g transform={`translate(${x + 150} ${top + 330}) rotate(7) scale(0.72) translate(${-(x + 110)} ${-(top + 200)})`}>
-        <rect x={x + 34} y={top + 130} width={152} height={140} fill="#f2c200" {...OUT} />
-        <path d={`M${x + 110} ${top + 146} l-30 54 l26 0 l-12 44 l42 -62 l-26 0 l12 -36 Z`} fill="#111" />
-        <text x={x + 110} y={top + 196 + 60} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={15} fill="#111">НЕ ВЛЕЗАЙ — УБЬЁТ</text>
-        <rect x={x + 22} y={top + 120} width={44} height={14} fill="rgba(255,255,240,.6)" transform={`rotate(-30 ${x + 44} ${top + 127})`} />
+      {/* открытая правая половина: тёплый свет изнутри */}
+      <rect x={x - 4} y={top + 20} width={w / 2 - 12} height={h - 70} fill="#1a120b" {...OUT} />
+      <rect x={x - 4} y={top + 20} width={w / 2 - 12} height={h - 70} fill={AMBER} opacity={0.4 * open} />
+      {/* левая закрытая створка с табличкой */}
+      <rect x={x - w / 2 + 16} y={top + 20} width={w / 2 - 20} height={h - 70} fill="#6b4630" {...OUT} />
+      <rect x={x - w / 2 + 36} y={top + 50} width={w / 2 - 60} height={h - 140} fill="none" stroke="#4e321f" strokeWidth={6} />
+      <circle cx={x - 22} cy={top + h / 2} r={7} fill="#c9a24a" {...OUT} />
+      <g transform={`rotate(-6 ${x - w / 4} ${top + 300})`}>
+        <rect x={x - w / 4 - 70} y={top + 220} width={140} height={150} fill="#f2c200" {...OUT} />
+        <path d={`M${x - w / 4} ${top + 234} l-28 52 l24 0 l-10 40 l40 -58 l-24 0 l10 -34 Z`} fill="#111" />
+        <text x={x - w / 4} y={top + 352} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={14} fill="#111">НЕ ВЛЕЗАЙ — УБЬЁТ</text>
+        <rect x={x - w / 4 - 84} y={top + 212} width={46} height={14} fill="rgba(255,255,240,.6)" transform={`rotate(-30 ${x - w / 4 - 60} ${top + 219})`} />
       </g>
-      <path d={`M${x - w / 2} ${top + 6} L${x - w / 2 - 150 * open} ${top + 50} L${x - w / 2 - 150 * open} ${FLOOR_Y - 60} L${x - w / 2} ${FLOOR_Y - 20} Z`} fill="#6b4630" {...OUT} />
+      {/* правая створка распахнута наружу в перспективе */}
+      <path d={`M${x + w / 2} ${top + 6} L${x + w / 2 + 140 * open} ${top + 50} L${x + w / 2 + 140 * open} ${FLOOR_Y - 60} L${x + w / 2} ${FLOOR_Y - 20} Z`} fill="#6b4630" {...OUT} />
       <rect x={x - w / 2 - 10} y={top - 166} width={w + 20} height={20} fill="#4a2f1d" {...OUT} />
       <rect x={x - w / 2 + 10} y={FLOOR_Y - 26} width={w - 20} height={26} fill="#3a2516" {...OUT} />
     </g>
@@ -192,10 +202,17 @@ export const HallDecor = () => (
     <rect x={40} y={FLOOR_Y - 190} width={300} height={190} fill="#6b4630" {...OUT} />
     {[0, 1].map((i) => <rect key={i} x={56 + i * 142} y={FLOOR_Y - 172} width={126} height={150} fill="#7a5238" {...OUT} />)}
     {[[90, "#2a2a2e"], [170, "#7a2a2a"], [250, "#2a2a2e"]].map(([x, c], i) => <path key={i} d={`M${x} ${FLOOR_Y - 190} c0 -30 50 -30 50 0 Z`} fill={c as string} {...OUT} />)}
-    <rect x={420} y={820} width={120} height={160} fill="#c9c6bd" {...OUT} />
-    <rect x={432} y={834} width={96} height={56} fill="#2a2a2e" />
-    {[0, 1, 2, 3].map((i) => <rect key={i} x={440 + i * 22} y={842} width={14} height={40} fill="#e8e2d6" />)}
-    <path d="M480 980 V1060" stroke="#333" strokeWidth={6} />
+    <rect x={430} y={280} width={120} height={150} fill="#c9c6bd" {...OUT} />
+    <rect x={442} y={294} width={96} height={56} fill="#2a2a2e" />
+    {[0, 1, 2, 3].map((i) => <rect key={i} x={450 + i * 22} y={302} width={14} height={40} fill="#e8e2d6" />)}
+    <rect x={960} y={860} width={54} height={80} rx={8} fill="#efeae0" {...OUT} />
+    <rect x={976} y={880} width={22} height={40} rx={4} fill="#d9d2c4" {...OUT} />
+    {[90, 200].map((x, i) => (
+      <g key={`sn${i}`}>
+        <path d={`M${x} ${FLOOR_Y - 216} c0 -26 30 -34 46 -22 l40 14 c14 6 14 22 0 24 l-86 0 Z`} fill="#f1f1f1" {...OUT} />
+        <path d={`M${x + 10} ${FLOOR_Y - 206} h70`} stroke="#c0392b" strokeWidth={4} />
+      </g>
+    ))}
     {/* вешалка с куртками */}
     <rect x={620} y={300} width={300} height={22} rx={6} fill="#5a3a24" {...OUT} />
     {[660, 760, 860].map((x, i) => (
@@ -308,17 +325,17 @@ export const ChatScreen = ({ k1, k2, ban }: { k1: number; k2: number; ban: numbe
 /** Карточка отзыва 4 из 5 «Шкаф с изюминкой». */
 export const ReviewCard = ({ k, stars }: { k: number; stars: number }) => (
   <g transform={`translate(540 ${760 + (1 - k) * 80}) rotate(-2)`} opacity={k}>
-    <rect x={-420} y={-260} width={840} height={520} rx={30} fill="#ffffff" {...OUT} />
-    <text x={-370} y={-180} fontFamily={MONT} fontWeight={900} fontSize={44} fill="#111">Шкаф с изюминкой</text>
+    <rect x={-420} y={-260} width={840} height={560} rx={30} fill="#ffffff" {...OUT} />
+    <text x={-370} y={-180} fontFamily={MONT} fontWeight={900} fontSize={48} fill="#111">Шкаф с изюминкой</text>
     <text x={-370} y={-130} fontFamily={MONT} fontWeight={600} fontSize={26} fill="#888">Отзыв о Валере Перекупе • Дмитрий</text>
     {[0, 1, 2, 3, 4].map((i) => {
       const on = i < 4 && stars > i;
       return <path key={i} transform={`translate(${-330 + i * 100} -40) scale(${on ? 1 : 0.9})`} d="M0 -38 L11 -12 L38 -10 L17 8 L24 36 L0 21 L-24 36 L-17 8 L-38 -10 L-11 -12 Z" fill={on ? "#ffb400" : "#d9d9d9"} {...OUT} />;
     })}
     <text x={150} y={-28} fontFamily={MONT} fontWeight={900} fontSize={44} fill="#111">4 из 5</text>
-    <text x={-370} y={70} fontFamily={MONT} fontWeight={700} fontSize={30} fill="#222">Шкаф скрипит, но нюанс</text>
-    <text x={-370} y={112} fontFamily={MONT} fontWeight={700} fontSize={30} fill="#222">рукастый — полку повесил,</text>
-    <text x={-370} y={154} fontFamily={MONT} fontWeight={700} fontSize={30} fill="#222">вора отпугнул.</text>
+    {["Шкаф скрипит, но нюанс", "рукастый — полку повесил,", "вора отпугнул. Рекомендую"].map((l, i) => (
+      <text key={i} x={-380} y={60 + i * 52} fontFamily={MONT} fontWeight={800} fontSize={40} fill="#222">{l}</text>
+    ))}
   </g>
 );
 

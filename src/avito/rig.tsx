@@ -113,6 +113,7 @@ export type DimaPose = {
   lid?: number;
   look?: number;
   lean?: number;
+  yawn?: number;
 };
 
 /**
@@ -139,14 +140,13 @@ export const Dima = ({ x, y, s = 1, t, pose }: { x: number; y: number; s?: numbe
       <Leg hx={26} hy={-350} kx={32} ky={-170} fx={36} w={50} color={PANTS} pass="out" />
       <Leg hx={-26} hy={-350} kx={-32} ky={-170} fx={-36} w={50} color={PANTS} pass="fill" />
       <Leg hx={26} hy={-350} kx={32} ky={-170} fx={36} w={50} color={PANTS} pass="fill" />
-      {[-1, 1].map((d) => <ellipse key={`k${d}`} cx={d * 36} cy={-160} rx={30} ry={36} fill={PANTS} {...OUT} />)}
-      {[-1, 1].map((d) => <path key={`k2${d}`} d={`M${d * 36 - 18} -150 q18 14 36 0`} {...OUT} fill="none" />)}
+      {[-1, 1].map((d) => <path key={`k2${d}`} d={`M${d * 34 - 16} -178 q16 10 30 0 M${d * 34 - 14} -150 q14 8 28 0`} stroke="#474b52" strokeWidth={3} fill="none" strokeLinecap="round" />)}
       {[-1, 1].map((d) => <path key={d} d={`M${d * 36 - 26} 0 C${d * 36 - 30} -34 ${d * 36 + 26} -38 ${d * 36 + 34} 0 Z`} fill={SOCK} {...OUT} />)}
       <g transform={`translate(0 ${-br})`}>
         {/* голова и шея: сутулость — голова вперёд и вниз */}
         <g transform={`translate(0 14) rotate(${pose.head ?? 0} 0 -578)`}>
           <rect x={-16} y={-626} width={32} height={56} fill={SKIN_SH} {...OUT} />
-          <DimaHead lid={lid} look={pose.look ?? 0.1} />
+          <DimaHead lid={lid} look={pose.look ?? 0.1} yawn={pose.yawn ?? 0} />
         </g>
         {/* растянутая футболка: пузо, пятно, подол заходит на пояс треников */}
         <path d="M-82 -318 C-96 -400 -88 -500 -80 -530 C-74 -566 -40 -580 0 -580 C40 -580 74 -566 80 -530 C88 -500 100 -400 86 -318 C40 -306 -40 -306 -82 -318 Z" fill={TEE} {...OUT} />
@@ -161,7 +161,7 @@ export const Dima = ({ x, y, s = 1, t, pose }: { x: number; y: number; s?: numbe
 };
 
 /** Голова Димы (центр 0,-690): лохматые тёмные волосы, щетина, «-_-», ровный рот. Для крупных планов масштабируется целиком. */
-export const DimaHead = ({ lid = 0.55, look = 0.1 }: { lid?: number; look?: number }) => (
+export const DimaHead = ({ lid = 0.55, look = 0.1, yawn = 0 }: { lid?: number; look?: number; yawn?: number }) => (
   <g>
     <path d="M-74 -700 C-82 -790 82 -790 74 -700 L70 -680 L-70 -680 Z" fill={HAIR} {...OUT} />
     {[-1, 1].map((d) => <ellipse key={d} cx={d * 70} cy={-684} rx={12} ry={18} fill={SKIN} {...OUT} />)}
@@ -173,7 +173,7 @@ export const DimaHead = ({ lid = 0.55, look = 0.1 }: { lid?: number; look?: numb
     <path d="M-34 -666 q8 4 16 0 M18 -666 q8 4 16 0" stroke={SKIN_SH} strokeWidth={3} fill="none" />
     <path d="M-42 -704 H-12 M12 -704 H42" stroke={HAIR} strokeWidth={6} strokeLinecap="round" />
     <path d="M0 -676 q-6 18 4 22" {...OUT} fill="none" />
-    <line x1={-18} y1={-638} x2={18} y2={-638} {...OUT} />
+    {yawn > 0.05 ? <ellipse cx={0} cy={-636} rx={10 + yawn * 6} ry={4 + yawn * 16} fill="#4a1a1a" {...OUT} /> : <line x1={-18} y1={-638} x2={18} y2={-638} {...OUT} />}
     {Array.from({ length: 16 }, (_, i) => <circle key={i} cx={-42 + ((i * 23) % 84)} cy={-650 + ((i * 7) % 30)} r={1.4} fill={HAIR} opacity={0.55} />)}
   </g>
 );
@@ -324,15 +324,14 @@ export const NuanceHead = ({ guilty = 0, mouth = 0, t = 0, goggles = false }: { 
   const flick = 0.8 + 0.2 * Math.sin(t * 7);
   return (
     <g>
-      {/* пряди за головой */}
-      {Array.from({ length: 9 }, (_, i) => {
-        const x0 = -64 + i * 16;
-        const len = 120 + ((i * 41) % 90);
-        const sw = Math.sin(t * 1.3 + i) * 8;
-        return <path key={i} d={`M${x0} -1250 C${x0 - 20 + sw} ${-1200 + len * 0.3} ${x0 + 14 + sw} ${-1180 + len * 0.6} ${x0 - 6 + sw * 1.5} ${-1170 + len}`} stroke="#0c0d10" strokeWidth={9} fill="none" strokeLinecap="round" />;
-      })}
       <path d="M-70 -1150 C-80 -1260 -40 -1280 0 -1280 C40 -1280 80 -1260 70 -1150 C66 -1090 40 -1056 0 -1050 C-40 -1056 -66 -1090 -70 -1150 Z" fill={MON_HI} {...OUT} strokeWidth={2.5} />
       <path d="M30 -1270 C70 -1240 74 -1150 40 -1070 C58 -1140 60 -1220 30 -1270 Z" fill={MON_SH} />
+      {/* растрёпанные пряди: шапка волос и пряди, свисающие вдоль лица (без торчащих концов) */}
+      <path d="M-70 -1170 C-82 -1268 -40 -1290 0 -1288 C40 -1290 82 -1268 70 -1170 L62 -1200 L52 -1172 L40 -1214 L26 -1186 L12 -1222 L-4 -1190 L-18 -1224 L-32 -1188 L-46 -1214 L-58 -1176 Z" fill="#0c0d10" {...OUT} strokeWidth={2.5} />
+      {[-58, -46, 46, 58].map((x0, i) => {
+        const sw = Math.sin(t * 1.3 + i) * 4;
+        return <path key={i} d={`M${x0} -1200 C${x0 + sw} -1150 ${x0 - sw} -1110 ${x0 + (x0 < 0 ? 4 : -4)} ${-1050 + (i % 2) * 30}`} stroke="#0c0d10" strokeWidth={8} fill="none" strokeLinecap="round" />;
+      })}
       {/* надбровья: виноватая мина — внутренние концы вверх */}
       <path d={`M-58 ${-1196 + guilty * 6} L-12 ${-1190 - guilty * 14} M12 ${-1190 - guilty * 14} L58 ${-1196 + guilty * 6}`} stroke="#0c0d10" strokeWidth={9} strokeLinecap="round" />
       {/* провалы глазниц: огоньки разного размера и высоты */}
@@ -362,7 +361,7 @@ export const NuanceHead = ({ guilty = 0, mouth = 0, t = 0, goggles = false }: { 
   );
 };
 
-/** Вор в балаклаве и куртке, с мешком «$». drop — уронил отмычку, dizzy — спиральки @_@. */
+/** Вор в балаклаве и куртке, с мешком «₽». drop — уронил отмычку, dizzy — спиральки @_@. */
 export const Thief = ({ x, y, s = 1, t, dizzy = 0 }: { x: number; y: number; s?: number; t: number; dizzy?: number }) => {
   const shake = Math.sin(t * 60) * 2 * dizzy;
   return (
@@ -373,7 +372,7 @@ export const Thief = ({ x, y, s = 1, t, dizzy = 0 }: { x: number; y: number; s?:
       {[-1, 1].map((d) => <path key={`s${d}`} d={`M${d * 30 - 30} 0 C${d * 30 - 30} -28 ${d * 30 + 30} -30 ${d * 30 + 32} 0 Z`} fill={SHOE} {...OUT} />)}
       {/* мешок с $ за спиной */}
       <path d="M70 -520 C150 -540 190 -420 170 -330 C150 -280 70 -280 60 -340 Z" fill="#c9b48a" {...OUT} />
-      <text x={122} y={-380} textAnchor="middle" fontFamily="Arial Black, sans-serif" fontWeight={900} fontSize={56} fill="#3a7a3a">$</text>
+      <text x={122} y={-380} textAnchor="middle" fontFamily="Arial Black, sans-serif" fontWeight={900} fontSize={56} fill="#3a7a3a">₽</text>
       <path d="M-80 -300 L-86 -540 C-86 -580 86 -580 86 -540 L80 -300 Z" fill="#15161a" {...OUT} />
       <path d="M0 -572 V-310" stroke="#2a2c33" strokeWidth={4} />
       <rect x={-16} y={-610} width={32} height={50} fill="#101114" {...OUT} />
@@ -413,6 +412,8 @@ export const ThiefDown = ({ x, y, s = 1, t }: { x: number; y: number; s?: number
     {[0, 1].map((i) => <path key={`f${i}`} d={`M60 ${-40 - i * 26} L300 ${-24 - i * 30}`} stroke="#22252b" strokeWidth={38} strokeLinecap="round" />)}
     {[0, 1].map((i) => <path key={`s${i}`} d={`M300 ${-6 - i * 30} C330 ${-6 - i * 30} 334 ${-50 - i * 30} 304 ${-52 - i * 30} Z`} fill={SHOE} {...OUT} />)}
     <path d="M-200 -6 L-200 -96 C-200 -110 70 -110 80 -96 L80 -6 Z" fill="#15161a" {...OUT} />
+    <path d="M-120 -96 C-160 -190 -40 -230 0 -150 C20 -110 -20 -90 -60 -96 Z" fill="#c9b48a" {...OUT} />
+    <text x={-62} y={-130} textAnchor="middle" fontFamily="Arial Black, sans-serif" fontWeight={900} fontSize={44} fill="#3a7a3a">₽</text>
     <ellipse cx={-262} cy={-56} rx={64} ry={52} fill="#101114" {...OUT} />
     <rect x={-300} y={-76} width={70} height={36} rx={16} fill={SKIN} {...OUT} />
     {[-282, -250].map((ex) => <path key={ex} d={`M${ex} -58 m-8 0 a8 8 0 1 1 8 8 a5 5 0 1 1 -5 -5`} stroke={LINE} strokeWidth={3} fill="none" />)}
