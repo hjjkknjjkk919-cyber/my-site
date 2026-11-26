@@ -9,6 +9,7 @@ import { Ep1, EP1_FRAMES } from "./train/Ep1";
 import { DontOpen1, DO1_FRAMES } from "./dontopen/DontOpen";
 import { Pelmeni43, PEL_FRAMES } from "./pelmeni/Pelmeni43";
 import { PUSH_FRAMES, Pushistik1 } from "./compositions/Pushistik/Pushistik1";
+import { Avatar } from "./compositions/Avatar/Avatar";
 import { CLINIC_FRAMES, ClinicAnime } from "./compositions/ClinicAnime/ClinicAnime";
 import { AVITO_DEFAULT_FRAMES, AvitoWardrobe, calcAvitoMetadata } from "./compositions/AvitoWardrobe/AvitoWardrobe";
 import { Choice3D, Pov3D, Station3D } from "./train/Pov3D";
@@ -30,6 +31,7 @@ export const Root = () => (
     <Composition id="Pov3DTest" component={Pov3D} width={1080} height={1920} fps={30} durationInFrames={870} defaultProps={{ post: true }} />
     <Composition id="Station3DTest" component={Station3D} width={1080} height={1920} fps={30} durationInFrames={240} />
     <Composition id="Choice3DTest" component={Choice3D} width={1080} height={1920} fps={30} durationInFrames={225} defaultProps={{ font: "sans-serif" }} />
+    <Composition id="Avatar" component={Avatar} width={1080} height={1080} fps={30} durationInFrames={1} />
     <Composition id="ClinicAnime" component={ClinicAnime} width={1080} height={1920} fps={30} durationInFrames={CLINIC_FRAMES} />
     <Composition id="Pushistik1" component={Pushistik1} width={1080} height={1920} fps={30} durationInFrames={PUSH_FRAMES} />
     <Composition id="AvitoWardrobe" component={AvitoWardrobe} width={1080} height={1920} fps={30} durationInFrames={AVITO_DEFAULT_FRAMES} defaultProps={{ durs: [] as number[] }} calculateMetadata={calcAvitoMetadata} />

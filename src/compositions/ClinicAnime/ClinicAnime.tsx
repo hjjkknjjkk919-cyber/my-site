@@ -53,6 +53,13 @@ const SHOTS: [number, number, Who | "clash" | "beam" | "ult", string, string][] 
   [45.4, 48.1, "bab1", "#ff3030", "КОНТРАТАКА: ВЕТЕРАН ОЧЕРЕДЕЙ!"],
   [48.1, 52, "clash", "#ffffff", "НИЧЬЯ!"],
 ];
+/** Карточки персонажей при первом появлении (аниме-приём): [время, имя, роль, цвет]. */
+const INTROS: [number, string, string, string][] = [
+  [1.9, "БАБА ВАЛЯ", "ВЕТЕРАН ОЧЕРЕДЕЙ · 40 ЛЕТ БЕЗ ТАЛОНА", "#ff5a5a"],
+  [3.6, "ДИМА", "ТАЛОН НА 10:15 · ЕЩЁ ВЕРИТ В СИСТЕМУ", "#3aa0ff"],
+  [17.5, "МЕДСЕСТРА", "ФИНАЛЬНЫЙ БОСС", "#f2f2f2"],
+  [21.4, "БАБА ЗИНА", "«Я НА МИНУТОЧКУ» · РАНГ S", "#b05aff"],
+];
 const IMPACTS = [7.55, 8.7, 11.1, 14.0, 15.2, 25.45, 28.0, 31.5, 41.85, 48.2, 49.4];
 const COUGH = 36.0;
 const TELEPORT = 36.8;
@@ -308,10 +315,22 @@ export const ClinicAnime = () => {
       </MouthCtx.Provider>
       {flashIn && <AbsoluteFill style={{ background: "#fff", opacity: 0.9 }} />}
       {/* титры */}
-      {t < 2.2 && (
+      {t < 1.8 && (
         <AbsoluteFill style={{ alignItems: "center" }}>
-          <div style={{ position: "absolute", top: 240, padding: "16px 36px", background: "#fff", color: "#111", fontFamily: MONT, fontWeight: 900, fontSize: 58, transform: `rotate(-2deg)`, border: "5px solid #111" }}>ПОЛИКЛИНИКА №4 · 8:00</div>
+          {/* аниме-опенинг: катакана + название серии */}
+          <div style={{ position: "absolute", top: 180, fontFamily: MONT, fontWeight: 900, fontSize: 96, color: "#ff3030", WebkitTextStroke: "6px #111", paintOrder: "stroke fill", transform: `rotate(-4deg) scale(${ez(t, 0, 0.25, 1.8, 1)})` }}>ポリクリニカ</div>
+          <div style={{ position: "absolute", top: 330, padding: "12px 30px", background: "#111", color: "#fff", fontFamily: MONT, fontWeight: 900, fontSize: 44, whiteSpace: "nowrap", transform: "rotate(-4deg)", border: "5px solid #ffd23a" }}>ПОЛИКЛИНИКА: ПОСЛЕДНИЙ ТАЛОН</div>
         </AbsoluteFill>
+      )}
+      {INTROS.map(([a, name, role, color]) =>
+        t >= a && t < a + 1.6 ? (
+          <AbsoluteFill key={name} style={{ pointerEvents: "none" }}>
+            <div style={{ position: "absolute", left: -40, right: -40, top: 1340, padding: "12px 80px", background: color, transform: `rotate(-5deg) translateX(${(1 - ez(t, a, a + 0.2)) * -1100}px)`, borderTop: "6px solid #111", borderBottom: "6px solid #111" }}>
+              <div style={{ fontFamily: MONT, fontWeight: 900, fontSize: 64, color: "#fff", WebkitTextStroke: "4px #111", paintOrder: "stroke fill" }}>{name}</div>
+              <div style={{ fontFamily: MONT, fontWeight: 800, fontSize: 36, color: "#111" }}>{role}</div>
+            </div>
+          </AbsoluteFill>
+        ) : null
       )}
       {beat.kind === "fight" && beat.round && t < beat.from + 1.1 && (
         <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>

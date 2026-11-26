@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Sequence, useCurrentFrame } from "remotion";
 import { Sfx } from "../../components/audio";
 import { ez, MONT } from "../../pelmeni/kit";
 import { useAudioData } from "@remotion/media-utils";
@@ -8,7 +8,9 @@ import { Arm, Leg } from "../AvitoWardrobe/rig";
 import { speechEnergy } from "../AvitoWardrobe/useLipSync";
 
 /* «Утренняя зарядка с Пушистиком. Кассета №1» — аналог-хоррор под VHS, ~35 с. */
-export const PUSH_FRAMES = Math.round(34.5 * 30);
+/** Холодный открывающий кадр (по скану трендов: «потерянный выпуск» + вспышка скримера в 1-ю секунду). */
+const CO = 1.8;
+export const PUSH_FRAMES = Math.round((34.5 + CO) * 30);
 
 const LINE = "#2a1f24";
 const OUT = { stroke: LINE, strokeWidth: 3, strokeLinejoin: "round" as const, strokeLinecap: "round" as const, vectorEffect: "non-scaling-stroke" as const };
@@ -84,14 +86,14 @@ const PushEye = ({ cx, look, creep, voidEyes }: { cx: number; look: number; cree
   );
 };
 
-const Pushistik = ({ t, arms, bend, creep, voidEyes, talk }: { t: number; arms: number; bend: number; creep: number; voidEyes: boolean; talk: number }) => {
+export const Pushistik = ({ t, arms, bend, creep, voidEyes, talk, wave }: { t: number; arms: number; bend: number; creep: number; voidEyes: boolean; talk: number; wave?: number }) => {
   const br = 3 * Math.sin(t * 2.2);
   const shL = 12 + arms * 158;
   const paw = (wx: number, wy: number) => <circle cx={wx} cy={wy + 14} r={28} fill={BELLY} {...OUT} strokeWidth={3} />;
   const armsPass = (pass: "out" | "fill") => (
     <>
       <Arm sx={-112} sy={-262} up={95} fo={85} w={44} color={FUR} pose={{ sh: shL, el: arms * 15 }} pass={pass} hand={paw} />
-      <Arm sx={112} sy={-262} up={95} fo={85} w={44} color={FUR} pose={{ sh: -shL, el: -arms * 15 }} pass={pass} hand={paw} />
+      <Arm sx={112} sy={-262} up={95} fo={85} w={44} color={FUR} pose={wave === undefined ? { sh: -shL, el: -arms * 15 } : { sh: -150 - Math.sin(t * 9) * 12, el: -20 + Math.sin(t * 9) * 25 }} pass={pass} hand={paw} />
     </>
   );
   return (
@@ -133,7 +135,7 @@ const Pushistik = ({ t, arms, bend, creep, voidEyes, talk }: { t: number; arms: 
 };
 
 /** Пастельная студия детской передачи; night 0..1 — за окном темнеет. */
-const Studio = ({ night }: { night: number }) => (
+export const Studio = ({ night }: { night: number }) => (
   <g>
     <rect width={1080} height={1920} fill="#f7c9d4" />
     {Array.from({ length: 10 }, (_, i) => <circle key={i} cx={80 + (i % 5) * 230} cy={300 + Math.floor(i / 5) * 420} r={26} fill="#fbe0e7" />)}
@@ -190,7 +192,7 @@ const Subs = ({ t }: { t: number }) => {
   return null;
 };
 
-export const Pushistik1 = () => {
+const PushMain = () => {
   const f = useCurrentFrame();
   const t = f / 30;
   const reps = repsAt(t);
@@ -203,7 +205,7 @@ export const Pushistik1 = () => {
   const night = ez(t, 10.5, 13, 0, 1);
   const creep = ez(t, 11, 15, 0, 0.6);
   // упражнения: руки вверх-вниз в такт счёту, наклоны — плавно и всё медленнее
-  const arms = t < T.p2 ? 0.25 + 0.25 * Math.sin(t * 6) : t < T.p3 ? (Math.floor((t - T.p2) / 0.425) % 2 ? 1 : 0.1) : 0.15;
+  const arms = t < T.p2 ? 0.05 : t < T.p3 ? (Math.floor((t - T.p2) / 0.425) % 2 ? 1 : 0.1) : 0.15;
   const bend = t >= T.p3 && t < T.dark ? Math.sin((t - T.p3) * (2.4 - (t - T.p3) * 0.2)) : 0;
   const jitter = t >= T.face && t < T.rew ? `translate(${Math.sin(t * 61) * 8}px, ${Math.cos(t * 47) * 6}px)` : "none";
   const rgb = "drop-shadow(4px 0 rgba(255,0,90,.45)) drop-shadow(-4px 0 rgba(0,200,255,.45))";
@@ -213,7 +215,7 @@ export const Pushistik1 = () => {
       <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
         <Studio night={night} />
         <g transform={`translate(540 1440) scale(${1.45 + creep * 0.25})`}>
-          <Pushistik t={t} arms={arms} bend={bend} creep={creep} voidEyes={false} talk={talk} />
+          <Pushistik t={t} arms={arms} bend={bend} creep={creep} voidEyes={false} talk={talk} wave={t < T.p2 ? 1 : undefined} />
         </g>
         <g opacity={ez(t, 0.3, 0.6) * (1 - ez(t, 3.6, 4.0))}>
           <rect x={160} y={180} width={760} height={120} rx={60} fill="#ffe14a" {...OUT} />
@@ -223,8 +225,9 @@ export const Pushistik1 = () => {
     );
   } else if (t < T.face) {
     scene = (
-      <AbsoluteFill style={{ background: "#020203", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ fontFamily: VCR, fontWeight: 900, fontSize: 84, color: "#ddd", opacity: ez(t, T.dark + 0.4, T.dark + 1) }}>ЗАКРОЙ ГЛАЗА</div>
+      <AbsoluteFill style={{ background: t < T.dark + 2.5 ? "#0a1a8a" : "#020203", alignItems: "center", justifyContent: "center", gap: 30 }}>
+        <div style={{ fontFamily: VCR, fontWeight: 900, fontSize: 70, color: "#fff", background: "#c0101a", padding: "8px 24px", opacity: ez(t, T.dark + 0.1, T.dark + 0.3) }}>ВНИМАНИЕ</div>
+        <div style={{ fontFamily: VCR, fontWeight: 900, fontSize: 58, color: "#fff", textAlign: "center", width: 900, lineHeight: 1.25, opacity: ez(t, T.dark + 0.4, T.dark + 0.8) }}>ЗАКРОЙТЕ ГЛАЗА.<br />НЕ ОТКРЫВАЙТЕ ИХ<br />ДО КОНЦА ПЕРЕДАЧИ.</div>
       </AbsoluteFill>
     );
   } else if (t < T.rew) {
@@ -277,8 +280,50 @@ export const Pushistik1 = () => {
       {reps > 0 && t < T.tape && (
         <div style={{ position: "absolute", right: 50, top: 170, fontFamily: VCR, fontWeight: 900, fontSize: 52, color: reps === 8 ? "#ff2a2a" : "#fff", textShadow: "3px 0 #f0f, -3px 0 #0ff" }}>ПОВТОР: {reps}</div>
       )}
+      {t < T.tape && (
+        <div style={{ position: "absolute", right: 46, top: 64, fontFamily: MONT, fontWeight: 900, fontSize: 40, padding: "4px 16px", borderRadius: 14, color: "#fff", background: t >= T.dark ? "#8a0010" : "linear-gradient(90deg,#ff5a5a,#ffb43a,#5ad66a,#3aa0ff,#a05aff)", opacity: 0.85, transform: t >= T.face ? `skewX(${Math.sin(f) * 20}deg)` : undefined }}>{t >= T.dark ? "Р4ДУГ4" : "РАДУГА"}</div>
+      )}
       <VHS t={t} f={f} strong={t >= T.dark && t < T.face ? 1 : t >= T.rew && t < T.p6 ? 1 : 0} />
       <Subs t={t} />
     </AbsoluteFill>
   );
 };
+
+/** Холодный старт: вспышка скримера (0–0.5 с) → плашка «этот выпуск не вышел в эфир». */
+const ColdOpen = () => {
+  const f = useCurrentFrame();
+  const t = f / 30;
+  if (t < 0.5)
+    return (
+      <AbsoluteFill style={{ background: "#000", filter: "drop-shadow(5px 0 rgba(255,0,90,.5)) drop-shadow(-5px 0 rgba(0,200,255,.5))", transform: `translate(${Math.sin(f * 7) * 10}px, 0)` }}>
+        <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
+          <Studio night={1} />
+          <rect width={1080} height={1920} fill="#5a0010" opacity={0.45} />
+          <g transform="translate(540 2450) scale(3.3)">
+            <Pushistik t={t} arms={0.1} bend={0} creep={1} voidEyes talk={0.6} />
+          </g>
+        </svg>
+        <VHS t={0} f={f} strong={1} />
+      </AbsoluteFill>
+    );
+  return (
+    <AbsoluteFill style={{ background: "#0a1a8a", alignItems: "center", justifyContent: "center", gap: 36 }}>
+      <div style={{ fontFamily: VCR, fontWeight: 900, fontSize: 62, color: "#fff", textAlign: "center", width: 920, lineHeight: 1.25 }}>ЭТОТ ВЫПУСК<br />НЕ ВЫШЕЛ В ЭФИР</div>
+      <div style={{ fontFamily: VCR, fontWeight: 900, fontSize: 40, color: "#ffd84a", textAlign: "center", width: 920 }}>«УТРЕННЯЯ ЗАРЯДКА С ПУШИСТИКОМ»<br />12.03.1997</div>
+      <VHS t={0} f={f} strong={0.6} />
+    </AbsoluteFill>
+  );
+};
+
+export const Pushistik1 = () => (
+  <AbsoluteFill style={{ background: "#000" }}>
+    <Sfx at={0} name="pushistik/hit" vol={0.9} />
+    <Sfx at={0.45} name="pushistik/vhs" vol={0.4} dur={CO - 0.45} />
+    <Sequence durationInFrames={Math.round(CO * 30)}>
+      <ColdOpen />
+    </Sequence>
+    <Sequence from={Math.round(CO * 30)}>
+      <PushMain />
+    </Sequence>
+  </AbsoluteFill>
+);
