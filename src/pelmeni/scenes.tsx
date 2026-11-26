@@ -470,78 +470,40 @@ export const S15Door = () => {
 };
 
 /* ── 16–18. Глазок: сосед в фартуке и маске; зум; финал с выбором (16с) ── */
-/** Сосед в глазке: серая кожа, впалые глазницы, зрачки-точки, пропитанная кровью маска, растягивающаяся в улыбку. */
-const Neighbor = ({ t, talk, dread = 0 }: { t: number; talk: number; dread?: number }) => {
-  const tilt = -4 - dread * 10 + Math.sin(t * 0.7) * 1.5;
-  const grin = 0.3 + dread * 0.7;
-  const flick = Math.sin(t * 31) * Math.sin(t * 7) > 0.55 ? 0.15 : 1;
-  const SK = "#b9b4a4";
-  const SK_SH = "#7d786a";
-  return (
-    <g>
-      {/* площадка: облупленная краска, мигающая лампа */}
-      <rect x={-600} y={-700} width={1200} height={1400} fill="#3f4d3e" />
-      <rect x={-600} y={-700} width={1200} height={560} fill="#8f8873" />
-      {Array.from({ length: 10 }, (_, i) => <path key={i} d={`M${-560 + i * 120} -140 l${20 + (i % 3) * 10} ${60 + (i % 4) * 30} l-30 20`} stroke="#2a3329" strokeWidth={6} fill="none" />)}
-      <rect x={-600} y={420} width={1200} height={300} fill="#2a2824" />
-      <rect x={260} y={-500} width={240} height={920} fill="#6d6a62" stroke={INK} strokeWidth={6} />
-      <circle cx={0} cy={-620} r={40} fill="#fff3c4" opacity={0.25 + 0.7 * flick} />
-      <rect x={-600} y={-700} width={1200} height={1400} fill="#000" opacity={0.5 * (1 - flick)} />
-      <g transform={`rotate(${tilt} 0 -80)`}>
-        {/* тело и фартук в пятнах */}
-        <path d="M-250 720 L-230 60 C-220 -40 220 -40 230 60 L250 720 Z" fill="#59606a" stroke={INK} strokeWidth={8} />
-        <path d="M-150 30 L150 30 L170 720 L-170 720 Z" fill="#171313" stroke={INK} strokeWidth={8} />
-        <path d="M-150 30 C-120 -40 -60 -60 -40 -80 M150 30 C120 -40 60 -60 40 -80" stroke="#171313" strokeWidth={12} fill="none" />
-        {[[-60, 200, 70], [40, 330, 55], [-20, 470, 80], [90, 560, 40]].map(([x, y, r], i) => (
-          <g key={i} fill="#4a0a0a">
-            <ellipse cx={x} cy={y} rx={r} ry={r * 0.7} opacity={0.9} />
-            <path d={`M${x - 10} ${y + r * 0.5} q4 ${60 + i * 20} -2 ${90 + i * 25} q10 4 8 -10 q-2 -40 6 -80 Z`} />
-          </g>
-        ))}
-        {[-90, -30, 30, 90].map((x) => <path key={x} d={`M${x} 60 q${x / 10} 300 ${x / 6} 640`} stroke="#000" strokeWidth={5} fill="none" opacity={0.5} />)}
-        {/* шея и голова */}
-        <rect x={-46} y={-110} width={92} height={70} fill={SK_SH} />
-        <ellipse cx={0} cy={-230} rx={124} ry={160} fill={SK} stroke={INK} strokeWidth={8} />
-        <path d="M-120 -260 C-110 -160 -70 -110 -20 -96 L-120 -150 Z" fill={SK_SH} opacity={0.7} />
-        {/* сальные пряди свисают на лицо */}
-        <path d="M-130 -250 C-140 -420 140 -420 130 -250 C110 -330 -110 -330 -130 -250 Z" fill="#1d1a17" stroke={INK} strokeWidth={8} />
-        {Array.from({ length: 11 }, (_, i) => {
-          const x = -112 + i * 22;
-          const len = 60 + ((i * 37) % 70);
-          return <path key={i} d={`M${x} -330 q${(i % 2 ? 8 : -8)} ${len * 0.6} ${(i % 3) * 4 - 4} ${len}`} stroke="#1d1a17" strokeWidth={6} fill="none" strokeLinecap="round" />;
-        })}
-        {/* впалые глазницы, налитые кровью белки, зрачки-точки */}
-        {[-48, 48].map((x, i) => (
-          <g key={x}>
-            <ellipse cx={x} cy={-246} rx={44} ry={34} fill="#2a2420" opacity={0.85} />
-            <ellipse cx={x} cy={-246} rx={30} ry={22 + dread * 3} fill="#efe7d2" stroke={INK} strokeWidth={5} />
-            <path d={`M${x - 26} ${-250} l12 3 M${x + 26} ${-242} l-12 -2 M${x - 20} ${-236} l10 -4`} stroke="#b01818" strokeWidth={2} />
-            <circle cx={x + (i ? -4 : 4)} cy={-246} r={4.5} fill="#000" />
-            <circle cx={x + (i ? -4 : 4)} cy={-246} r={10} fill="#d01010" opacity={0.25 * dread} />
-            <path d={`M${x - 34} ${-276 + (i ? 4 : -2)} q34 ${i ? -10 : 14} 68 ${i ? 8 : -6}`} stroke="#1d1a17" strokeWidth={8} fill="none" strokeLinecap="round" />
-          </g>
-        ))}
-        {/* маска: пропитана кровью, под тканью проступает растущая улыбка */}
-        <path d={`M-114 -206 C-116 -120 -60 ${-80 + talk * 6} 0 ${-74 + talk * 8} C60 ${-80 + talk * 6} 116 -120 114 -206 Z`} fill="#a9c2cf" stroke={INK} strokeWidth={6} />
-        <path d={`M-70 -150 C-40 ${-130 + talk * 4} 40 ${-130 + talk * 4} 70 -150 C60 -110 -60 -110 -70 -150 Z`} fill="#6a0c0c" opacity={0.85} />
-        <path d={`M-96 ${-160 + grin * -10} C-50 ${-120 + grin * 26} 50 ${-120 + grin * 26} 96 ${-160 + grin * -10}`} stroke="#2a0606" strokeWidth={6} fill="none" opacity={0.6 + grin * 0.4} />
-        {[0, 1, 2].map((i) => <path key={i} d={`M${-30 + i * 30} -100 q3 ${40 + i * 12} -2 ${60 + i * 16}`} stroke="#6a0c0c" strokeWidth={6} fill="none" strokeLinecap="round" />)}
-        <path d="M-110 -190 H110" stroke="#87a3b2" strokeWidth={5} />
-        {/* руки с тарелкой, кровь на пальцах */}
-        <path d="M-230 160 C-200 260 -120 300 -60 300 M230 160 C200 260 120 300 60 300" stroke="#59606a" strokeWidth={60} strokeLinecap="round" fill="none" />
-        {[-1, 1].map((d) => (
-          <g key={d} transform={`translate(${d * 70} 300)`}>
-            <ellipse cx={0} cy={0} rx={46} ry={30} fill={SK} stroke={INK} strokeWidth={6} />
-            {[-24, -8, 8, 24].map((fx) => <rect key={fx} x={fx - 7} y={-6} width={14} height={40} rx={7} fill={SK} stroke={INK} strokeWidth={4} />)}
-            <path d="M-20 10 q10 20 30 6" stroke="#6a0c0c" strokeWidth={8} fill="none" strokeLinecap="round" />
-          </g>
-        ))}
-        <Dumplings x={0} y={300} s={0.8} t={t} n={6} steam={0.7} />
-        <ellipse cx={30} cy={300} rx={60} ry={14} fill="#6a0c0c" opacity={0.8} />
+const Neighbor = ({ t, talk }: { t: number; talk: number }) => (
+  <g>
+    {/* площадка */}
+    <rect x={-600} y={-700} width={1200} height={1400} fill="#5d6e5a" />
+    <rect x={-600} y={-700} width={1200} height={560} fill="#b9b19c" />
+    <rect x={-600} y={420} width={1200} height={300} fill="#3c3a34" />
+    <rect x={260} y={-500} width={240} height={920} fill="#8d8a80" stroke={INK} strokeWidth={6} />
+    <circle cx={0} cy={-620} r={40} fill="#fff3c4" opacity={0.6 + 0.4 * Math.sin(t * 31) * Math.sin(t * 7)} />
+    {/* сосед */}
+    <path d="M-250 720 L-230 60 C-220 -40 220 -40 230 60 L250 720 Z" fill="#7d8a96" stroke={INK} strokeWidth={8} />
+    <path d="M-150 30 L150 30 L170 720 L-170 720 Z" fill="#1e1a1a" stroke={INK} strokeWidth={8} />
+    <path d="M-150 30 C-120 -40 -60 -60 -40 -80 M150 30 C120 -40 60 -60 40 -80" stroke="#1e1a1a" strokeWidth={12} fill="none" />
+    <path d="M-60 330 C-20 360 40 300 70 340" stroke="#5a1414" strokeWidth={14} fill="none" opacity={0.8} />
+    <rect x={-50} y={-110} width={100} height={70} fill={SKIN_SH} />
+    <ellipse cx={0} cy={-230} rx={130} ry={155} fill={SKIN} stroke={INK} strokeWidth={8} />
+    <path d="M-132 -250 C-140 -420 140 -420 132 -250 C110 -330 -110 -330 -132 -250 Z" fill="#3a3530" stroke={INK} strokeWidth={8} />
+    {Array.from({ length: 9 }, (_, i) => <path key={i} d={`M${-110 + i * 27} -330 q6 40 -4 70`} stroke="#1f1b18" strokeWidth={4} fill="none" />)}
+    <path d="M-86 -282 q36 -16 70 0 M16 -282 q36 -16 70 0" stroke="#1f1b18" strokeWidth={9} fill="none" strokeLinecap="round" />
+    <path d="M-120 -200 C-110 -120 -60 -100 0 -96" fill="none" stroke={SKIN_SH} strokeWidth={10} opacity={0.6} />
+    {[-90, -30, 30, 90].map((x) => <path key={x} d={`M${x} 60 q${x / 10} 300 ${x / 6} 640`} stroke="#000" strokeWidth={5} fill="none" opacity={0.5} />)}
+    {/* глаза над маской: спокойные, не моргают */}
+    {[-50, 50].map((x) => (
+      <g key={x}>
+        <ellipse cx={x} cy={-250} rx={26} ry={16} fill="#f4efe6" stroke={INK} strokeWidth={5} />
+        <circle cx={x + 2} cy={-250} r={9} fill={INK} />
       </g>
-    </g>
-  );
-};
+    ))}
+    <path d={`M-118 -210 C-120 -120 -60 ${-80 + talk * 6} 0 ${-76 + talk * 8} C60 ${-80 + talk * 6} 120 -120 118 -210 Z`} fill="#bcd7e6" stroke={INK} strokeWidth={6} />
+    <path d="M-110 -190 H110 M-100 -150 H100" stroke="#97b6c8" strokeWidth={5} />
+    {/* тарелка с пельменями в руках */}
+    <path d="M-230 160 C-200 260 -120 300 -60 300 M230 160 C200 260 120 300 60 300" stroke="#7d8a96" strokeWidth={60} strokeLinecap="round" fill="none" />
+    <Dumplings x={0} y={300} s={0.8} t={t} n={6} steam={0.7} />
+  </g>
+);
 
 export const S16Peephole = ({ talkAt, talkEnd, freezeAt, end }: { talkAt: number; talkEnd: number; freezeAt: number; end: number }) => {
   const t = useLT();
@@ -571,7 +533,7 @@ export const S16Peephole = ({ talkAt, talkEnd, freezeAt, end }: { talkAt: number
         </defs>
         <g clipPath="url(#ph-c)">
           <g transform={`translate(540 860) scale(${zoom})`} filter="url(#ph-bulge)">
-            <Neighbor t={tt} talk={talk} dread={ez(t, talkAt - 1, freezeAt, 0, 1)} />
+            <Neighbor t={tt} talk={talk} />
           </g>
           <circle cx={540} cy={820} r={470} fill="url(#ph-v)" />
           {/* звуковая волна из-за двери */}
