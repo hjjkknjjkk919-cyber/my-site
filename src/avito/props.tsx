@@ -27,7 +27,7 @@ export const Mug = ({ t = 0, steam = false, flip = false }: { t?: number; steam?
 );
 
 /** Телефон экраном к зрителю; mode: волна голосового / Авито. */
-export const PhoneItem = ({ t, mode = "off", s = 1 }: { t: number; mode?: "off" | "wave" | "avito"; s?: number }) => (
+export const PhoneItem = ({ t, mode = "off", s = 1 }: { t: number; mode?: "off" | "wave" | "avito" | "voice"; s?: number }) => (
   <g transform={`scale(${s})`}>
     <rect x={-36} y={-80} width={72} height={140} rx={12} fill="#16171b" {...OUT} />
     <rect x={-30} y={-72} width={60} height={124} rx={8} fill={mode === "off" ? "#1c2633" : "#f4f6f8"} />
@@ -38,6 +38,23 @@ export const PhoneItem = ({ t, mode = "off", s = 1 }: { t: number; mode?: "off" 
           const h = 6 + 24 * Math.abs(Math.sin(t * 11 + i * 0.9));
           return <rect key={i} x={-26 + i * 4.8} y={-26 - h / 2} width={3} height={h} rx={1.5} fill="#21a36b" />;
         })}
+      </g>
+    )}
+    {mode === "voice" && (
+      <g>
+        {/* шапка чата Авито */}
+        <rect x={-30} y={-72} width={60} height={22} rx={6} fill="#ffffff" />
+        <circle cx={-20} cy={-61} r={6} fill="#00aaff" />
+        <rect x={-11} y={-65} width={30} height={4} rx={2} fill="#222" />
+        <rect x={-11} y={-58} width={20} height={3} rx={1.5} fill="#999" />
+        {/* запись голосового: волна, таймер 0:04, красная кнопка */}
+        {Array.from({ length: 12 }, (_, i) => {
+          const h = 4 + 20 * Math.abs(Math.sin(t * 11 + i * 0.8));
+          return <rect key={i} x={-27 + i * 4.6} y={-22 - h / 2} width={2.8} height={h} rx={1.4} fill="#00aaff" />;
+        })}
+        <text x={-26} y={14} fontFamily={MONT} fontWeight={800} fontSize={10} fill="#e74c3c">● 0:04</text>
+        <circle cx={14} cy={34} r={13} fill="#e74c3c" opacity={0.75 + 0.25 * Math.sin(t * 8)} />
+        <rect x={10} y={27} width={8} height={12} rx={4} fill="#fff" />
       </g>
     )}
     {mode === "avito" && (

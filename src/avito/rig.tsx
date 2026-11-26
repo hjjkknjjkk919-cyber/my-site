@@ -18,6 +18,11 @@ export const RIM = "#ffc95e";
 
 const uid = () => React.useId().replace(/:/g, "");
 
+/** Громкость текущего слога (0..1) для каждого персонажа — задаётся монтажом из useAudioData/visualizeAudio. */
+export const MouthCtx = React.createContext({ dima: 0, nuance: 0 });
+/** 4 виземы: 0 — тишина, 1 — тихо, 2 — средне, 3 — громко. */
+export const viseme = (a: number) => (a < 0.08 ? 0 : a < 0.22 ? 1 : a < 0.45 ? 2 : 3);
+
 export type ArmPose = { sh: number; el: number; wr?: number };
 type Pass = "out" | "fill";
 
@@ -54,26 +59,26 @@ export const Leg = ({ hx, hy, kx, ky, fx, w, color, pass }: { hx: number; hy: nu
  * item рисуется с началом координат в точке хвата; itemRot компенсирует поворот руки (кружка стоит ровно).
  */
 export const GripHand = ({ x, y, item, itemRot = 0, point = false, open = false }: { x: number; y: number; item?: React.ReactNode; itemRot?: number; point?: boolean; open?: boolean }) => {
-  const cy = y + 26;
+  /* все пути в локальных координатах кисти: запястье (0,0), рука смотрит вниз (+y) */
+  const palm = "M-18 -4 C-23 12 -23 34 -15 46 L15 46 C23 34 23 12 18 -4 Z";
+  // сжатые пальцы с большим пальцем — один контур (костяшки — волна по верхнему краю)
+  const fist = "M-24 14 C-34 10 -36 30 -26 36 C-26 46 -18 56 -6 57 C6 58 18 54 22 44 C26 34 25 20 21 12 Q16 19 11 12 Q6 19 1 12 Q-4 19 -9 12 Q-14 19 -18 12 C-20 12 -22 13 -24 14 Z";
+  // кулак с вытянутым указательным — тоже один контур, палец не отрывается от кисти
+  const pointer = "M-24 14 C-34 10 -36 30 -26 36 C-26 46 -18 56 -6 57 L-1 57 L-1 104 C-1 112 13 112 13 104 L13 55 C20 50 25 36 21 12 Q16 19 11 12 Q6 19 1 12 Q-4 19 -9 12 Q-14 19 -18 12 C-20 12 -22 13 -24 14 Z";
+  const openHand = "M-18 -4 C-24 14 -26 34 -20 44 L-22 74 C-22 80 -14 80 -14 74 L-10 50 L-8 84 C-8 90 0 90 0 84 L1 52 L5 82 C5 88 13 88 13 82 L12 50 L18 70 C19 76 27 74 25 68 L20 38 C24 22 22 8 18 -4 Z";
   return (
-    <g>
-      <rect x={x - 19} y={y - 4} width={38} height={44} rx={16} fill={SKIN} {...OUT} />
-      {item && <g transform={`translate(${x} ${cy}) rotate(${itemRot})`}>{item}</g>}
+    <g transform={`translate(${x} ${y})`}>
       {open ? (
-        [-13, -4, 5, 14].map((fx, i) => <path key={i} d={`M${x + fx} ${y + 34} l${(fx / 13) * 3} ${30 - Math.abs(i - 1.5) * 4}`} stroke={LINE} strokeWidth={11} strokeLinecap="round" />)
+        <path d={openHand} fill={SKIN} {...OUT} />
       ) : (
-        <g>
-          {/* сжатые фаланги поверх ручки */}
-          {[0, 1, 2, 3].map((i) => (
-            <rect key={i} x={x - 20} y={y + 12 + i * 8.5} width={point && i === 0 ? 24 : 40} height={10} rx={5} fill={SKIN} {...OUT} />
-          ))}
-          {point && <path d={`M${x + 8} ${y + 30} L${x + 10} ${y + 86}`} stroke={LINE} strokeWidth={14} strokeLinecap="round" />}
-          {point && <path d={`M${x + 8} ${y + 30} L${x + 10} ${y + 86}`} stroke={SKIN} strokeWidth={9} strokeLinecap="round" />}
-          <path d={`M${x - 20} ${y + 6} q-10 14 2 30`} stroke={LINE} strokeWidth={12} fill="none" strokeLinecap="round" />
-          <path d={`M${x - 20} ${y + 6} q-10 14 2 30`} stroke={SKIN} strokeWidth={7} fill="none" strokeLinecap="round" />
-        </g>
+        <>
+          <path d={palm} fill={SKIN} {...OUT} />
+          {item && <g transform={`translate(0 26) rotate(${itemRot})`}>{item}</g>}
+          <path d={point ? pointer : fist} fill={SKIN} {...OUT} />
+          <path d="M-9 20 v14 M1 20 v16 M11 20 v14" stroke={SKIN_SH} strokeWidth={2.5} strokeLinecap="round" />
+          <path d="M-26 30 q6 4 10 -2" stroke={SKIN_SH} strokeWidth={2.5} fill="none" />
+        </>
       )}
-      {open && [-13, -4, 5, 14].map((fx, i) => <path key={`f${i}`} d={`M${x + fx} ${y + 34} l${(fx / 13) * 3} ${30 - Math.abs(i - 1.5) * 4}`} stroke={SKIN} strokeWidth={6} strokeLinecap="round" />)}
     </g>
   );
 };
@@ -123,6 +128,8 @@ export type DimaPose = {
 export const Dima = ({ x, y, s = 1, t, pose }: { x: number; y: number; s?: number; t: number; pose: DimaPose }) => {
   const br = 2.5 * (0.5 + 0.5 * Math.sin(t * 2.1));
   const lid = pose.lid ?? 0.55;
+  const amp = React.useContext(MouthCtx).dima;
+  const nod = amp * 3 * Math.sin(t * 9);
   const totL = pose.armL.sh + pose.armL.el + (pose.armL.wr ?? 0);
   const totR = pose.armR.sh + pose.armR.el + (pose.armR.wr ?? 0);
   const sleeve = { color: TEE, len: 58 };
@@ -141,10 +148,11 @@ export const Dima = ({ x, y, s = 1, t, pose }: { x: number; y: number; s?: numbe
       <Leg hx={-26} hy={-350} kx={-32} ky={-170} fx={-36} w={50} color={PANTS} pass="fill" />
       <Leg hx={26} hy={-350} kx={32} ky={-170} fx={36} w={50} color={PANTS} pass="fill" />
       {[-1, 1].map((d) => <path key={`k2${d}`} d={`M${d * 34 - 16} -178 q16 10 30 0 M${d * 34 - 14} -150 q14 8 28 0`} stroke="#474b52" strokeWidth={3} fill="none" strokeLinecap="round" />)}
+      {[-1, 1].map((d) => <path key={`l${d}`} d={`M${d * 50} -340 L${d * 56} -170 L${d * 58} -20`} stroke="#f2f2f2" strokeWidth={6} fill="none" strokeLinecap="round" />)}
       {[-1, 1].map((d) => <path key={d} d={`M${d * 36 - 26} 0 C${d * 36 - 30} -34 ${d * 36 + 26} -38 ${d * 36 + 34} 0 Z`} fill={SOCK} {...OUT} />)}
       <g transform={`translate(0 ${-br})`}>
         {/* голова и шея: сутулость — голова вперёд и вниз */}
-        <g transform={`translate(0 14) rotate(${pose.head ?? 0} 0 -578)`}>
+        <g transform={`translate(0 14) rotate(${(pose.head ?? 0) + nod} 0 -578)`}>
           <rect x={-16} y={-626} width={32} height={56} fill={SKIN_SH} {...OUT} />
           <DimaHead lid={lid} look={pose.look ?? 0.1} yawn={pose.yawn ?? 0} />
         </g>
@@ -152,7 +160,7 @@ export const Dima = ({ x, y, s = 1, t, pose }: { x: number; y: number; s?: numbe
         <path d="M-82 -318 C-96 -400 -88 -500 -80 -530 C-74 -566 -40 -580 0 -580 C40 -580 74 -566 80 -530 C88 -500 100 -400 86 -318 C40 -306 -40 -306 -82 -318 Z" fill={TEE} {...OUT} />
         <path d="M-32 -580 C-24 -556 24 -556 32 -580" fill={TEE_SH} {...OUT} />
         <path d="M60 -500 C92 -440 96 -370 86 -318 L70 -318 C80 -380 76 -440 60 -500 Z" fill={TEE_SH} opacity={0.7} />
-        <ellipse cx={-26} cy={-420} rx={14} ry={9} fill="#6b5a3a" opacity={0.55} />
+        <path d="M-40 -432 c10 -14 30 -10 32 4 c10 2 12 18 0 22 c-6 12 -26 10 -30 -2 c-12 -2 -14 -18 -2 -24 Z" fill="#8a6a3a" opacity={0.6} />
         {arms("out")}
         {arms("fill")}
       </g>
@@ -173,10 +181,28 @@ export const DimaHead = ({ lid = 0.55, look = 0.1, yawn = 0 }: { lid?: number; l
     <path d="M-34 -666 q8 4 16 0 M18 -666 q8 4 16 0" stroke={SKIN_SH} strokeWidth={3} fill="none" />
     <path d="M-42 -704 H-12 M12 -704 H42" stroke={HAIR} strokeWidth={6} strokeLinecap="round" />
     <path d="M0 -676 q-6 18 4 22" {...OUT} fill="none" />
-    {yawn > 0.05 ? <ellipse cx={0} cy={-636} rx={10 + yawn * 6} ry={4 + yawn * 16} fill="#4a1a1a" {...OUT} /> : <line x1={-18} y1={-638} x2={18} y2={-638} {...OUT} />}
-    {Array.from({ length: 16 }, (_, i) => <circle key={i} cx={-42 + ((i * 23) % 84)} cy={-650 + ((i * 7) % 30)} r={1.4} fill={HAIR} opacity={0.55} />)}
+    <DimaMouth yawn={yawn} />
+    {Array.from({ length: 30 }, (_, i) => <circle key={i} cx={-36 + ((i * 23) % 72)} cy={-628 + ((i * 7) % 22)} r={1.5} fill={HAIR} opacity={0.6} />)}
+    {Array.from({ length: 10 }, (_, i) => <circle key={`c${i}`} cx={-52 + ((i * 31) % 104)} cy={-652 + ((i * 11) % 16)} r={1.3} fill={HAIR} opacity={0.45} />)}
   </g>
 );
+
+/** Рот Димы: 4 виземы по громкости его реплики; зевок поверх. */
+const DimaMouth = ({ yawn = 0 }: { yawn?: number }) => {
+  const v = viseme(React.useContext(MouthCtx).dima);
+  if (yawn > 0.05) return <ellipse cx={0} cy={-636} rx={10 + yawn * 6} ry={4 + yawn * 16} fill="#4a1a1a" {...OUT} />;
+  if (v === 0) return <line x1={-18} y1={-638} x2={18} y2={-638} {...OUT} />;
+  if (v === 1) return <path d="M-16 -640 Q0 -634 16 -640 Q0 -630 -16 -640 Z" fill="#4a1a1a" {...OUT} />;
+  const h = v === 2 ? 14 : 24;
+  const w = v === 2 ? 16 : 20;
+  return (
+    <g>
+      <path d={`M${-w} -642 Q0 -646 ${w} -642 Q${w * 0.8} ${-642 + h} 0 ${-640 + h} Q${-w * 0.8} ${-642 + h} ${-w} -642 Z`} fill="#3a1212" {...OUT} />
+      <path d={`M${-w + 4} -642 Q0 -645 ${w - 4} -642 L${w - 6} -637 Q0 -639 ${-w + 6} -637 Z`} fill="#f4f0e8" />
+      {v === 3 && <ellipse cx={0} cy={-642 + h - 6} rx={9} ry={5} fill="#c45a5a" />}
+    </g>
+  );
+};
 
 /** Коготь-палец: три сужающиеся фаланги и чёрный коготь, всё одним контуром 2.5px. */
 const ClawFinger = ({ x, y, ang, len, w, curl = 0 }: { x: number; y: number; ang: number; len: number; w: number; curl?: number }) => {
@@ -320,7 +346,10 @@ export const Nuance = ({ x, y, s = 1, t, pose }: { x: number; y: number; s?: num
 /** Голова Нюанса (центр 0,-1150): череп, растрёпанные пряди, провалы глазниц с асимметричными огоньками, кривая ухмылка с острыми зубами. */
 export const NuanceHead = ({ guilty = 0, mouth = 0, t = 0, goggles = false }: { guilty?: number; mouth?: number; t?: number; goggles?: boolean }) => {
   const id = uid();
-  const open = 10 + mouth * 22 * (0.6 + 0.4 * Math.abs(Math.sin(t * 9)));
+  const amp = React.useContext(MouthCtx).nuance;
+  const v = viseme(amp);
+  // рот двигается только на его репликах; mouth — статичный оскал вне реплик
+  const open = amp > 0 ? [8, 16, 28, 42][v] : mouth > 0 ? 10 + mouth * 18 : 8;
   const flick = 0.8 + 0.2 * Math.sin(t * 7);
   return (
     <g>
@@ -439,7 +468,7 @@ export const gripPoint = (sx: number, sy: number, up: number, fo: number, p: Arm
 };
 
 /** Двухзвенная обратная кинематика: углы плеча и локтя, чтобы запястье пришло в (tx,ty). bend — сторона сгиба локтя. */
-export const ik = (sx: number, sy: number, tx: number, ty: number, up: number, fo: number, bend = 1): ArmPose => {
+export const ik = (sx: number, sy: number, tx: number, ty: number, up: number, fo: number, bend = 0): ArmPose => {
   const dx = tx - sx;
   const dy = ty - sy;
   const D = Math.min(up + fo - 1, Math.max(Math.abs(up - fo) + 1, Math.hypot(dx, dy)));
@@ -447,11 +476,14 @@ export const ik = (sx: number, sy: number, tx: number, ty: number, up: number, f
   const base = Math.atan2(-dx, dy) * deg;
   const a = Math.acos((up * up + D * D - fo * fo) / (2 * up * D)) * deg;
   const b = Math.acos((up * up + fo * fo - D * D) / (2 * up * fo)) * deg;
-  return { sh: base + bend * a, el: -bend * (180 - b) };
+  const pick = (k: number) => ({ sh: base + k * a, el: -k * (180 - b) });
+  if (bend !== 0) return pick(bend);
+  const ey = (k: number) => Math.cos(((base + k * a) * Math.PI) / 180);
+  return pick(ey(1) >= ey(-1) ? 1 : -1);
 };
 /** Рука Нюанса к точке кадра (wx,wy). */
-export const nuanceReach = (side: -1 | 1, wx: number, wy: number, x: number, y: number, s: number, crouch = 0, bend = 1) =>
-  ik(side * 96, -990, (wx - x) / s, (wy - y) / s - crouch * 170, 330, 300, bend);
+export const nuanceReach = (side: -1 | 1, wx: number, wy: number, x: number, y: number, s: number, crouch = 0, _bend = 0) =>
+  ik(side * 96, -990, (wx - x) / s, (wy - y) / s - crouch * 170, 330, 300, 0);
 /** Рука Димы к точке кадра (wx,wy). */
-export const dimaReach = (side: -1 | 1, wx: number, wy: number, x: number, y: number, s: number, bend = 1) =>
-  ik(side * 62, -548, (wx - x) / s, (wy - y) / s, 140, 128, bend);
+export const dimaReach = (side: -1 | 1, wx: number, wy: number, x: number, y: number, s: number, _bend = 0) =>
+  ik(side * 62, -548, (wx - x) / s, (wy - y) / s, 140, 128, 0);

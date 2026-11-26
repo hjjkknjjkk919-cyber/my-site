@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill } from "remotion";
 import { DurCtx, ez, MONT, useLT, useSpr } from "../pelmeni/kit";
 import { AMBER, AvitoCard, ChatScreen, Cloud, doorHandle, Drill, FLOOR_Y, FrontDoor, HallDecor, Level, Mug, Nightstand, NightWindow, PhoneItem, Push, ReviewCard, Room, Rug, Shelf, Wardrobe } from "./props";
-import { Dima, dimaReach, HAIR, LINE, Nuance, nuanceReach, OUT, RIM, SOCK, Thief, ThiefDown } from "./rig";
+import { Dima, DimaHead, dimaReach, LINE, Nuance, nuanceReach, OUT, RIM, SOCK, Thief, ThiefDown } from "./rig";
 
 /** Кадр: плавный наезд 1.0 → 1.07 за время плана. */
 const Shot = ({ from = 0, to, origin = [540, 960], bg = "#101216", children }: { from?: number; to: number; origin?: [number, number]; bg?: string; children: React.ReactNode }) => {
@@ -39,72 +39,89 @@ const Question = ({ x, y, k, size = 140 }: { x: number; y: number; k: number; si
   </text>
 );
 
-/* ── 1. Хук: монстр вылезает из шкафа, Дима дует на чай и листает Авито ── */
-export const S1Hook = ({ ovalAt }: { ovalAt: number }) => {
+/* Дима крупно: по колено, ~65% высоты кадра. Начало координат — стопы за нижним краем кадра. */
+const DY = 2100;
+const DS = 1.9;
+
+/* ── 1. Хук: Нюанс выходит из правой половины шкафа, Дима крупно с кружкой и телефоном ── */
+export const S1Hook = ({ ovalAt, yawnAt }: { ovalAt: number; yawnAt: number }) => {
   const t = useLT();
   const dur = React.useContext(DurCtx);
   const card = useSpr(1.0, 16, 110);
   const out = ez(t, 0, 1.6, 0, 1);
   return (
-    <Shot to={dur} origin={[540, 1100]}>
-      <Room glow={{ x: 800, w: 320 }} />
-      <NightWindow x={200} t={t} />
-      <Rug x={540} w={760} />
+    <Shot to={dur} origin={[540, 1000]}>
+      <Room glow={{ x: 860, w: 300 }} />
+      <NightWindow x={170} t={t} />
+      <Rug x={600} w={760} />
       <Nightstand x={470} />
-      <Backlight x={800} y={900} r={600} o={0.45} />
-      <Wardrobe x={690} w={400} />
-      <Nuance x={820 - out * 20} y={FLOOR_Y} s={0.9} t={t} pose={{ armL: nuanceReach(-1, 680, 1030, 800, FLOOR_Y, 0.9, 0, 1), armR: nuanceReach(1, 950, 1030, 800, FLOOR_Y, 0.9, 0, -1), head: 6, mouth: 0.3 }} />
-      <Dima x={250} y={FLOOR_Y} s={0.92} t={t} pose={{ armR: dimaReach(1, 262, 846, 250, FLOOR_Y, 0.92, -1), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 214, 1006, 250, FLOOR_Y, 0.92, 1), itemL: <PhoneItem t={t} mode="avito" s={0.9} />, head: 8, look: -0.2, yawn: ez(t, 6.8, 7.3) * (1 - ez(t, 8.2, 8.7)) }} />
-      <AvitoCard x={540} y={1530} k={card} oval={ez(t, ovalAt, ovalAt + 0.8)} />
+      <Backlight x={860} y={900} r={560} o={0.45} />
+      <Wardrobe x={760} w={400} />
+      <Nuance x={880 - out * 20} y={FLOOR_Y} s={0.9} t={t} pose={{ armL: nuanceReach(-1, 760, 1040, 860, FLOOR_Y, 0.9), armR: nuanceReach(1, 1000, 1040, 860, FLOOR_Y, 0.9), head: 6, mouth: 0.3 }} />
+      <Dima x={300} y={DY} s={DS} t={t} pose={{ armR: dimaReach(1, 430, 1250, 300, DY, DS), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 180, 1310, 300, DY, DS), itemL: <PhoneItem t={t} mode="avito" />, head: 4, look: -0.1, yawn: ez(t, yawnAt, yawnAt + 0.4) * (1 - ez(t, yawnAt + 1.2, yawnAt + 1.6)) }} />
+      <g transform="translate(430 330) scale(0.78) translate(-540 -330)">
+        <AvitoCard x={540} y={330} k={card} oval={ez(t, ovalAt, ovalAt + 0.8)} />
+      </g>
     </Shot>
   );
 };
 
-/* ── 2. Замах на камеру → Дима зажимает голосовое → «?» и лапы за спину ── */
+/* ── 2. Замах на камеру → Дима записывает голосовое → «?», руки вдоль тела ── */
 export const S2Voice = ({ cut1, cut2 }: { cut1: number; cut2: number }) => {
   const t = useLT();
   const dur = React.useContext(DurCtx);
   const q = useSpr(cut1 + 0.3, 9, 160);
+  const bg = (
+    <>
+      <Room glow={{ x: 540, w: 400 }} />
+      <Wardrobe x={900} w={400} />
+      <rect width={1080} height={1920} fill="#05060a" opacity={0.55} />
+    </>
+  );
   if (t < cut1) {
     const lunge = ez(t, 0, cut1, 0, 1);
     // когти на камеру: кисти перед грудью, пальцы веером вверх-наружу
     const claw = (side: -1 | 1, tx: number, ty: number) => {
-      const p = nuanceReach(side, tx, ty, 540, 2785, 1.9, 0, side === -1 ? 1 : -1);
+      const p = nuanceReach(side, tx, ty, 540, 2785, 1.9);
       return { ...p, wr: 180 + side * 25 - (p.sh + p.el) };
     };
     return (
       <Shot to={cut1} origin={[540, 900]} bg="#0c0d10">
-        <Room glow={{ x: 540, w: 400 }} />
-        <Wardrobe x={900} w={400} />
-        <rect width={1080} height={1920} fill="#05060a" opacity={0.55} />
+        {bg}
         <Backlight x={540} y={700} r={760} o={0.5} />
         <Nuance x={540} y={2785} s={1.9} t={t} pose={{ armL: claw(-1, 300 + lunge * 20, 1330 - lunge * 40), armR: claw(1, 780 - lunge * 20, 1330 - lunge * 40), hand: 1.6 + lunge * 0.4, head: -4, mouth: 1 }} />
       </Shot>
     );
   }
+  const down = { armL: { sh: 4, el: 2 }, armR: { sh: -4, el: -2 } };
   if (t < cut2)
     return (
-      <Shot from={cut1} to={cut2} origin={[540, 900]} bg="#0c0d10">
-        <Room glow={{ x: 820, w: 300 }} />
-        <Backlight x={820} y={800} r={620} o={0.4} />
-        <Nuance x={820} y={1950} s={1.15} t={t} pose={{ armL: nuanceReach(-1, 800, 1076, 820, 1950, 1.15, 0, -1), armR: nuanceReach(1, 840, 1076, 820, 1950, 1.15, 0, 1), gripL: 1, gripR: 1, behind: true, guilty: q, head: 6 }} />
-        <Question x={820} y={470} k={q} />
-        <Dima x={290} y={1800} s={1.45} t={t} pose={{ armR: dimaReach(1, 610, 990, 290, 1800, 1.45, 1), itemR: <PhoneItem t={t} mode="wave" s={1.05} />, armL: dimaReach(-1, 236, 1170, 290, 1800, 1.45, 1), itemL: <Mug t={t} flip />, head: 4 }} />
+      <Shot from={cut1} to={cut2} origin={[540, 1000]} bg="#0c0d10">
+        <Room glow={{ x: 880, w: 300 }} />
+        <Wardrobe x={1000} w={400} />
+        <Backlight x={880} y={800} r={600} o={0.4} />
+        <Nuance x={880} y={DY} s={1.25} t={t} pose={{ ...down, guilty: q, head: 6 }} />
+        <Question x={880} y={480} k={q} />
+        <Dima x={330} y={DY} s={DS} t={t} pose={{ armR: dimaReach(1, 640, 1120, 330, DY, DS), itemR: <PhoneItem t={t} mode="voice" s={1.3} />, armL: dimaReach(-1, 230, 1340, 330, DY, DS), itemL: <Mug t={t} flip />, head: 3 }} />
       </Shot>
     );
   return (
     <Shot from={cut2} to={dur} origin={[540, 700]} bg="#0c0d10">
-        <Room glow={{ x: 540, w: 400 }} />
-        <Wardrobe x={900} w={400} />
-        <rect width={1080} height={1920} fill="#05060a" opacity={0.55} />
+      {bg}
       <Backlight x={540} y={760} r={760} o={0.4} />
-      <Nuance x={540} y={2785} s={1.9} t={t} pose={{ armL: nuanceReach(-1, 520, 1341, 540, 2785, 1.9, 0, -1), armR: nuanceReach(1, 560, 1341, 540, 2785, 1.9, 0, 1), gripL: 1, gripR: 1, behind: true, head: 8, guilty: 1, mouth: t < dur - 0.4 ? 0.8 : 0 }} />
+      <Nuance x={540} y={2785} s={1.9} t={t} pose={{ ...down, head: 8, guilty: 1 }} />
       <Question x={540} y={400} k={1} size={170} />
     </Shot>
   );
 };
 
-/* ── 3. Чат: ответ Валеры и чёрный список → вручение перфоратора на уровне пояса ── */
+/* ── 3. Чат → передача перфоратора и уровня: руки плавно тянутся навстречу (15 кадров), предмет переходит из кисти в кисть ── */
+const lerp = (a: [number, number], b: [number, number], k: number): [number, number] => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+const handoff = (t: number, at: number) => {
+  const go = ez(t, at - 0.5, at); // 15 кадров навстречу
+  const back = ez(t, at + 0.15, at + 0.65); // и обратно
+  return { go, back, done: t >= at + 0.15 };
+};
 export const S3Recruit = ({ chatEnd, handAt }: { chatEnd: number; handAt: number }) => {
   const t = useLT();
   const dur = React.useContext(DurCtx);
@@ -114,66 +131,60 @@ export const S3Recruit = ({ chatEnd, handAt }: { chatEnd: number; handAt: number
         <ChatScreen k1={ez(t, 0.2, 0.6)} k2={ez(t, 1.0, 1.5)} ban={ez(t, 3.0, 3.5)} />
       </Shot>
     );
-  const given = t >= handAt;
-  const reach = ez(t, chatEnd, handAt, 0, 1);
+  const NX = 850;
+  const NS = 1.25;
+  const DXp = 290;
+  const h1 = handoff(t, handAt);
+  const h2 = handoff(t, handAt + 1.1);
+  // перфоратор: правая кисть Димы ↔ левая лапа Нюанса
+  const m1: [number, number] = [560, 1320];
+  const dR = lerp(lerp([390, 1480], m1, h1.go), [390, 1480], h1.done ? h1.back : 0);
+  const nL = lerp(lerp([700, 1500], [m1[0] + 64, m1[1] - 6], h1.go), [690, 1430], h1.done ? h1.back : 0);
+  // уровень: левая кисть Димы ↔ правая лапа Нюанса
+  const m2: [number, number] = [520, 1170];
+  const dL = lerp(lerp([130, 1460], m2, h2.go), [180, 1480], h2.done ? h2.back : 0);
+  const nR = lerp(lerp([1000, 1500], [m2[0] + 70, m2[1] - 6], h2.go), [1010, 1400], h2.done ? h2.back : 0);
+  const drill = (
+    <g transform="rotate(-90)">
+      <Drill t={t} />
+    </g>
+  );
+  const level = (
+    <g transform="rotate(90)">
+      <Level w={190} />
+    </g>
+  );
   return (
-    <Shot from={chatEnd} to={dur} origin={[540, 1100]}>
-      <Room glow={{ x: 800, w: 360 }} />
-      <NightWindow x={130} t={t} />
-      <Backlight x={800} y={820} r={560} o={0.35} />
-      <Nuance
-        x={800}
-        y={FLOOR_Y}
-        s={0.95}
-        t={t}
-        pose={{
-          armL: given ? nuanceReach(-1, 640, 960, 800, FLOOR_Y, 0.95, 0, 1) : nuanceReach(-1, 780 - reach * 30, 1010, 800, FLOOR_Y, 0.95, 0, 1),
-          armR: nuanceReach(1, 985, 960, 800, FLOOR_Y, 0.95, 0, -1),
-          head: 10,
-          gripL: given ? 1 : 0,
-          itemL: given ? <Drill t={t} flip /> : undefined,
-          gripR: given ? 1 : 0,
-          itemR: given ? <Level w={150} /> : undefined,
-        }}
-      />
-      <Dima
-        x={260}
-        y={FLOOR_Y}
-        s={0.95}
-        t={t}
-        pose={{
-          armL: { sh: 6, el: 0 },
-          armR: given ? { sh: -8, el: 0 } : dimaReach(1, 360 + reach * 70, 1060, 260, FLOOR_Y, 0.95, 1),
-          itemR: given ? undefined : <Drill t={t} />,
-          itemL: given ? undefined : <Level w={200} />,
-        }}
-      />
+    <Shot from={chatEnd} to={dur} origin={[540, 1000]}>
+      <Room glow={{ x: 860, w: 360 }} />
+      <NightWindow x={140} t={t} />
+      <Wardrobe x={930} w={380} />
+      <Backlight x={860} y={820} r={560} o={0.35} />
+      <Nuance x={NX} y={DY} s={NS} t={t} pose={{ armL: nuanceReach(-1, nL[0], nL[1], NX, DY, NS), armR: nuanceReach(1, nR[0], nR[1], NX, DY, NS), head: 10, gripL: h1.done ? 1 : 0, itemL: h1.done ? drill : undefined, gripR: h2.done ? 1 : 0, itemR: h2.done ? level : undefined }} />
+      <Dima x={DXp} y={DY} s={DS} t={t} pose={{ armR: dimaReach(1, dR[0], dR[1], DXp, DY, DS), itemR: h1.done ? undefined : drill, armL: dimaReach(-1, dL[0], dL[1], DXp, DY, DS), itemL: h2.done ? undefined : level }} />
     </Shot>
   );
 };
 
-/* ── 4. Прихожая: Нюанс в строительных очках с уровнем у полки, Дима у косяка тычет пальцем ── */
+/* ── 4. Прихожая: Нюанс в очках — перфоратор у полки слева, уровень справа; Дима крупно у косяка тычет пальцем вверх ── */
 export const S4Shelf = ({ drillOn, drillOff, fixAt }: { drillOn: number; drillOff: number; fixAt: number }) => {
   const t = useLT();
   const dur = React.useContext(DurCtx);
   const tilt = ez(t, fixAt, fixAt + 0.8, 4, 0);
-  const NX = 520;
+  const NX = 470;
   const S = 0.95;
   const crouch = 0.62;
-  const lx = 330;
-  const ly = 600;
   const on = t > drillOn && t < drillOff;
   return (
     <Shot to={dur} origin={[540, 900]}>
       <Room wall="#3a4136" pattern="#434b3e" floor="#3b2a20" ceiling={258} />
       <HallDecor />
-      {/* входная дверь справа с глазком и цепочкой */}
       <rect x={808} y={FLOOR_Y - 882} width={344} height={882} fill="#3a2a20" {...OUT} />
       <rect x={830} y={FLOOR_Y - 860} width={300} height={860} fill="#6b3a26" {...OUT} />
       <circle cx={980} cy={FLOOR_Y - 600} r={10} fill="#c9a24a" {...OUT} />
       <path d="M850 750 q50 40 100 0" stroke="#c9ccd2" strokeWidth={6} fill="none" strokeDasharray="10 6" />
-      <Backlight x={300} y={600} r={460} o={0.25} />
-      <Shelf x={lx} y={ly + 32} w={400} tilt={tilt} />
+      <Backlight x={430} y={600} r={460} o={0.25} />
+      <Shelf x={430} y={632} w={420} tilt={tilt} />
       <Nuance
         x={NX}
         y={FLOOR_Y}
@@ -181,22 +192,21 @@ export const S4Shelf = ({ drillOn, drillOff, fixAt }: { drillOn: number; drillOf
         t={t}
         pose={{
           crouch,
-          head: 14,
+          head: 10,
           goggles: true,
-          armL: nuanceReach(-1, lx, ly - 48, NX, FLOOR_Y, S, crouch, 1),
-          armR: nuanceReach(1, 230, 700, NX, FLOOR_Y, S, crouch, 1),
+          armL: nuanceReach(-1, 260, 700, NX, FLOOR_Y, S, crouch),
           gripL: 1,
-          itemL: (
+          itemL: <Drill t={t} on={on} flip />,
+          armR: nuanceReach(1, 600, 553, NX, FLOOR_Y, S, crouch),
+          gripR: 1,
+          itemR: (
             <g transform={`rotate(${tilt})`}>
-              <Level w={300} tilt={tilt / 4} />
+              <Level w={260} tilt={tilt / 4} />
             </g>
           ),
-          gripR: 1,
-          itemR: <Drill t={t} on={on} flip />,
-          mouth: 0.6,
         }}
       />
-      <Dima x={760} y={FLOOR_Y} s={0.82} t={t} pose={{ lean: 3, armL: dimaReach(-1, 712, 770, 760, FLOOR_Y, 0.82, -1), pointL: true, armR: dimaReach(1, 790, 1000, 760, FLOOR_Y, 0.82, -1), itemR: <Mug t={t} steam />, head: -4 }} />
+      <Dima x={860} y={DY} s={1.7} t={t} pose={{ lean: 3, armL: dimaReach(-1, 700, 980, 860, DY, 1.7), pointL: true, armR: dimaReach(1, 930, 1350, 860, DY, 1.7), itemR: <Mug t={t} steam />, head: -4 }} />
       {on && <text x={70 + Math.sin(t * 70) * 5} y={470 + Math.cos(t * 60) * 4} fontFamily={MONT} fontWeight={900} fontSize={72} fill="#fff" stroke={LINE} strokeWidth={8} paintOrder="stroke" transform="rotate(-8 70 470)">ВЖЖЖ!</text>}
     </Shot>
   );
@@ -228,26 +238,28 @@ export const S5Guard = ({ keyEnd, bedEnd, openAt, dropAt, cloudAt, fallAt, talkA
   }
   if (t < bedEnd) {
     const kick = Math.max(0, Math.sin((t - keyEnd) * 6));
+    const jolt = kick > 0.85 ? 4 : 0;
     return (
       <Shot from={keyEnd} to={bedEnd} origin={[540, 1100]} bg="#0b0e16">
         <Room wall="#1c2333" pattern="#222a3d" floor="#241c18" />
         <NightWindow x={260} t={t} />
         <Nightstand x={120} />
         {/* боковая стенка шкафа: пятка упирается в неё, но не проходит насквозь */}
-        <rect x={900} y={300} width={200} height={1080} fill="#5a3a24" {...OUT} />
+        <rect x={900 + jolt} y={300} width={200} height={1080} fill="#5a3a24" {...OUT} />
         <rect x={60 + 160} y={1120} width={680} height={150} rx={20} fill="#4b3a5a" {...OUT} />
         <rect x={220} y={1270} width={680} height={110} fill="#3a2a20" {...OUT} />
         <ellipse cx={340} cy={1080} rx={120} ry={56} fill="#e8e4f0" {...OUT} />
-        {/* затылок: лицом в подушку */}
-        <ellipse cx={330} cy={1050} rx={70} ry={58} fill={HAIR} {...OUT} />
-        {Array.from({ length: 6 }, (_, i) => <path key={i} d={`M${290 + i * 14} 1000 q6 -18 14 -8`} stroke={HAIR} strokeWidth={8} fill="none" strokeLinecap="round" />)}
+        {/* голова на подушке: спит, глаза закрыты */}
+        <g transform="translate(330 1040) rotate(-80) scale(0.62) translate(0 682)">
+          <DimaHead lid={1} />
+        </g>
         <path d="M380 1000 C480 930 760 940 840 1010 L860 1130 L360 1130 Z" fill="#6a5a8a" {...OUT} />
         <path d="M480 1000 C560 1030 660 1030 760 1000" stroke="#4b3a6a" strokeWidth={6} fill="none" />
-        {/* пятка в носке: поворот вокруг лодыжки, максимум — касание стенки x=900 */}
-        <g transform={`rotate(${-kick * 12} 850 1050)`}>
-          <path d="M840 1012 C872 1004 896 1030 896 1060 C892 1082 852 1086 836 1072 Z" fill={SOCK} {...OUT} />
+        {/* пятка в носке всегда касается стенки шкафа (x=900), на ударе стенка вздрагивает вместе с ней */}
+        <g transform={`translate(${jolt} 0)`}>
+          <path d="M836 1012 C870 1004 900 1026 900 1058 C898 1082 852 1086 834 1072 Z" fill={SOCK} {...OUT} />
         </g>
-        {kick > 0.9 && <text x={760} y={900} fontFamily={MONT} fontWeight={900} fontSize={64} fill="#fff" stroke={LINE} strokeWidth={8} paintOrder="stroke">ТУК</text>}
+        {kick > 0.85 && <text x={700} y={920} fontFamily={MONT} fontWeight={900} fontSize={70} fill="#fff" stroke={LINE} strokeWidth={8} paintOrder="stroke" transform="rotate(-6 700 920)">ТУК-ТУК</text>}
         <text x={300} y={900} fontFamily={MONT} fontWeight={900} fontSize={60} fill="#8fb0ff" opacity={0.7}>Z z z</text>
       </Shot>
     );
@@ -274,7 +286,7 @@ export const S5Guard = ({ keyEnd, bedEnd, openAt, dropAt, cloudAt, fallAt, talkA
       <Nuance x={NX} y={FLOOR_Y} s={0.95} t={t} pose={{ armL: t > openAt - 0.4 ? nuanceReach(-1, hd.x, hd.y - 50, NX, FLOOR_Y, 0.95, 0, 1) : nuanceReach(-1, 620, 1020, NX, FLOOR_Y, 0.95, 0, 1), gripL: t > openAt - 0.4 ? 1 : 0, armR: nuanceReach(1, 880, 1020, NX, FLOOR_Y, 0.95, 0, -1), head: -10, mouth: talk }} />
       {down && <ThiefDown x={380} y={1580} s={0.9} t={t} />}
       {down && <rect x={560} y={1566} width={80} height={8} rx={4} fill="#c9ccd2" {...OUT} transform="rotate(12 600 1570)" />}
-      {t > cloudAt && <Cloud x={down ? 300 : DX - 30} y={down ? 1300 : 300} text="ДА НУ НАХУЙ" k={ez(t, cloudAt, cloudAt + 0.25)} />}
+      {t > cloudAt && !down && <Cloud x={DX - 30} y={300} text="ДА НУ НАХУЙ" k={ez(t, cloudAt, cloudAt + 0.25)} />}
     </Shot>
   );
 };
