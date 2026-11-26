@@ -9,3 +9,5 @@ public/audio/voice/*_raw.mp3
 /avito*.mp4
 /research_output/
 __pycache__/
+/pushistik_*.mp4
+/ochered_*.mp4
