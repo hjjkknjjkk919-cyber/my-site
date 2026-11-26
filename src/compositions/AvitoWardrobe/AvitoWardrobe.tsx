@@ -16,7 +16,6 @@ const LINES: Line[] = [
   { file: "02_dima_voice", who: "dima", text: "Слышь, Валера, про трёхметрового демона ни слова не было. Кидай триста обратно, или такой отзыв въебу — хуй чё продашь.", keys: ["демона", "отзыв"], color: REDK },
   { file: "03_nuance_sorry", who: "nuance", text: "Бля, братан... я вообще не Валера. Я в комплекте шёл.", keys: ["валера.", "комплекте"], color: ORANGE },
   { file: "04_dima_drill", who: "dima", text: "Короче, возврата нет. Раз прописался на халяву — бери перфоратор, вешай полку в прихожей. А то кривая, аж бесит.", keys: ["перфоратор", "полку"], color: ORANGE },
-  { file: "06_nuance_wall", who: "nuance", text: "Пиздец, тут бетон армированный, сверло вообще нихуя не берёт...", keys: ["бетон"], color: REDK },
   { file: "07_dima_scold", who: "dima", text: "Не ной, блядь, ровнее держи. Правый край заваливаешь, рукожоп потусторонний.", keys: ["рукожоп"], color: ORANGE },
   { file: "08_dima_sleep", who: "dima", text: "Слышь, нюанс, сходи разберись, там какой-то долбоёб замок ковыряет.", keys: ["замок"], color: REDK },
   { file: "11_dima_bills", who: "dima", text: "И посуду помой. А, и ещё — с тебя половина коммуналки. Свет жрёшь, воду льёшь.", keys: ["посуду", "коммуналки"], color: ORANGE },
@@ -28,7 +27,7 @@ const LINES: Line[] = [
   { file: "11_dima_outro", who: "dima", text: "Короче, шкаф себя окупил за одну ночь. Поставил пять звёзд. А Валера уже пишет про диван с сюрпризом... Беру, хули — как раз на ремонт хватит.", keys: ["окупил", "пять", "диван"], color: ORANGE },
 ];
 const src = (f: string) => staticFile(`audio/avito/${f}.mp3`);
-const PAUSE = 0.25;
+const PAUSE = 0.2;
 
 export type AvitoProps = { durs: number[] };
 
@@ -49,80 +48,80 @@ const buildTimeline = (d: number[]): Timeline => {
   const say = (i: number, at: number) => vo.push([i, cur + at]);
   const fx = (name: string, at: number, vol?: number, dur?: number) => sfx.push([name, cur + at, vol, dur]);
 
-  // 1. хук (пауза после — 0.4 с)
+  // индексы LINES: 0 хук, 1 голосовое, 2 «не Валера», 3 перфоратор, 4 «не ной», 5 «сходи разберись»,
+  // 6 коммуналка, 7 «аренду не платил», 8 «начнёшь», 9 грабитель, 10 рёв, 11 «да ну нахуй», 12 финал
+  // 1. хук
   say(0, PAUSE);
   fx("creak", 0, 0.55);
-  fx("whoosh", 1.0, 0.5);
+  fx("whoosh", 0.8, 0.5);
   scene(S1Hook, PAUSE + d[0] + PAUSE, { ovalAt: PAUSE + d[0] * 0.35, yawnAt: PAUSE + d[0] + 0.02 });
-  // 2. голосовое → комедийная пауза 0.9 с («?», лапы за спину) → оправдания
+  // 2. голосовое → комедийная пауза («?», лапы за спину) → оправдания
   {
-    const n1 = PAUSE + d[1] + 0.9;
+    const n1 = PAUSE + d[1] + 0.6;
     fx("growl", 0.1, 0.5);
-    fx("rec", 0.25, 0.6);
+    fx("rec", 0.2, 0.6);
     say(1, PAUSE);
     fx("sent", PAUSE + d[1] + 0.05, 0.6);
     say(2, n1);
-    scene(S2Voice, n1 + d[2] + PAUSE, { cut1: 2.6, cut2: n1 - 0.1, qAt: PAUSE + d[1] + 0.15 });
+    scene(S2Voice, n1 + d[2] + PAUSE, { cut1: 2.2, cut2: n1 - 0.1, qAt: PAUSE + d[1] + 0.1 });
   }
-  // 3. чат 1.6 с без голоса → передача инструментов
+  // 3. чат без голоса → передача инструментов
   {
-    const chatEnd = 1.2;
+    const chatEnd = 1.0;
     const d3 = chatEnd + PAUSE;
     const handAt = d3 + d[3] * 0.62;
     fx("sfx_chat", 0, 0.7);
     say(3, d3);
-    scene(S3Recruit, Math.max(d3 + d[3] + PAUSE, handAt + 1.4), { chatEnd, handAt });
+    scene(S3Recruit, Math.max(d3 + d[3] + PAUSE, handAt + 1.2), { chatEnd, handAt });
   }
-  // 4. полка
+  // 4. полка: «ВЖЖЖ» → Дима командует
   {
-    const n6 = 0.6;
-    const d7 = n6 + d[4] + PAUSE;
-    fx("drill", 0.1, 0.55);
-    say(4, n6);
-    say(5, d7);
-    scene(S4Shelf, d7 + d[5] + PAUSE, { drillOn: 0.1, drillOff: 1.2, fixAt: d7 + d[5] * 0.45 });
+    const d4 = 1.3;
+    fx("drill", 0.1, 0.6);
+    say(4, d4);
+    scene(S4Shelf, d4 + d[4] + PAUSE, { drillOn: 0.1, drillOff: 1.2, fixAt: d4 + d[4] * 0.45 });
   }
   // 4½. кухня: посуда и коммуналка
   {
-    const n12 = PAUSE + d[7] + PAUSE;
-    const d13 = n12 + d[8] + PAUSE;
-    say(7, PAUSE);
-    fx("dish", n12 - 0.05, 0.7);
-    say(8, n12);
-    say(9, d13);
-    scene(S5Kitchen, d13 + d[9] + 0.3, { dropAt: n12 - 0.4, shockFrom: n12 - 0.4, shockTo: d13 + d[9] });
+    const n7 = PAUSE + d[6] + PAUSE;
+    const d8 = n7 + d[7] + PAUSE;
+    say(6, PAUSE);
+    fx("dish", n7 - 0.05, 0.7);
+    say(7, n7);
+    say(8, d8);
+    scene(S5Kitchen, d8 + d[8] + 0.25, { dropAt: n7 - 0.4, shockFrom: n7 - 0.4, shockTo: d8 + d[8] });
   }
-  // 5. кульминация: скважина → пятка в шкаф → грабитель со стволом и светом → древний ужас и коммуналка
+  // 5. кульминация: скважина → пятка в шкаф → грабитель → древний ужас и коммуналка
   {
-    const keyEnd = 1.2;
-    const d8 = keyEnd + 0.1;
-    const bedEnd = d8 + d[6] + 0.2;
+    const keyEnd = 1.0;
+    const d5 = keyEnd + 0.1;
+    const bedEnd = d5 + d[5] + 0.15;
     const kickAt = bedEnd + 0.1;
-    const clickAt = bedEnd + 0.55;
-    const robberAt = clickAt + 0.15;
-    const horrorAt = robberAt + d[10] + 0.1;
-    const roarAt = horrorAt + 0.25;
-    const dropAt = roarAt + d[11] * 0.55;
+    const clickAt = bedEnd + 0.5;
+    const robberAt = clickAt + 0.12;
+    const horrorAt = robberAt + d[9] + 0.08;
+    const roarAt = horrorAt + 0.2;
+    const dropAt = roarAt + d[10] * 0.55;
     const billsAt = dropAt + 0.2;
-    const screamAt = roarAt + d[11] + 0.05;
-    const exitAt = screamAt + d[12] * 0.6;
+    const screamAt = roarAt + d[10] + 0.05;
+    const exitAt = screamAt + d[11] * 0.6;
     fx("pick", 0.02, 0.7);
-    say(6, d8);
+    say(5, d5);
     fx("doorkick", kickAt, 0.85);
     fx("switch", clickAt - 0.05, 0.8);
-    say(10, robberAt);
+    say(9, robberAt);
     fx("horror", horrorAt, 0.7);
-    say(11, roarAt);
+    say(10, roarAt);
     fx("gun", dropAt + 0.35, 0.7);
     fx("cash", billsAt, 0.6);
-    say(12, screamAt);
-    scene(S5Climax, screamAt + d[12] + 0.4, { keyEnd, bedEnd, kickAt, clickAt, horrorAt, dropAt, billsAt, screamAt, exitAt });
+    say(11, screamAt);
+    scene(S5Climax, screamAt + d[11] + 0.3, { keyEnd, bedEnd, kickAt, clickAt, horrorAt, dropAt, billsAt, screamAt, exitAt });
   }
   // 6. утро: окупился, 5 из 5, пуш про диван; плашка — последние 3 с
   {
-    const pushAt = PAUSE + d[13] * 0.55;
-    const plateAt = PAUSE + d[13] + PAUSE;
-    say(13, PAUSE);
+    const pushAt = PAUSE + d[12] * 0.55;
+    const plateAt = PAUSE + d[12] + PAUSE;
+    say(12, PAUSE);
     fx("whoosh", 0.2, 0.4);
     fx("push", pushAt, 0.8);
     plate = cur + plateAt;
@@ -131,7 +130,7 @@ const buildTimeline = (d: number[]): Timeline => {
   return { placed, vo, sfx, total: cur, plate };
 };
 
-const FALLBACK = [7.91, 6.22, 5.32, 7.02, 6.99, 4.23, 3.38, 6.17, 5.62, 1.04, 2.19, 6.4, 1.57, 7.68];
+const FALLBACK = [7.94, 6.03, 5.85, 6.35, 4.02, 3.21, 4.65, 4.91, 0.97, 2.19, 5.64, 1.57, 7.42];
 export const calcAvitoMetadata: CalculateMetadataFunction<AvitoProps> = async () => {
   const durs = await Promise.all(LINES.map((l) => getAudioDurationInSeconds(src(l.file))));
   return { durationInFrames: Math.ceil(buildTimeline(durs).total * 30), props: { durs } };
