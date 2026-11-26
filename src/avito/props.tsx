@@ -10,7 +10,8 @@ export const FLOOR_Y = 1380;
 /* ── предметы в руке: начало координат — точка хвата ── */
 /** Кружка «МНЕ ПОХУЙ»; flip — ручка наружу для левой руки (ручка всегда от корпуса). */
 export const Mug = ({ t = 0, steam = false, flip = false }: { t?: number; steam?: boolean; flip?: boolean }) => (
-  <g>
+  // хват за ручку: надпись «МНЕ ПОХУЙ» остаётся открытой
+  <g transform={`translate(${flip ? 58 : -58} 15)`}>
     {steam &&
       [-12, 10].map((x, i) => (
         <path key={i} d={`M${x} -66 c-14 -20 14 -34 0 -56`} stroke="#fff" strokeWidth={5} fill="none" strokeLinecap="round" opacity={0.35 + 0.2 * Math.sin(t * 4 + i)} transform={`translate(${Math.sin(t * 2 + i) * 4} ${-((t * 20 + i * 12) % 14)})`} />
@@ -28,7 +29,8 @@ export const Mug = ({ t = 0, steam = false, flip = false }: { t?: number; steam?
 
 /** Телефон экраном к зрителю; mode: волна голосового / Авито. */
 export const PhoneItem = ({ t, mode = "off", s = 1 }: { t: number; mode?: "off" | "wave" | "avito" | "voice"; s?: number }) => (
-  <g transform={`scale(${s})`}>
+  // хват за нижний край корпуса: пальцы не закрывают экран
+  <g transform={`scale(${s}) translate(0 -62)`}>
     <rect x={-36} y={-80} width={72} height={140} rx={12} fill="#16171b" {...OUT} />
     <rect x={-30} y={-72} width={60} height={124} rx={8} fill={mode === "off" ? "#1c2633" : "#f4f6f8"} />
     {mode === "wave" && (
