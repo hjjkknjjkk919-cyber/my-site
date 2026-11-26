@@ -1,2 +1,1 @@
-DUE: workspace creation — missing: observation-log/archive, last-review-date.txt, cross-cutting-principles.md; run the Workspace creation command (references/observation-log.md) before anything else this session
 DUE: starter-set reconciliation — skill-observations/starter-principles-reviewed.txt is absent; offer once, in a review or a session opened for skill work, never in another task's reply (references/starter-principles.md, Reconciliation)

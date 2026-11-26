@@ -6,7 +6,7 @@ import { Sfx } from "../components/audio";
 import { cuesFor, type Cue, MONT, Subs } from "../train/Ep1Test";
 import { loadFont as loadStencil } from "@remotion/google-fonts/RussoOne";
 import { Hall3D, makeWallpaper, T } from "./Hall3D";
-import { BedSitUp, LocatorCall, LockHand, Peephole, PhoneFlash, PovPhone } from "./Scenes2D";
+import { BedSitUp, LocatorCall, LockHand, Peephole, PhoneFlash, PovPhone, ScaredFace } from "./Scenes2D";
 const { fontFamily: STENCIL } = loadStencil("normal", { weights: ["400"], subsets: ["latin", "cyrillic"] });
 
 /** «Не открывай», серия 1. Ровно 1:00. Действие с первой секунды, событие каждые 2–3 с, живые диалоги. */
@@ -55,17 +55,81 @@ const glitchAt = (t: number) => GLITCH.some(([a, b]) => t >= a && t < b);
 
 const Hud = () => (
   <AbsoluteFill style={{ pointerEvents: "none" }}>
-    <div style={{ position: "absolute", top: 70, left: 46, display: "flex", gap: 14, fontFamily: MONT, fontWeight: 800 }}>
+    <div style={{ position: "absolute", top: 24, left: 40, display: "flex", gap: 14, fontFamily: MONT, fontWeight: 800 }}>
       <div style={{ background: "rgba(10,10,12,.78)", color: "#f2e6c8", padding: "10px 20px", borderRadius: 12, fontSize: 40, border: "2px solid rgba(255,255,255,.12)" }}>
         <span style={{ color: "#e5262b" }}>●</span> 03:12 <span style={{ fontSize: 24, opacity: 0.7 }}>ночь</span>
       </div>
       <div style={{ background: "#d7262b", color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: 40 }}>ЧАСТЬ 1</div>
     </div>
-    <div style={{ position: "absolute", top: 70, right: 46, fontFamily: MONT, fontWeight: 800, background: "rgba(10,10,12,.78)", color: "#f2e6c8", padding: "10px 20px", borderRadius: 12, fontSize: 36, border: "2px solid rgba(255,255,255,.12)" }}>
+    <div style={{ position: "absolute", top: 24, right: 40, fontFamily: MONT, fontWeight: 800, background: "rgba(10,10,12,.78)", color: "#f2e6c8", padding: "10px 20px", borderRadius: 12, fontSize: 36, border: "2px solid rgba(255,255,255,.12)" }}>
       КВАРТИРА <span style={{ color: "#ff5a1f" }}>42</span>
     </div>
   </AbsoluteFill>
 );
+
+/** Навигационная плашка-улика под статус-капсулой. */
+const NAV: [number, string][] = [
+  [0, "03:12 НОЧИ • ДОМА ОДИН"],
+  [7.0, "УЛИКА №1: ПАЛЬТО В ПРИХОЖЕЙ"],
+  [9.9, "УЛИКА №2: НЕТ ТЕНИ ПОД ДВЕРЬЮ"],
+  [17.9, "ПРАВИЛО: НЕ ОТКРЫВАЙ"],
+];
+const NavPlate = ({ t }: { t: number }) => {
+  let i = 0;
+  NAV.forEach(([a], j) => t >= a && (i = j));
+  const k = clamp((t - NAV[i][0]) / 0.25);
+  const red = i >= 2;
+  return (
+    <AbsoluteFill style={{ alignItems: "center", paddingTop: 122, pointerEvents: "none" }}>
+      <div style={{ fontFamily: MONT, fontWeight: 900, fontSize: 34, color: red ? "#fff" : "#f2e6c8", background: red ? "rgba(160,16,20,.88)" : "rgba(10,10,12,.8)", padding: "10px 26px", borderRadius: 10, letterSpacing: 1, border: "2px solid rgba(255,255,255,.18)", opacity: k, transform: `translateY(${(1 - k) * -16}px) scale(${1 + (1 - k) * 0.08})` }}>{NAV[i][1]}</div>
+    </AbsoluteFill>
+  );
+};
+
+/** Полупрозрачная мини-карта квартиры: Дима, Дверь, Шкаф; угроза пульсирует красным. */
+const MiniMap = ({ t }: { t: number }) => {
+  const pulse = (on: boolean) => (on ? 0.5 + 0.5 * Math.sin(t * 14) : 0);
+  const door = pulse((t > 9.9 && t < 20) || (t > 35.6 && t < 44));
+  const ward = pulse((t > 19.95 && t < 26.3) || (t > 38 && t < 44));
+  const dima = t < 9.9 ? [70, 150] : t < 20 ? [118, 60] : [110, 105];
+  const dot = (x: number, y: number, r: number, p: number, label: string, base: string) => (
+    <g>
+      {p > 0 && <circle cx={x} cy={y} r={r + 14 * p} fill="#e5262b" opacity={0.45 * (1 - p * 0.5)} />}
+      <circle cx={x} cy={y} r={r} fill={p > 0 ? "#ff2a2a" : base} stroke="#000" strokeWidth="2" />
+      <text x={x} y={y + r + 17} textAnchor="middle" fontFamily={MONT} fontWeight="800" fontSize="15" fill="#f2e6c8">{label}</text>
+    </g>
+  );
+  return (
+    <div style={{ position: "absolute", top: 196, right: 30, width: 230, height: 230, opacity: 0.82, pointerEvents: "none" }}>
+      <svg width="230" height="230" viewBox="0 0 230 230">
+        <rect x="4" y="4" width="222" height="222" rx="14" fill="rgba(8,10,14,.62)" stroke="rgba(255,255,255,.25)" strokeWidth="2" />
+        <path d="M30 40 H200 V200 H30 Z M30 120 H100 M100 120 V200 M140 40 V90" stroke="rgba(242,230,200,.55)" strokeWidth="4" fill="none" />
+        <rect x="100" y="34" width="40" height="10" fill="#8a5a3a" />
+        <rect x="188" y="90" width="12" height="44" fill="#6a4a30" />
+        {dot(120, 30, 9, door, "ДВЕРЬ", "#d99b38")}
+        {dot(194, 112, 9, ward, "ШКАФ", "#7c8aa0")}
+        {dot(dima[0], dima[1], 8, 0, "ДИМА", "#5fd068")}
+      </svg>
+    </div>
+  );
+};
+
+/** Дрожащая звукоподражательная надпись. */
+const Shake = ({ t, a, b, x, y, text, rot }: { t: number; a: number; b: number; x: number; y: number; text: string; rot: number }) => {
+  if (t < a || t > b) return null;
+  const k = clamp((t - a) / 0.12) * clamp((b - t) / 0.2);
+  const j = Math.floor(t * 30);
+  return (
+    <div style={{ position: "absolute", left: x + ((j * 37) % 13) - 6, top: y + ((j * 53) % 11) - 5, transform: `rotate(${rot}deg) scale(${1 + 0.06 * Math.sin(t * 40)})`, opacity: k, fontFamily: STENCIL, fontSize: 92, color: "#f2e6c8", WebkitTextStroke: "4px #000", textShadow: "0 0 18px rgba(200,20,20,.9)", pointerEvents: "none" }}>{text}</div>
+  );
+};
+
+/** Jump-Zoom 100→125→160% на ударах суббаса. */
+const jumpZoom = (t: number) => {
+  if (t < 20.6 || t > 24.3) return 1;
+  const step = (at: number, from: number, to: number) => from + (to - from) * clamp((t - at) / 0.07);
+  return t < 22.6 ? step(21.6, 1, 1.25) : step(22.6, 1.25, 1.6);
+};
 
 const Plate = ({ text }: { text: string }) => (
   <AbsoluteFill style={{ alignItems: "center", paddingTop: 230, pointerEvents: "none" }}>
@@ -115,6 +179,7 @@ export const DontOpen1 = () => {
       <Sfx at={T.burst + 0.05} name="dontopen/scream" vol={0.95} />
       <Sfx at={T.burst + 0.35} name="train/growl" vol={0.8} dur={1.6} />
       <Sfx at={T.burst + 1.2} name="dontopen/sob" vol={0.6} />
+      {[20.6, 21.6, 22.6].map((a) => <Sfx key={a} at={a} name="dontopen/subhit" vol={0.9} dur={1.2} />)}
       <Sfx at={50.3} name="dontopen/alarm" vol={0.7} dur={9.5} />
       {VO.map(([k, a]) => (
         <Sfx key={k} at={a} name={`dontopen/${k}`} vol={1.2} />
@@ -133,9 +198,10 @@ export const DontOpen1 = () => {
         {at(13.8, 16.0, <LockHand freezeAt={1.8} />, "lh")}
         {/* на «Открой. Мне холодно» рот застыл в улыбке */}
         {at(16.0, 19.95, <Peephole smile={1} near={0.55} talk={[[0, 1.1]]} frozen={false} />, "p2")}
-        {at(19.95, 29.1, <Hall3D font={STENCIL} timeAt={(l) => 19.95 + l} />, "h3")}
-        {at(29.1, 30.9, <LocatorCall />, "loc")}
-        {at(30.9, T.end, <Hall3D font={STENCIL} timeAt={(l) => 30.9 + l} />, "h4")}
+        {at(19.95, 29.1, <AbsoluteFill style={{ transform: `scale(${jumpZoom(t)})`, transformOrigin: "50% 50%" }}><Hall3D font={STENCIL} timeAt={(l) => 19.95 + l} /></AbsoluteFill>, "h3")}
+        {at(26.3, 27.3, <ScaredFace />, "sf")}
+        {at(29.1, 35.0, <LocatorCall />, "loc")}
+        {at(35.0, T.end, <Hall3D font={STENCIL} timeAt={(l) => 35.0 + l} />, "h4")}
         {at(T.finale, 60, <Hall3D font={STENCIL} timeAt={(l) => T.finale + l} />, "fin")}
       </AbsoluteFill>
       {/* полосы глитча */}
@@ -143,6 +209,9 @@ export const DontOpen1 = () => {
         Array.from({ length: 6 }, (_, i) => (
           <div key={i} style={{ position: "absolute", left: 0, right: 0, top: ((steps * 37 + i * 311) % 1800) + 40, height: 8 + ((i * 13) % 30), background: i % 2 ? "rgba(255,255,255,.12)" : "rgba(0,0,0,.6)", transform: `translateX(${(i % 2 ? 1 : -1) * 40}px)` }} />
         ))}
+      <Shake t={t} a={38.3} b={39.5} x={90} y={1330} text="ТУК-ТУК" rot={-8} />
+      <Shake t={t} a={40.0} b={41.2} x={590} y={640} text="ТУК-ТУК" rot={6} />
+      <Shake t={t} a={42.1} b={43.5} x={60} y={980} text="Ш-Ш-Ш" rot={-5} />
       {t >= 4.3 && t < 5.8 && <Plate text="5 МИНУТ СПУСТЯ" />}
       {t >= 7.0 && t < 8.5 && <Plate text="5 МИНУТ ДО ЭТОГО" />}
       {/* единое плёночное зерно и глубокая виньетка поверх 2D и 3D */}
@@ -172,6 +241,8 @@ export const DontOpen1 = () => {
           <Hud />
         </AbsoluteFill>
       )}
+      {t < 50 && !(t >= 4.3 && t < 7.0) && <NavPlate t={t} />}
+      {t >= 7.0 && t < 44 && !(t >= 26.3 && t < 27.3) && !(t >= 29.1 && t < 35.0) && <MiniMap t={t} />}
       {<Subs t={t} cues={CUES} />}
     </AbsoluteFill>
   );

@@ -73,9 +73,20 @@ export const PhoneFlash = () => {
               <path d="M-4 -6 C0 -20 22 -20 24 -4 L22 24 C12 30 2 30 -4 24 Z" fill="#f3dccd" stroke={LINE} strokeWidth="3" />
             </g>
           )}
-          <g transform={`translate(${560 + buzz} 1240) rotate(-8)`}>
+          <g transform={`translate(${545 + buzz} 1160) rotate(-6) scale(1.35)`}>
             <rect x="-162" y="-312" width="324" height="624" rx="46" fill="#111" stroke={LINE} strokeWidth="8" />
             <Screen k={on} play={t > 0.4 ? clamp((t - 0.4) / 0.9) : -1} />
+            {/* красные овалы-маркеры улик: время и «Я на даче» */}
+            {[
+              [0, -222, 118, 50, 0.2],
+              [0, 4, 150, 50, 0.45],
+            ].map(([cx, cy, rx, ry, d], i) => {
+              const k = clamp((t - (d as number)) / 0.35);
+              const len = Math.PI * 2 * (rx as number) * 1.05;
+              return k > 0 ? (
+                <ellipse key={i} cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="#e5262b" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${len * k} ${len}`} transform={`rotate(-4 ${cx} ${cy})`} />
+              ) : null;
+            })}
           </g>
         </Svg>
       </AbsoluteFill>
@@ -358,7 +369,7 @@ export const PovPhone = ({ k = 1 }: { k?: number }) => {
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       <Svg>
-        <g transform={`translate(${-40} ${(1 - k) * 700 + bob}) rotate(8 300 1700)`}>
+        <g transform={`translate(1090 1930) scale(0.65) translate(-1000 -1920) translate(${-40} ${(1 - k) * 700 + bob}) rotate(8 300 1700)`}>
           {/* пальцы за корпусом: только боковины у левого края */}
           {[1430, 1510, 1590].map((y, i) => (
             <path key={i} d={`M232 ${y - 34} C204 ${y - 36} 190 ${y - 16} 190 ${y} C190 ${y + 20} 204 ${y + 34} 232 ${y + 32} Z`} fill={SKIN} stroke={LINE} strokeWidth="5" />
@@ -377,26 +388,73 @@ export const PovPhone = ({ k = 1 }: { k?: number }) => {
         </g>
       </Svg>
       {/* холодный отсвет экрана на руку */}
-      <AbsoluteFill style={{ background: `radial-gradient(22% 16% at 30% 76%, ${PHONE_GLOW}.4) 0%, ${PHONE_GLOW}0) 100%)`, mixBlendMode: "screen", opacity: k }} />
+      <AbsoluteFill style={{ background: `radial-gradient(16% 12% at 66% 86%, ${PHONE_GLOW}.4) 0%, ${PHONE_GLOW}0) 100%)`, mixBlendMode: "screen", opacity: k }} />
     </AbsoluteFill>
   );
 };
 
 /** POV: правая рука тянется к верхнему замку и замирает. */
+/** Крупно: дрожащая рука в рукаве серой кофты сжимает щеколду, костяшки побелели. */
 export const LockHand = ({ freezeAt = 2.6 }: { freezeAt?: number }) => {
   const t = useT();
-  const reach = ease(t, 0, Math.min(freezeAt, 2.2), 0, 1);
-  const tremble = t > freezeAt ? Math.sin(t * 45) * 4 : Math.sin(t * 20) * 1.5;
-  const pull = t > freezeAt ? ease(t, freezeAt, freezeAt + 0.4, 0, 1) : 0;
+  const reach = ease(t, 0, 0.6, 0, 1);
+  const tremble = (t > freezeAt ? 5 : 2) * Math.sin(t * 43) + Math.sin(t * 71) * 1.5;
+  const white = ease(t, 0.6, freezeAt, 0, 1);
   return (
-    <AbsoluteFill style={{ pointerEvents: "none" }}>
+    <AbsoluteFill style={{ background: "#0a0806" }}>
       <Svg>
-        <g transform={`translate(${760 + tremble} ${1980 - reach * 620 + pull * 140}) rotate(${172 - reach * 8}) scale(1.4)`}>
-          <HandTop x={0} y={0} curl={0.15 + pull * 0.5} twitch={tremble * 0.3} />
+        {/* дверь крупно: дерматин, щеколда и натянутая цепочка */}
+        <rect width="1080" height="1920" fill="#3a2016" />
+        {Array.from({ length: 8 }, (_, i) => <path key={i} d={`M${-200 + i * 220} 0 L${400 + i * 220} 1920 M${400 + i * 220} 0 L${-200 + i * 220} 1920`} stroke="#22120c" strokeWidth="6" />)}
+        {Array.from({ length: 12 }, (_, i) => <circle key={i} cx={(i % 4) * 300 + 90} cy={Math.floor(i / 4) * 640 + 330} r="10" fill="#b8924a" stroke={LINE} strokeWidth="3" />)}
+        <rect x="380" y="700" width="420" height="80" rx="12" fill="#8d8a82" stroke={LINE} strokeWidth="6" />
+        <rect x="560" y="660" width="70" height="160" rx="10" fill="#a9a69e" stroke={LINE} strokeWidth="6" />
+        <path d="M300 900 C420 940 560 940 760 900" stroke="#c9c6bd" strokeWidth="14" fill="none" strokeDasharray="22 10" />
+        {/* рука: рукав кофты снизу справа, кулак сжимает щеколду */}
+        <g transform={`translate(${tremble} ${(1 - reach) * 500}) `}>
+          <path d="M760 1920 C740 1600 700 1300 640 1080 L840 1020 C900 1240 960 1600 1000 1920 Z" fill={TEE} stroke={LINE} strokeWidth="9" />
+          <path d="M650 1090 L835 1035 L850 1090 L668 1150 Z" fill={TEE_SH} stroke={LINE} strokeWidth="6" />
+          {Array.from({ length: 9 }, (_, i) => <path key={i} d={`M${660 + i * 20} ${1145 - i * 6} l${8} ${-48}`} stroke={LINE} strokeWidth="2.5" opacity="0.5" />)}
+          {/* ладонь и сжатые пальцы вокруг щеколды */}
+          <path d="M560 760 C540 860 580 1010 650 1090 L840 1040 C860 960 840 860 800 770 Z" fill={SKIN} stroke={LINE} strokeWidth="8" />
+          {[0, 1, 2, 3].map((i) => (
+            <g key={i}>
+              <rect x={560 + i * 58} y={690} width="56" height="120" rx="26" fill={SKIN} stroke={LINE} strokeWidth="6" />
+              {/* побелевшие костяшки */}
+              <ellipse cx={588 + i * 58} cy={705} rx="20" ry="13" fill="#f4ece4" opacity={0.35 + 0.55 * white} />
+              <path d={`M${572 + i * 58} 760 q16 6 32 0`} stroke={LINE} strokeWidth="3" fill="none" opacity="0.6" />
+            </g>
+          ))}
+          <path d="M540 820 C500 780 490 720 520 690 C550 670 590 690 600 730 L610 800 Z" fill={SKIN} stroke={LINE} strokeWidth="7" />
+          <path d="M520 700 C530 690 556 692 566 708 L560 730 C548 736 530 732 522 722 Z" fill={NAIL} stroke={LINE} strokeWidth="3" />
+          <path d="M600 880 C650 900 720 900 780 880" stroke={SKIN_SH} strokeWidth="10" fill="none" opacity="0.6" />
         </g>
       </Svg>
-      {/* тёплый свет подъезда из-под двери на пальцах */}
-      <AbsoluteFill style={{ background: "radial-gradient(18% 12% at 70% 70%, rgba(217,160,67,.18) 0%, rgba(0,0,0,0) 100%)", mixBlendMode: "screen" }} />
+      <AbsoluteFill style={{ background: "radial-gradient(55% 40% at 55% 45%, rgba(217,160,67,.12) 0%, rgba(0,0,0,.65) 100%)" }} />
+    </AbsoluteFill>
+  );
+};
+
+/** Перебивка: испуганное лицо Димы крупно в холодном свете телефона. */
+export const ScaredFace = () => {
+  const t = useT();
+  const tr = Math.sin(t * 50) * 3;
+  return (
+    <AbsoluteFill style={{ background: "#040507" }}>
+      <Svg>
+        <g transform={`translate(${tr} 0) translate(540 940) scale(1.15) translate(-540 -900)`}>
+          <defs>
+            <clipPath id="sfHead">
+              <rect x="-200" y="-200" width="1480" height="1460" />
+            </clipPath>
+          </defs>
+          <g clipPath="url(#sfHead)">
+            <DimaFace t={t} fear={1} eyes={1.3} look={[0.6, -0.1]} mouth="o" sweat={1} tears={1} tremble={0.8} />
+          </g>
+        </g>
+      </Svg>
+      <AbsoluteFill style={{ background: `radial-gradient(45% 30% at 50% 62%, ${PHONE_GLOW}.35) 0%, ${PHONE_GLOW}0) 100%)`, mixBlendMode: "screen" }} />
+      <AbsoluteFill style={{ background: "radial-gradient(60% 45% at 50% 48%, rgba(0,0,0,0) 40%, rgba(0,0,0,.85) 100%)" }} />
     </AbsoluteFill>
   );
 };

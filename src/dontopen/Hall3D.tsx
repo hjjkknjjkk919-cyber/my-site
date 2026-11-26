@@ -36,7 +36,7 @@ export const T = {
   eyes: 20.6,
   chain: 36.0,
   fingers: 38.0,
-  silence: 43.6,
+  silence: 43.5,
   burst: 44.0,
   end: 49.75,
   finale: 50.25,
@@ -200,10 +200,12 @@ const makeBloodText = (font: string) =>
       }
     };
     g.textBaseline = "alphabetic";
-    line("1 — ШАГНУТЬ В ПОДЪЕЗД", 280, 96, 900);
-    line("2 — ЗАПЕРЕТЬСЯ В ВАННОЙ", 470, 96, 900);
-    line("ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ", 690, 52, 840);
-    line("ПРОДОЛЖЕНИЕ ПО ВЫБОРУ БОЛЬШИНСТВА", 800, 40, 820);
+    line("1 — ШАГНУТЬ", 190, 120, 700);
+    line("В ПОДЪЕЗД", 320, 120, 700);
+    line("2 — ЗАПЕРЕТЬСЯ", 490, 120, 700);
+    line("В ВАННОЙ", 620, 120, 700);
+    line("ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ", 760, 60, 700);
+    line("ПРОДОЛЖЕНИЕ ПО ВЫБОРУ БОЛЬШИНСТВА", 850, 44, 700);
   });
 
 /** Ткань со складками: цилиндр-колокол с волнами по низу (пальто, куртки). */
@@ -283,15 +285,16 @@ const KEYS: K[] = [
   // мимо вешалки с бордовым пальто
   { t: 9.2, x: 0.15, y: 1.6, z: -1.45, yaw: 0.55, pitch: -0.15, fov: 66 },
   // взгляд вниз на щель под дверью: свет есть, тени ног нет
-  { t: 10.0, x: 0.05, y: 1.45, z: -2.75, yaw: 0.0, pitch: -0.78, fov: 62 },
+  { t: 9.95, x: 0.02, y: 0.55, z: D + 1.0, yaw: 0.0, pitch: -0.32, fov: 60 },
+  { t: 10.55, x: 0.02, y: 0.5, z: D + 0.9, yaw: 0.0, pitch: -0.3, fov: 56 },
   { t: 10.6, x: 0.04, y: 1.56, z: -3.58, yaw: 0.0, pitch: 0.02, fov: 64 },
   // рука к замку (13.8–16.0)
   { t: 13.8, x: 0.1, y: 1.58, z: -3.3, yaw: 0.05, pitch: 0.02, fov: 66 },
   { t: 16.0, x: 0.1, y: 1.58, z: -3.36, yaw: 0.04, pitch: 0.0, fov: 66 },
   // оглядка на шкаф: два глаза на разной высоте
   { t: 20.0, x: 0.08, y: 1.58, z: -3.4, yaw: 0.0, pitch: 0.0, fov: 64 },
-  { t: 20.6, x: -0.35, y: 1.58, z: -3.75, yaw: -2.63, pitch: 0.06, fov: 58 },
-  { t: 24.3, x: -0.33, y: 1.56, z: -3.7, yaw: -2.66, pitch: 0.08, fov: 52 },
+  { t: 20.6, x: -0.5, y: 1.8, z: -2.85, yaw: -Math.PI / 2, pitch: 0.0, fov: 50 },
+  { t: 24.3, x: -0.45, y: 1.8, z: -2.85, yaw: -Math.PI / 2, pitch: 0.0, fov: 46 },
   // мечется: дверь ↔ шкаф
   { t: 24.7, x: 0.0, y: 1.58, z: -3.5, yaw: 0.0, pitch: 0.02, fov: 64 },
   { t: 26.4, x: 0.0, y: 1.58, z: -3.5, yaw: 0.0, pitch: 0.02, fov: 64 },
@@ -306,14 +309,15 @@ const KEYS: K[] = [
   { t: 37.9, x: 0.4, y: 1.44, z: D + 0.5, yaw: 0.0, pitch: -0.03, fov: 38 },
   // отступ к стене и Dolly Zoom: дверь и шкаф в одном кадре
   // крупно щель шкафа: суставчатые пальцы ложатся на створку
-  { t: 38.0, x: -0.3, y: 1.48, z: -2.3, yaw: -0.69, pitch: -0.02, fov: 46 },
-  { t: 39.6, x: -0.28, y: 1.47, z: -2.36, yaw: -0.7, pitch: -0.02, fov: 42 },
+  { t: 38.0, x: -0.45, y: 1.55, z: -2.2, yaw: -0.82, pitch: -0.02, fov: 46 },
+  { t: 39.6, x: -0.42, y: 1.55, z: -2.26, yaw: -0.82, pitch: -0.02, fov: 42 },
   { t: 39.61, x: -0.38, y: 1.56, z: -0.9, yaw: -0.13, pitch: -0.03, fov: 55 },
-  { t: 43.6, x: -0.4, y: 1.55, z: 0.45, yaw: -0.15, pitch: -0.03, fov: 42 },
-  { t: 44.0, x: -0.4, y: 1.55, z: 0.45, yaw: -0.15, pitch: -0.03, fov: 42 },
+  { t: 43.5, x: -0.4, y: 1.55, z: 0.45, yaw: -0.15, pitch: -0.03, fov: 34 },
+  { t: 44.0, x: -0.4, y: 1.55, z: 0.45, yaw: -0.15, pitch: -0.03, fov: 38 },
+  { t: 49.9, x: -0.4, y: 1.55, z: 0.5, yaw: -0.15, pitch: -0.01, fov: 40 },
   // финал: с порога, дверь распахнута в подъезд
-  { t: 50.25, x: 0.0, y: 1.6, z: -3.05, yaw: 0.0, pitch: 0.06, fov: 62 },
-  { t: 60.0, x: 0.0, y: 1.6, z: -3.35, yaw: 0.0, pitch: 0.06, fov: 58 },
+  { t: 50.25, x: 0.0, y: 1.58, z: -3.26, yaw: 0.0, pitch: 0.0, fov: 58 },
+  { t: 60.0, x: 0.0, y: 1.58, z: -3.8, yaw: 0.0, pitch: 0.0, fov: 54 },
 ];
 const sm = (x: number) => x * x * (3 - 2 * x);
 /** Резкие перебросы (≤0.35 с) — без сглаживания конца, как рывок головы. */
@@ -475,7 +479,7 @@ const FrontDoor = ({ g, hm }: { g: number; hm: HM }) => {
       {/* дверь открывается наружу */}
       <group position={[-0.45, 0, DOOR]} rotation={[0, pull * 3 - open, 0]}>
         <group position={[0.45, 0, 0]}>
-          <Box p={[0, 1.03, 0]} s={[0.9, 2.06, 0.06]} m={hm.leather} ol />
+          <Box p={[0, 1.05, 0]} s={[0.9, 2.03, 0.06]} m={hm.leather} ol />
           {studs.map(([x, y], i) => (
             <mesh key={i} position={[x, y, 0.035]} material={hm.brass}>
               <sphereGeometry args={[0.008, 6, 5]} />
@@ -494,6 +498,19 @@ const FrontDoor = ({ g, hm }: { g: number; hm: HM }) => {
           <Box p={[0.27, 1.42, 0.034]} s={[0.13, 0.026, 0.006]} m={hm.chrome} ol />
         </group>
       </group>
+      {/* светящаяся щель под дверью: свет подъезда есть, тени ног нет */}
+      {g < T.finale && (
+        <mesh position={[0, 0.017, DOOR - 0.035]}>
+          <boxGeometry args={[0.86, 0.02, 0.01]} />
+          <meshStandardMaterial color="#ffe2a0" emissive={new THREE.Color("#ffcf7a")} emissiveIntensity={2.6 * lamp(g + 3)} />
+        </mesh>
+      )}
+      {g < T.finale && (
+        <mesh position={[0, 0.004, DOOR + 0.12]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.86, 0.22]} />
+          <meshBasicMaterial color="#ffcf7a" transparent opacity={0.16 * lamp(g + 3)} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+      )}
       {/* планка на косяке и сплошная цепочка до планки на двери (звенья перекрываются, без разрывов) */}
       <Box p={[0.49, 1.42, DOOR + 0.084]} s={[0.03, 0.12, 0.008]} m={hm.chrome} ol />
       {g < T.finale &&
@@ -588,18 +605,28 @@ const Wardrobe = ({ g, hm }: { g: number; hm: HM }) => {
         <Box p={[-0.018, 1.06, WR.len / 2 - 0.05]} s={[0.02, 0.12, 0.02]} m={hm.brass} />
       </group>
       {/* пальцы из щели: кисть ложится на край створки */}
-      {g > T.fingers && g < T.burst && (
-        <group position={[WR_FRONT, 1.38, GAP_Z - 0.01]}>
-          {/* ладонь в темноте щели, пальцы выходят наружу и загибаются на фасад */}
-          <group position={[0.09 - 0.07 * clamp((g - T.fingers) / 1.4), 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <Hand hm={hm} curl={0.3 + 0.6 * clamp((g - T.fingers) / 1.4) + Math.sin(g * 5) * 0.05} s={1.2} />
-          </group>
-          <group position={[0.09 - 0.06 * clamp((g - T.fingers - 0.6) / 1.4), 0.3, 0]} rotation={[Math.PI / 2, 0, 0.1]}>
-            <Hand hm={hm} curl={0.4 + 0.5 * clamp((g - T.fingers - 0.6) / 1.4)} s={1.1} />
-          </group>
-        </group>
-      )}
+      {g > T.fingers && g < T.burst && <GapFingers g={g} />}
     </group>
+  );
+};
+
+/** Бледные костлявые пальцы с чёрными когтями из щели шкафа (тот же 2D-рисунок, что у монстра). */
+const drawGapFingers = (g: CanvasRenderingContext2D) => {
+  for (const [y, sc] of [[880, 1.7], [1230, 1.55]] as [number, number][]) {
+    limb(g, [[1010, y + 40, 12], [700, y, 10]], BODY);
+    paleHand(g, 640, y, Math.PI - 0.15, sc);
+  }
+};
+const GapFingers = ({ g }: { g: number }) => {
+  const mat = useMemo(() => {
+    const map = makeLayer(drawGapFingers);
+    return new THREE.MeshStandardMaterial({ map, transparent: true, alphaTest: 0.05, roughness: 0.7, emissive: new THREE.Color("#ffffff"), emissiveMap: map, emissiveIntensity: 0.18, side: THREE.DoubleSide });
+  }, []);
+  const k = clamp((g - T.fingers) / 1.2);
+  return (
+    <mesh position={[WR_FRONT - 0.045, 1.55, GAP_Z + 0.24 * k]} rotation={[0, -Math.PI / 2, 0]} material={mat} scale={[-(0.6 + 0.4 * k), 0.6 + 0.4 * k, 1]}>
+      <planeGeometry args={[0.5, 1.0]} />
+    </mesh>
   );
 };
 
@@ -695,10 +722,9 @@ const Stairwell = ({ g, hm, blood }: { g: number; hm: HM; blood: THREE.Texture |
       {Array.from({ length: 5 }, (_, i) => (
         <Box key={i} p={[0.9, -0.08 - i * 0.16, DOOR - 1.0 - i * 0.28]} s={[0.7, 0.16, 0.28]} m={hm.concrete} cast={false} ol />
       ))}
-      <Box p={[0.55, 0.95, DOOR - 1.6]} s={[0.04, 0.04, 1.6]} m={hm.woodDark} ol />
       {blood && (
         <mesh position={[0, 1.55, DOOR - 2.46]}>
-          <planeGeometry args={[2.2, 2.2]} />
+          <planeGeometry args={[2.5, 2.5]} />
           <meshStandardMaterial map={blood} color="#ffffff" transparent opacity={Math.max(reveal(0), 0.001)} roughness={0.55} metalness={0} depthWrite={false} />
         </mesh>
       )}
@@ -1277,12 +1303,16 @@ const Creature3D = ({ g, pose, hm }: { g: number; pose: Pose; hm: HM }) => {
     return (
       <group>
         {[
-          [1.6, 0.016],
-          [2.0, 0.013],
+          [1.71, 0.026],
+          [1.89, 0.022],
         ].map(([y, r], i) => (
-          <group key={i} position={[WR_FRONT - 0.004, y, GAP_Z - 0.018]}>
-            <mesh material={hm.eye} scale={k}>
-              <sphereGeometry args={[r, 12, 10]} />
+          <group key={i} position={[WR_FRONT - 0.016, y, GAP_Z - 0.012]}>
+            <mesh scale={k}>
+              <sphereGeometry args={[r, 14, 12]} />
+              <meshPhysicalMaterial color="#e9e1cc" emissive={new THREE.Color("#b9b09a")} emissiveIntensity={0.35} roughness={0.08} clearcoat={1} />
+            </mesh>
+            <mesh material={hm.eye} position={[-r * 0.86, i ? 0.004 : -0.003, i ? 0.006 : 0.004]} scale={k}>
+              <sphereGeometry args={[r * 0.32, 10, 8]} />
             </mesh>
             <sprite scale={[0.05, 0.05, 1]} material={glint} />
           </group>
@@ -1336,10 +1366,15 @@ const Lights = ({ g, pose }: { g: number; pose: Pose }) => {
       )}
       {/* узкий тёплый клин из кухни на пол прихожей: длинные тени от вешалки, шкаф не заливает */}
       <primitive object={tgt} />
-      <spotLight position={[-1.4, 1.75, KZ]} target={tgt} color={WARM} intensity={20 * warmK * fin} angle={0.32} penumbra={0.3} distance={6} decay={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0004} />
+      <spotLight position={[-1.4, 1.75, KZ]} target={tgt} color={WARM} intensity={20 * warmK * fin} angle={0.32} penumbra={0.3} distance={6} decay={1.5} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-bias={-0.0004} />
       {/* свет подъезда в щели под дверью — без тени ног */}
       <pointLight position={[0, 0.03, DOOR - 0.15]} color="#ffcf7a" intensity={2.2 * lamp(g + 3) * (g < T.finale ? 1 : 0)} distance={1.2} decay={2} />
       <pointLight position={[0.3, 1.5, DOOR + 0.55]} color={WARM} intensity={g > 35.9 && g < 38 ? 2.4 : 0.8} distance={1.6} decay={2} />
+      {/* холодный контровой свет экрана: край двери и приоткрытый шкаф читаются в темноте */}
+      {g > 24.3 && g < 36 && <pointLight position={[pose.x + 0.35, pose.y + 0.25, pose.z + 0.35]} color={PHONE} intensity={6} distance={4} decay={1.4} />}
+      {g > 24.3 && g < 36 && <pointLight position={[0.05, 1.9, DOOR + 0.7]} color={PHONE} intensity={2.2} distance={2} decay={1.6} />}
+      {g > 39.6 && g < T.burst && <pointLight position={[0.38, 1.5, DOOR + 0.45]} color="#e8dcc4" intensity={3.2} distance={1.4} decay={1.6} />}
+      {g > 39.6 && g < T.burst && <pointLight position={[WR_FRONT - 0.45, 1.7, GAP_Z + 0.1]} color="#cdd6e6" intensity={2.6} distance={1.5} decay={1.6} />}
       {/* бледный боковой свет на кисти из шкафа */}
       <pointLight position={[WR_FRONT - 0.45, 1.7, GAP_Z + 0.35]} color="#d8cdb0" intensity={g > T.fingers && g < T.burst ? 1.1 * clamp((g - T.fingers) / 1.2) : 0} distance={1.3} decay={2} />
       {/* экран телефона: холодный, снизу-спереди */}
@@ -1401,12 +1436,18 @@ const LensHit = ({ g }: { g: number }) => {
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         <defs>
           <filter id="crk">
-            <feGaussianBlur stdDeviation="2.2" />
+            <feGaussianBlur stdDeviation="5" />
           </filter>
           <filter id="smear">
             <feGaussianBlur stdDeviation="10 28" />
           </filter>
         </defs>
+        <g filter="url(#crk)" opacity="0.8">
+          {([[0, 0, 0.7], [1080, 0, Math.PI - 0.7], [0, 1920, -0.7], [1080, 1920, Math.PI + 0.7]] as [number, number, number][]).map(([x, y, a], i) => {
+            const d = crack(x, y, a, i * 41 + 4500);
+            return <path key={i} d={d} stroke="rgba(3,3,5,.85)" strokeWidth="22" fill="none" strokeLinejoin="round" strokeLinecap="round" />;
+          })}
+        </g>
         <g filter="url(#smear)">
           {Array.from({ length: 8 }, (_, i) => (
             <ellipse key={i} cx={rnd(i + 4300) > 0.5 ? 50 + rnd(i + 4301) * 200 : 830 + rnd(i + 4302) * 200} cy={200 + rnd(i + 4303) * 1500} rx={18 + rnd(i + 4304) * 30} ry={60 + rnd(i + 4305) * 120} fill="rgba(30,2,4,.85)" />
@@ -1441,7 +1482,7 @@ export const Hall3D = ({ timeAt, font }: { timeAt: (localSec: number) => number;
   const blood = useBloodTexture(font);
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <ThreeCanvas width={W} height={H} shadows="soft" dpr={1.5} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05, preserveDrawingBuffer: true }}>
+      <ThreeCanvas width={W} height={H} shadows="soft" dpr={1} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05, preserveDrawingBuffer: true }}>
         <HallScene g={g} pose={pose} blood={blood} />
       </ThreeCanvas>
       <LensHit g={g} />
