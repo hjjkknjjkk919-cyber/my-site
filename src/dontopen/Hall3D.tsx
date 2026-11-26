@@ -886,193 +886,223 @@ const glossyEye = (g: CanvasRenderingContext2D, x: number, y: number, r: number,
   g.arc(x, y, r, 0, Math.PI * 2);
   g.stroke();
 };
-const SKIN = "#3d3a35";
-const SKIN_DARK = "#2a2825";
+// «Сломанная копия мамы»: 2D-стиль Димы и мамы (тёмная обводка), бледная кожа, чёрно-синий костлявый силуэт
+const LINE2 = "#2b1d16";
+const PALE = "#d8d2c4";
+const PALE_SH = "#a9a291";
+const BODY = "#0c1019";
+const RIM = "rgba(90,110,150,.55)";
 
-/** Задний слой: длинные тонкие ноги с острыми коленями, спина и дальние руки в тени. */
+/** Задний слой: очень высокий костлявый чёрно-синий силуэт, длинные руки и ноги в тени шкафа. */
 const drawBack = (g: CanvasRenderingContext2D) => {
-  const fill = "#151413";
-  // ноги: бедро вверх к острому колену, голень вниз, длинные стопы
   for (const sd of [-1, 1]) {
-    limb(g, [[512 + sd * 60, 1300, 26], [512 + sd * 230, 1180, 20], [512 + sd * 200, 1960, 15]], fill);
-    // колено торчит шипом
-    g.beginPath();
-    g.moveTo(512 + sd * 225, 1160);
-    g.lineTo(512 + sd * 262, 1120);
-    g.lineTo(512 + sd * 245, 1190);
-    g.fillStyle = fill;
-    g.fill();
-    g.strokeStyle = INKC;
-    g.lineWidth = 3;
-    g.stroke();
-    for (let t = 0; t < 3; t++) limb(g, [[512 + sd * 200, 1960, 8], [512 + sd * (200 + (t - 1) * 40), 2030, 4]], fill);
+    limb(g, [[512 + sd * 55, 1320, 24], [512 + sd * 120, 1650, 17], [512 + sd * 95, 2010, 13]], BODY);
+    limb(g, [[512 + sd * 140, 780, 16], [512 + sd * 300, 980, 12], [512 + sd * 330, 1330, 10]], BODY);
   }
-  // таз и сгорбленная спина
   g.beginPath();
-  g.ellipse(512, 1300, 110, 70, 0, 0, Math.PI * 2);
-  g.fillStyle = fill;
-  g.fill();
-  g.stroke();
-  g.beginPath();
-  g.moveTo(380, 1290);
-  g.bezierCurveTo(330, 1000, 360, 760, 512, 640);
-  g.bezierCurveTo(664, 760, 694, 1000, 644, 1290);
+  g.moveTo(420, 1330);
+  g.bezierCurveTo(390, 1100, 400, 880, 450, 770);
+  g.bezierCurveTo(480, 730, 544, 730, 574, 770);
+  g.bezierCurveTo(624, 880, 634, 1100, 604, 1330);
   g.closePath();
-  g.fill();
-  g.stroke();
-  // дальние руки с вывернутыми локтями
-  for (const sd of [-1, 1]) limb(g, [[512 + sd * 150, 760, 18], [512 + sd * 380, 620, 14], [512 + sd * 330, 1220, 11]], fill);
-  shade(g, 280, 760, 0.6);
-  skinNoise(g, 8000, 5000);
-};
-
-/** Средний слой: костлявый торс с рёбрами и ключицами, длинная шея, маленькая голова с 20+ глазами и пастью-воронкой. */
-const drawMid = (g: CanvasRenderingContext2D) => {
-  // торс: впалый живот, широкая грудная клетка
-  g.beginPath();
-  g.moveTo(440, 1260);
-  g.bezierCurveTo(430, 1100, 400, 900, 415, 790);
-  g.bezierCurveTo(450, 740, 574, 740, 609, 790);
-  g.bezierCurveTo(624, 900, 594, 1100, 584, 1260);
-  g.bezierCurveTo(550, 1235, 474, 1235, 440, 1260);
-  g.closePath();
-  g.fillStyle = SKIN;
-  g.fill();
-  g.strokeStyle = INKC;
-  g.lineWidth = 5;
-  g.stroke();
-  // рёбра: тени и светлые края
-  for (let i = 0; i < 7; i++) {
-    const y = 820 + i * 46;
-    const w = 95 - i * 5;
-    for (const sd of [-1, 1]) {
-      g.beginPath();
-      g.moveTo(512 + sd * 12, y);
-      g.quadraticCurveTo(512 + sd * w * 0.7, y - 14, 512 + sd * w, y + 30);
-      g.strokeStyle = "rgba(10,10,10,.75)";
-      g.lineWidth = 9;
-      g.stroke();
-      g.strokeStyle = "rgba(170,170,165,.35)";
-      g.lineWidth = 2.5;
-      g.stroke();
-    }
-  }
-  // грудина и впалый живот
-  g.strokeStyle = "rgba(10,10,10,.6)";
-  g.lineWidth = 6;
-  g.beginPath();
-  g.moveTo(512, 800);
-  g.lineTo(512, 1150);
-  g.stroke();
-  // острые ключицы
-  for (const sd of [-1, 1]) {
-    g.beginPath();
-    g.moveTo(512, 770);
-    g.quadraticCurveTo(512 + sd * 90, 740, 512 + sd * 170, 770);
-    g.strokeStyle = "rgba(190,188,180,.55)";
-    g.lineWidth = 6;
-    g.stroke();
-    g.strokeStyle = INKC;
-    g.lineWidth = 2;
-    g.stroke();
-  }
-  // плечевые суставы и ближние плечи
-  for (const sd of [-1, 1]) limb(g, [[512 + sd * 160, 775, 22], [512 + sd * 290, 700, 16]], SKIN);
-  // длинная тонкая шея, вперёд и вниз
-  limb(g, [[512, 760, 26], [512, 640, 20], [520, 540, 18]], SKIN);
-  // маленькая голова
-  const hx = 520;
-  const hy = 470;
-  g.beginPath();
-  g.ellipse(hx, hy, 72, 88, 0.05, 0, Math.PI * 2);
-  g.fillStyle = SKIN;
-  g.fill();
-  g.strokeStyle = INKC;
-  g.lineWidth = 5;
-  g.stroke();
-  shade(g, 300, 740, 0.85);
-  // объём головы: тёмный низ и висок, свет сверху
-  g.save();
-  g.globalCompositeOperation = "source-atop";
-  const hg = g.createRadialGradient(hx - 20, hy - 40, 10, hx, hy, 110);
-  hg.addColorStop(0, "rgba(255,255,255,.12)");
-  hg.addColorStop(1, "rgba(0,0,0,.6)");
-  g.fillStyle = hg;
-  g.fillRect(hx - 120, hy - 120, 240, 240);
-  // впадины живота
-  const bg = g.createRadialGradient(512, 1150, 10, 512, 1150, 140);
-  bg.addColorStop(0, "rgba(0,0,0,.55)");
-  bg.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = bg;
-  g.fillRect(360, 1000, 300, 300);
-  g.restore();
-  skinNoise(g, 8500, 9000);
-  // глаза: верхняя половина, виски, скулы — 23 штуки разного размера
-  for (let i = 0; i < 23; i++) {
-    const a = -Math.PI + rnd(i + 8800) * Math.PI; // верхний полукруг
-    const rr = 0.25 + rnd(i + 8801) * 0.72;
-    const x = hx + Math.cos(a) * 66 * rr;
-    const y = hy - 6 + Math.sin(a) * 78 * rr + (i > 18 ? 40 : 0);
-    const xs = i > 18 ? hx + (i % 2 ? -1 : 1) * (46 + rnd(i) * 14) : x;
-    glossyEye(g, xs, y, 4 + rnd(i + 8802) * 9, rnd(i + 8803) - 0.5);
-  }
-  // пасть-воронка: концентрические ряды игольчатых зубов уходят в темноту
-  const mx = hx;
-  const my = hy + 44;
-  const rings = [36, 28, 21, 14, 8];
-  const grd = g.createRadialGradient(mx, my, 2, mx, my, 40);
-  grd.addColorStop(0, "#000");
-  grd.addColorStop(0.5, "#1a0505");
-  grd.addColorStop(1, "#4a1010");
-  g.beginPath();
-  g.arc(mx, my, 40, 0, Math.PI * 2);
-  g.fillStyle = grd;
+  g.fillStyle = BODY;
   g.fill();
   g.strokeStyle = INKC;
   g.lineWidth = 4;
   g.stroke();
-  rings.forEach((r, ri) => {
-    const n = 20 - ri * 3;
-    for (let k = 0; k < n; k++) {
-      const a = (k / n) * Math.PI * 2 + ri * 0.25;
-      const bx = mx + Math.cos(a) * r;
-      const by = my + Math.sin(a) * r;
-      const tip = r - (7 - ri);
-      const tx = mx + Math.cos(a + 0.08) * tip * 0.55;
-      const ty = my + Math.sin(a + 0.08) * tip * 0.55;
-      const pa = a + Math.PI / 2;
+  // выступающие рёбра и позвонки — тусклым контровым светом
+  g.strokeStyle = RIM;
+  g.lineWidth = 3;
+  for (let i = 0; i < 6; i++) {
+    for (const sd of [-1, 1]) {
       g.beginPath();
-      g.moveTo(bx + Math.cos(pa) * 2.4, by + Math.sin(pa) * 2.4);
-      g.lineTo(tx, ty);
-      g.lineTo(bx - Math.cos(pa) * 2.4, by - Math.sin(pa) * 2.4);
-      g.closePath();
-      g.fillStyle = `rgba(${225 - ri * 30},${215 - ri * 32},${185 - ri * 30},1)`;
-      g.fill();
-      g.strokeStyle = "rgba(20,10,8,.8)";
-      g.lineWidth = 0.8;
+      g.moveTo(512, 820 + i * 52);
+      g.quadraticCurveTo(512 + sd * 60, 805 + i * 52, 512 + sd * 88, 845 + i * 52);
       g.stroke();
     }
-  });
-  // тёмная кровь по краю пасти
-  g.strokeStyle = "rgba(40,4,4,.8)";
-  g.lineWidth = 3;
-  for (let k = 0; k < 5; k++) {
-    const x = mx - 30 + k * 15;
-    g.beginPath();
-    g.moveTo(x, my + 34);
-    g.lineTo(x + 1, my + 50 + rnd(k + 9000) * 30);
-    g.stroke();
   }
+  // холодный контур справа
+  g.save();
+  g.globalCompositeOperation = "source-atop";
+  const gr = g.createLinearGradient(380, 0, 650, 0);
+  gr.addColorStop(0, "rgba(0,0,0,.3)");
+  gr.addColorStop(0.85, "rgba(0,0,0,0)");
+  gr.addColorStop(1, "rgba(110,130,170,.4)");
+  g.fillStyle = gr;
+  g.fillRect(0, 0, RW, RH);
+  g.restore();
 };
 
-/** Передний слой: две длинные когтистые лапы, тянутся к камере (к горлу). */
+/** Средний слой: длинная шея, переломленная вбок, и бледное вытянутое мамино лицо с вывихнутой челюстью. */
+const drawMid = (g: CanvasRenderingContext2D) => {
+  // острые плечи и ключицы
+  g.beginPath();
+  g.moveTo(400, 800);
+  g.quadraticCurveTo(512, 730, 624, 800);
+  g.lineTo(600, 860);
+  g.quadraticCurveTo(512, 800, 424, 860);
+  g.closePath();
+  g.fillStyle = BODY;
+  g.fill();
+  g.strokeStyle = INKC;
+  g.lineWidth = 4;
+  g.stroke();
+  // шея: вверх и резко вбок, чтобы голова влезла под верх шкафа
+  limb(g, [[512, 770, 20], [470, 690, 17], [540, 650, 15]], BODY);
+  g.save();
+  g.translate(560, 560);
+  g.rotate(-0.42);
+  // волосы сзади
+  g.fillStyle = "#120d0b";
+  g.beginPath();
+  g.ellipse(0, -40, 98, 120, 0, 0, Math.PI * 2);
+  g.fill();
+  // вытянутое бледное лицо
+  const fg = g.createLinearGradient(-70, 0, 70, 0);
+  fg.addColorStop(0, PALE_SH);
+  fg.addColorStop(0.45, PALE);
+  fg.addColorStop(1, "#8f8a7d");
+  g.beginPath();
+  g.ellipse(0, 10, 68, 128, 0, 0, Math.PI * 2);
+  g.fillStyle = fg;
+  g.fill();
+  g.strokeStyle = LINE2;
+  g.lineWidth = 6;
+  g.stroke();
+  // мамина причёска, растрёпанная, пряди падают на лицо
+  g.strokeStyle = "#140e0b";
+  g.lineCap = "round";
+  for (let i = 0; i < 26; i++) {
+    const x0 = -80 + rnd(i + 9500) * 160;
+    const len = 60 + rnd(i + 9501) * 150;
+    g.lineWidth = 4 + rnd(i + 9502) * 6;
+    g.beginPath();
+    g.moveTo(x0 * 0.6, -120);
+    g.bezierCurveTo(x0, -80, x0 + (rnd(i + 9503) - 0.5) * 60, -60 + len * 0.4, x0 + (rnd(i + 9504) - 0.5) * 40, -100 + len);
+    g.stroke();
+  }
+  g.fillStyle = "#140e0b";
+  g.beginPath();
+  g.ellipse(0, -100, 85, 45, 0, Math.PI, Math.PI * 2);
+  g.fill();
+  // глаза: чёрные провалы на разной высоте с крошечными белыми зрачками
+  const socket = (x: number, y: number, rx: number, ry: number, rot: number, px: number, py: number) => {
+    g.save();
+    g.translate(x, y);
+    g.rotate(rot);
+    const sg = g.createRadialGradient(0, 0, 1, 0, 0, Math.max(rx, ry));
+    sg.addColorStop(0, "#000");
+    sg.addColorStop(0.75, "#050303");
+    sg.addColorStop(1, "rgba(40,25,20,.6)");
+    g.beginPath();
+    g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    g.fillStyle = sg;
+    g.fill();
+    g.strokeStyle = LINE2;
+    g.lineWidth = 3;
+    g.stroke();
+    g.fillStyle = "#fff";
+    g.beginPath();
+    g.arc(px, py, 2.6, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  };
+  socket(-26, -22, 17, 22, 0.1, 2, 1);
+  socket(30, 8, 15, 24, -0.45, -3, 4); // ниже и перекошен
+  // ещё пара глаз выглядывает из-под волос
+  socket(-48, -78, 9, 6, 0.3, 1, 0);
+  socket(44, -88, 8, 5, -0.2, -1, 0);
+  g.strokeStyle = "#140e0b";
+  g.lineWidth = 5;
+  for (const [x, y] of [[-55, -95], [-40, -92], [36, -102], [52, -98]]) {
+    g.beginPath();
+    g.moveTo(x, y - 20);
+    g.quadraticCurveTo(x + 4, y, x - 2, y + 18);
+    g.stroke();
+  }
+  // нос
+  g.strokeStyle = LINE2;
+  g.lineWidth = 3;
+  g.beginPath();
+  g.moveTo(4, 2);
+  g.quadraticCurveTo(10, 30, 0, 40);
+  g.stroke();
+  // вывихнутая челюсть, растянутая вниз в чёрную пустоту
+  const mg = g.createLinearGradient(0, 50, 0, 230);
+  mg.addColorStop(0, "#1a0606");
+  mg.addColorStop(0.4, "#000");
+  mg.addColorStop(1, "#000");
+  g.beginPath();
+  g.moveTo(-26, 52);
+  g.bezierCurveTo(-34, 110, -30, 180, -14, 222);
+  g.lineTo(14, 222);
+  g.bezierCurveTo(30, 180, 34, 110, 26, 52);
+  g.quadraticCurveTo(0, 46, -26, 52);
+  g.closePath();
+  g.fillStyle = mg;
+  g.fill();
+  g.strokeStyle = LINE2;
+  g.lineWidth = 4;
+  g.stroke();
+  // тонкие острые зубы по краям пасти
+  g.fillStyle = "#e6dfcc";
+  g.strokeStyle = "rgba(20,10,8,.9)";
+  g.lineWidth = 0.8;
+  for (let i = 0; i < 9; i++) {
+    const x = -20 + i * 5;
+    g.beginPath();
+    g.moveTo(x - 2, 54);
+    g.lineTo(x, 70 + (i % 2) * 8);
+    g.lineTo(x + 2, 54);
+    g.fill();
+    g.stroke();
+  }
+  for (let i = 0; i < 7; i++) {
+    for (const sd of [-1, 1]) {
+      const y = 80 + i * 18;
+      const x = sd * (28 - i * 1.5);
+      g.beginPath();
+      g.moveTo(x, y - 3);
+      g.lineTo(x - sd * 11, y + 2);
+      g.lineTo(x, y + 4);
+      g.fill();
+      g.stroke();
+    }
+  }
+  // съехавший подбородок и растянутые щёки
+  g.beginPath();
+  g.ellipse(0, 232, 24, 14, 0, 0, Math.PI * 2);
+  g.fillStyle = PALE_SH;
+  g.fill();
+  g.strokeStyle = LINE2;
+  g.lineWidth = 4;
+  g.stroke();
+  g.strokeStyle = "rgba(60,45,40,.6)";
+  g.lineWidth = 2;
+  for (const sd of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(sd * 30, 50);
+    g.quadraticCurveTo(sd * 44, 140, sd * 22, 226);
+    g.stroke();
+  }
+  // тёмная кровь в уголках
+  g.strokeStyle = "rgba(45,4,6,.85)";
+  g.lineWidth = 3;
+  for (const sd of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(sd * 26, 56);
+    g.lineTo(sd * 28, 92);
+    g.stroke();
+  }
+  g.restore();
+};
+
+/** Передний слой: длинные бледные многосуставные пальцы с тёмными ногтями, сжимают края дверцы шкафа. */
 const drawFront = (g: CanvasRenderingContext2D) => {
   for (const sd of [-1, 1]) {
-    limb(g, [[512 + sd * 290, 700, 15], [512 + sd * 420, 560, 13], [512 + sd * 250, 1030, 12]], SKIN);
-    hand(g, 512 + sd * 235, 1060, sd > 0 ? 2.2 : 0.95, 1.25, SKIN);
+    limb(g, [[512 + sd * 300, 1000, 13], [512 + sd * 270, 860, 12]], BODY);
+    hand(g, 512 + sd * 265, 830, sd > 0 ? 2.6 : 0.55, 1.6, PALE);
   }
-  shade(g, 100, 920, 0.45);
-  skinNoise(g, 9100, 6000);
 };
 
 const makeLayer = (draw: (g: CanvasRenderingContext2D) => void) => {
@@ -1089,9 +1119,9 @@ const useRigMats = () =>
   useMemo(() => {
     const mk = (draw: (g: CanvasRenderingContext2D) => void, emissive: number) => {
       const map = makeLayer(draw);
-      return new THREE.MeshStandardMaterial({ map, color: "#b5a68e", transparent: true, alphaTest: 0.04, roughness: 0.7, emissive: new THREE.Color("#ffffff"), emissiveMap: map, emissiveIntensity: emissive, side: THREE.DoubleSide });
+      return new THREE.MeshStandardMaterial({ map, color: "#d6ccbb", transparent: true, alphaTest: 0.04, roughness: 0.7, emissive: new THREE.Color("#ffffff"), emissiveMap: map, emissiveIntensity: emissive, side: THREE.DoubleSide });
     };
-    return { back: mk(drawBack, 0.02), mid: mk(drawMid, 0.07), front: mk(drawFront, 0.06) };
+    return { back: mk(drawBack, 0.02), mid: mk(drawMid, 0.16), front: mk(drawFront, 0.12) };
   }, []);
 
 /** 2.5D-риг: три плоскости на разной глубине — при тряске и броске видно объём. */
@@ -1151,7 +1181,7 @@ const Creature3D = ({ g, pose, hm }: { g: number; pose: Pose; hm: HM }) => {
   p.add(dir.clone().multiplyScalar(wob * 0.12));
   const yaw = pose.yaw + (1 - e) * 1.4;
   return (
-    <group position={[p.x, -0.18 + Math.sin(g * 31) * 0.006, p.z]} rotation={[0, yaw, wob * 0.05]}>
+    <group position={[p.x, -0.32 + Math.sin(g * 31) * 0.006, p.z]} rotation={[0, yaw, wob * 0.05]}>
       <Rig25D g={g} wob={wob} />
     </group>
   );
