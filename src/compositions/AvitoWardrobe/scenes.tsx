@@ -303,12 +303,11 @@ export const S5Guard = ({ keyEnd, bedEnd, openAt, clickAt, dropAt, cloudAt, fall
 };
 
 /* ── 6. Утро: отзыв 4 из 5, пуш про диван, плашка ── */
-export const S6Review = ({ pushAt, plateAt }: { pushAt: number; plateAt: number }) => {
+export const S6Review = ({ pushAt }: { pushAt: number }) => {
   const t = useLT();
   const dur = React.useContext(DurCtx);
   const card = useSpr(0.2, 16, 100);
   const push = useSpr(pushAt, 13, 120);
-  const plate = useSpr(plateAt, 12, 110);
   return (
     <Shot to={dur} bg="#f1e9dc">
       <Room wall="#d9cdb6" pattern="#cdbfa5" floor="#a07a52" />
@@ -319,11 +318,6 @@ export const S6Review = ({ pushAt, plateAt }: { pushAt: number; plateAt: number 
       <Backlight x={210} y={500} r={900} o={0.5} color="#fff6d8" />
       <ReviewCard k={card} stars={ez(t, 0.6, 1.6, 0, 4)} />
       <Push k={push} />
-      <g opacity={plate} transform={`translate(540 ${1500 + (1 - plate) * 80})`}>
-        <rect x={-490} y={-130} width={980} height={260} rx={30} fill="#111" stroke={RIM} strokeWidth={6} />
-        <text x={0} y={-22} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={56} fill="#fff">ЖДЁШЬ СЕРИЮ ПРО ДИВАН?</text>
-        <text x={0} y={62} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={56} fill="#F5A623">СТАВЬ + В КОММЕНТАХ</text>
-      </g>
     </Shot>
   );
 };

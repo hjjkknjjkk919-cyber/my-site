@@ -116,8 +116,9 @@ const buildTimeline = (d: number[]): Timeline => {
     say(11, PAUSE);
     fx("whoosh", 0.2, 0.4);
     fx("push", pushAt, 0.8);
-    plate = cur + plateAt;
-    scene(S6Review, plateAt + 2.6, { pushAt, plateAt });
+    // без финальной плашки: ролик заканчивается на отзыве и пуше про диван
+    plate = cur + plateAt + 1.2;
+    scene(S6Review, plateAt + 1.2, { pushAt });
   }
   return { placed, vo, sfx, total: cur, plate };
 };
