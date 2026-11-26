@@ -232,25 +232,24 @@ const useHallMats = () =>
       if (m.map) {
         m.bumpMap = m.map;
         m.bumpScale = 0.6;
-        m.roughnessMap = m.map;
       }
       return m;
     };
     return {
-      wall: std("#b8ad8c", { roughness: 0.9, map: makeWallpaper() }),
+      wall: std("#8f866c", { roughness: 0.97, map: makeWallpaper() }),
       floor: std("#9a7a5a", { roughness: 0.75, map: makeParquet() }),
       ceil: std("#8f8a7a", { roughness: 1, map: makeTex("grime", 2, 4) }),
       wood: std("#6b4528", { roughness: 0.65, map: makeTex("grime", 1, 2) }),
       woodDark: std("#3b2414", { roughness: 0.7, map: makeTex("grime", 1, 2) }),
       leather: std("#7a4a33", { roughness: 0.55, map: makeLeather() }),
-      metal: std("#b9b2a0", { roughness: 0.3, metalness: 0.8 }),
+      metal: std("#6d6a64", { roughness: 0.45, metalness: 0.85, map: makeTex("grime", 1, 1) }),
       brass: std("#c9a25a", { roughness: 0.35, metalness: 0.85 }),
       chrome: std("#d8d8d0", { roughness: 0.18, metalness: 0.95 }),
-      coatGreen: std("#2f3a33", { roughness: 0.95, map: makeTex("fabric", 1, 2), side: THREE.DoubleSide }),
-      coatBrown: std("#5a4632", { roughness: 0.95, map: makeTex("fabric", 1, 2), side: THREE.DoubleSide }),
-      coatMom: std("#6e1f24", { roughness: 0.9, map: makeTex("fabric", 1, 2), side: THREE.DoubleSide }),
+      coatGreen: std("#1b1f1c", { roughness: 0.95, map: makeTex("fabric", 1, 2), side: THREE.DoubleSide }),
+      coatBrown: std("#241d17", { roughness: 0.95, map: makeTex("fabric", 1, 2), side: THREE.DoubleSide }),
+      coatMom: std("#4a1418", { roughness: 0.9, map: makeTex("fabric", 1, 2), side: THREE.DoubleSide }),
       black: std("#050403", { roughness: 1 }),
-      white: std("#d9d4c4", { roughness: 0.45, map: makeTex("grime", 1, 1) }),
+      white: std("#a8a294", { roughness: 0.9, map: makeTex("grime", 2, 3) }),
       tile: std("#9aa59a", { roughness: 0.4, map: makeTex("grime", 3, 3) }),
       mirror: std("#141a1c", { roughness: 0.05, metalness: 0.9 }),
       paper: std("#cfc7b0", { roughness: 1 }),
@@ -263,7 +262,7 @@ const useHallMats = () =>
       maw: new THREE.MeshStandardMaterial({ color: "#1a0303", roughness: 0.5, side: THREE.DoubleSide }),
       tooth: new THREE.MeshPhysicalMaterial({ color: "#bfb38c", roughness: 0.3, clearcoat: 0.6 }),
       blood: new THREE.MeshPhysicalMaterial({ color: "#140000", roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.1, transparent: true }),
-      concrete: std("#8a8a82", { roughness: 0.95, map: makeConcrete() }),
+      concrete: std("#7a7a72", { roughness: 1, metalness: 0, map: makeConcrete() }),
       rug: std("#7a3030", { roughness: 1, map: makeRug() }),
       slipper: std("#3d4d63", { roughness: 0.9 }),
       plastic: std("#d8d2c0", { roughness: 0.5 }),
@@ -303,8 +302,8 @@ const KEYS: K[] = [
   { t: 33.4, x: -0.33, y: 1.56, z: -3.72, yaw: -2.6, pitch: 0.05, fov: 58 },
   { t: 35.6, x: -0.33, y: 1.56, z: -3.68, yaw: -2.64, pitch: 0.05, fov: 54 },
   // крупно цепочка
-  { t: 36.0, x: 0.22, y: 1.44, z: D + 0.36, yaw: -0.62, pitch: -0.04, fov: 36 },
-  { t: 37.9, x: 0.25, y: 1.43, z: D + 0.31, yaw: -0.64, pitch: -0.04, fov: 34 },
+  { t: 36.0, x: 0.4, y: 1.45, z: D + 0.56, yaw: 0.0, pitch: -0.03, fov: 40 },
+  { t: 37.9, x: 0.4, y: 1.44, z: D + 0.5, yaw: 0.0, pitch: -0.03, fov: 38 },
   // отступ к стене и Dolly Zoom: дверь и шкаф в одном кадре
   // крупно щель шкафа: суставчатые пальцы ложатся на створку
   { t: 38.0, x: -0.3, y: 1.48, z: -2.3, yaw: -0.69, pitch: -0.02, fov: 46 },
@@ -380,16 +379,28 @@ export const hallPose = (g: number): Pose => {
 };
 
 // ── мебель и квартира ────────────────────────────────────────────────
-const Coat = ({ z, m, len = 1.0, sw }: { z: number; m: THREE.Material; len?: number; sw: number }) => {
-  const geo = useMemo(() => coatGeo(len, 0.1, 0.2), [len]);
+/** Одежда на крючке: лист ткани с вертикальными складками, сужается к плечам, висит у стены. */
+const clothGeo = (w: number, h: number, seed: number) => {
+  const g = new THREE.PlaneGeometry(w, h, 18, 24);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i);
+    const y = p.getY(i);
+    const k = (h / 2 - y) / h; // 0 сверху → 1 снизу
+    const taper = 0.45 + 0.55 * Math.min(1, k * 2.2); // узкие плечи
+    const fold = Math.sin((x / w) * Math.PI * 7 + seed) * 0.025 * (0.3 + k) + Math.sin((x / w) * Math.PI * 13 + seed * 2) * 0.01 * k;
+    p.setX(i, x * taper);
+    p.setZ(i, fold + 0.04 * (1 - Math.abs(x / (w / 2))) * (0.5 + k));
+  }
+  g.computeVertexNormals();
+  return g;
+};
+const Coat = ({ z, m, len = 1.0, sw, seed = 1 }: { z: number; m: THREE.Material; len?: number; sw: number; seed?: number }) => {
+  const geo = useMemo(() => clothGeo(0.42, len, seed), [len, seed]);
   return (
-    <group position={[-HW + 0.14, 1.8, z]} rotation={[sw, 0, 0]}>
-      <mesh position={[0, -len / 2 - 0.04, 0]} geometry={geo} material={m} castShadow receiveShadow>
-        <Outlines thickness={OL} color={INK} />
-      </mesh>
-      {/* плечики-воротник */}
-      <mesh position={[0, -0.06, 0]} scale={[1, 0.5, 0.6]} material={m} castShadow>
-        <sphereGeometry args={[0.13, 14, 10]} />
+    <group position={[-HW + 0.07, 1.84, z]} rotation={[sw, Math.PI / 2, 0]}>
+      <mesh position={[0, -len / 2, 0]} geometry={geo} material={m} castShadow receiveShadow>
+        <Outlines thickness={OL * 0.7} color={INK} />
       </mesh>
     </group>
   );
@@ -439,7 +450,7 @@ const Kitchen = ({ g, hm }: { g: number; hm: HM }) => {
         <coneGeometry args={[0.2, 0.18, 16, 1, true]} />
         <meshStandardMaterial color="#c97a2a" emissive={new THREE.Color(WARM)} emissiveIntensity={0.6 * k} side={THREE.DoubleSide} />
       </mesh>
-      <pointLight position={[-1.8, 1.8, KZ]} color={WARM} intensity={6 * k} distance={3.2} decay={1.6} castShadow shadow-mapSize-width={512} shadow-mapSize-height={512} />
+      <pointLight position={[-1.8, 1.8, KZ]} color={WARM} intensity={4 * k} distance={3.0} decay={1.7} castShadow shadow-mapSize-width={512} shadow-mapSize-height={512} />
     </group>
   );
 };
@@ -462,7 +473,7 @@ const FrontDoor = ({ g, hm }: { g: number; hm: HM }) => {
       <Box p={[0.5, 1.05, DOOR + 0.02]} s={[0.08, 2.15, 0.12]} m={hm.woodDark} ol />
       <Box p={[0, 2.13, DOOR + 0.02]} s={[1.08, 0.08, 0.12]} m={hm.woodDark} ol />
       {/* дверь открывается наружу */}
-      <group position={[-0.45, 0, DOOR]} rotation={[0, -pull * 3 - open, 0]}>
+      <group position={[-0.45, 0, DOOR]} rotation={[0, pull * 3 - open, 0]}>
         <group position={[0.45, 0, 0]}>
           <Box p={[0, 1.03, 0]} s={[0.9, 2.06, 0.06]} m={hm.leather} ol />
           {studs.map(([x, y], i) => (
@@ -480,22 +491,33 @@ const FrontDoor = ({ g, hm }: { g: number; hm: HM }) => {
           <group position={[0.33, 1.08, 0.06]} rotation={[0, 0, handle]}>
             <Box p={[-0.06, 0, 0.02]} s={[0.13, 0.025, 0.03]} m={hm.chrome} ol />
           </group>
-          <Box p={[0.28, 1.42, 0.05]} s={[0.05, 0.03, 0.02]} m={hm.chrome} />
+          <Box p={[0.27, 1.42, 0.034]} s={[0.13, 0.026, 0.006]} m={hm.chrome} ol />
         </group>
       </group>
-      {/* планка цепочки на коробке */}
-      <Box p={[0.49, 1.42, DOOR + 0.086]} s={[0.035, 0.14, 0.012]} m={hm.chrome} ol />
+      {/* планка на косяке и сплошная цепочка до планки на двери (звенья перекрываются, без разрывов) */}
+      <Box p={[0.49, 1.42, DOOR + 0.084]} s={[0.03, 0.12, 0.008]} m={hm.chrome} ol />
       {g < T.finale &&
-        Array.from({ length: links }, (_, i) => {
-          const k = i / (links - 1);
-          const sag = (1 - rat) * Math.sin(k * Math.PI) * 0.06;
-          const jit = rat * Math.sin(g * 47 + i) * 0.005;
-          return (
-            <mesh key={i} position={[0.48 - k * 0.19, 1.42 - sag + jit, DOOR + 0.092 - k * 0.04]} rotation={[0, i % 2 ? Math.PI / 2 : 0, 0.15 * (1 - rat)]} material={hm.chrome} castShadow>
-              <torusGeometry args={[0.02, 0.0055, 10, 16]} />
-            </mesh>
-          );
-        })}
+        (() => {
+          const ax = 0.475;
+          const az = DOOR + 0.088;
+          // конец на двери движется вместе с полотном при рывке
+          // полотно уходит наружу (−z) на рывке — цепочка натягивается
+          const bx = 0.33;
+          const bz = DOOR + 0.04 - pull * 2.3;
+          const L = Math.hypot(ax - bx, az - bz);
+          const n = Math.ceil(L / 0.0125);
+          return Array.from({ length: n + 1 }, (_, i) => {
+            const k = i / n;
+            const sag = (1 - rat) * Math.sin(k * Math.PI) * 0.035;
+            const jit = rat * Math.sin(g * 47 + i * 0.7) * 0.002;
+            const yaw = Math.atan2(az - bz, bx - ax);
+            return (
+              <mesh key={i} position={[ax + (bx - ax) * k, 1.42 - sag + jit, az + (bz - az) * k]} rotation={[i % 2 ? Math.PI / 2 : 0, yaw, 0]} material={hm.chrome} castShadow>
+                <torusGeometry args={[0.0095, 0.003, 8, 14]} />
+              </mesh>
+            );
+          });
+        })()}
     </group>
   );
 };
@@ -616,9 +638,9 @@ const Hallway = ({ g, hm }: { g: number; hm: HM }) => {
       {[0, 1, 2, 3].map((i) => (
         <Box key={i} p={[-HW + 0.09, 1.86, -1.95 - i * 0.27]} s={[0.04, 0.04, 0.02]} m={hm.brass} cast={false} />
       ))}
-      <Coat z={-1.98} m={hm.coatGreen} len={0.95} sw={sw} />
-      <Coat z={-2.26} m={hm.coatMom} len={1.1} sw={-sw} />
-      <Coat z={-2.55} m={hm.coatBrown} len={0.9} sw={sw * 0.7} />
+      <Coat z={-1.98} m={hm.coatGreen} len={0.95} sw={sw} seed={1} />
+      <Coat z={-2.24} m={hm.coatMom} len={1.12} sw={-sw} seed={2.3} />
+      <Coat z={-2.52} m={hm.coatBrown} len={0.88} sw={sw * 0.7} seed={4.1} />
       {/* зеркало и тумбочка с ключами и газетами */}
       <Box p={[-HW + 0.02, 1.55, -3.35]} s={[0.03, 0.75, 0.5]} m={hm.woodDark} ol />
       <mesh position={[-HW + 0.04, 1.55, -3.35]} rotation={[0, Math.PI / 2, 0]} material={hm.mirror}>
@@ -677,17 +699,18 @@ const Stairwell = ({ g, hm, blood }: { g: number; hm: HM; blood: THREE.Texture |
       {blood && (
         <mesh position={[0, 1.55, DOOR - 2.46]}>
           <planeGeometry args={[2.2, 2.2]} />
-          <meshPhysicalMaterial map={blood} color="#ffffff" transparent opacity={Math.max(reveal(0), 0.001)} roughness={0.2} clearcoat={1} clearcoatRoughness={0.08} depthWrite={false} />
+          <meshStandardMaterial map={blood} color="#ffffff" transparent opacity={Math.max(reveal(0), 0.001)} roughness={0.55} metalness={0} depthWrite={false} />
         </mesh>
       )}
-      <mesh position={[0, 2.55, DOOR - 1.6]}>
-        <boxGeometry args={[0.2, 0.08, 0.1]} />
+      <mesh position={[0, 2.64, DOOR - 0.7]}>
+        <boxGeometry args={[0.2, 0.06, 0.1]} />
         <meshStandardMaterial color="#ff2a1a" emissive={new THREE.Color("#ff2a1a")} emissiveIntensity={3 * pulse} />
       </mesh>
-      <pointLight position={[0, 2.35, DOOR - 1.5]} color={RED} intensity={7 * pulse} distance={5} decay={1.4} />
+      <pointLight position={[0, 2.62, DOOR - 0.7]} color={RED} intensity={4 * pulse} distance={5} decay={1.2} />
       {/* мягкий локальный свет на надпись — чтобы читалась на телефоне */}
-      <pointLight position={[0, 1.7, DOOR - 1.75]} color="#efe4cc" intensity={4.5} distance={2.2} decay={1.4} />
-      <pointLight position={[0.6, 1.2, DOOR - 1.9]} color="#efe4cc" intensity={1.5} distance={1.6} decay={1.6} />
+      {/* мягкий заливающий свет сбоку-сверху, вне отражения в надписи */}
+      <pointLight position={[-1.2, 2.65, DOOR - 2.0]} color="#e8dcc4" intensity={9} distance={4} decay={1.0} />
+      <pointLight position={[1.2, 2.65, DOOR - 2.0]} color="#e8dcc4" intensity={9} distance={4} decay={1.0} />
       {/* объёмный красный конус от аварийной лампы */}
       <mesh position={[0, 1.6, DOOR - 1.6]} rotation={[0, 0, 0]}>
         <coneGeometry args={[1.1, 1.9, 24, 1, true]} />
@@ -697,159 +720,397 @@ const Stairwell = ({ g, hm, blood }: { g: number; hm: HM; blood: THREE.Texture |
   );
 };
 
-// ── существо: костлявый длинноногий гигант (~2.5 м), маленькая голова, 20+ глаз, пасть-воронка ──
-const Cap = ({ a, b, r, m }: { a: [number, number, number]; b: [number, number, number]; r: number; m: THREE.Material }) => {
-  // капсула от точки a до точки b
-  const va = new THREE.Vector3(...a);
-  const vb = new THREE.Vector3(...b);
-  const mid = va.clone().add(vb).multiplyScalar(0.5);
-  const dir = vb.clone().sub(va);
-  const len = dir.length();
-  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
-  return (
-    <mesh position={mid} quaternion={q} material={m} castShadow>
-      <capsuleGeometry args={[r, Math.max(0.001, len - r * 2), 6, 10]} />
-      <Outlines thickness={OL * 0.6} color={INK} />
-    </mesh>
-  );
+// ── существо: многослойный 2.5D-риг (процедурная Canvas-отрисовка) в 3D-пространстве ──
+// Три слоя глубины: задний силуэт (ноги, руки, спина) / торс и голова / передние когтистые лапы.
+const RW = 1024;
+const RH = 2048;
+const INKC = "#0b0a09";
+
+const skinNoise = (g: CanvasRenderingContext2D, seed: number, n = 9000) => {
+  g.save();
+  g.globalCompositeOperation = "source-atop";
+  for (let i = 0; i < n; i++) {
+    const v = rnd(i + seed);
+    g.fillStyle = v > 0.5 ? `rgba(200,195,185,${(v - 0.5) * 0.12})` : `rgba(0,0,0,${v * 0.3})`;
+    g.fillRect(rnd(i + seed + 1) * RW, rnd(i + seed + 2) * RH, 2, 2);
+  }
+  // пятна и вены
+  for (let i = 0; i < 60; i++) {
+    g.fillStyle = `rgba(20,24,28,${0.08 + rnd(i + seed + 9) * 0.12})`;
+    g.beginPath();
+    g.ellipse(rnd(i + seed + 3) * RW, rnd(i + seed + 4) * RH, 8 + rnd(i + seed + 5) * 40, 6 + rnd(i + seed + 6) * 30, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.restore();
+};
+const shade = (g: CanvasRenderingContext2D, x0: number, x1: number, dark = 0.55) => {
+  // объём: тёмные края, светлее к середине + холодный контровой край справа
+  g.save();
+  g.globalCompositeOperation = "source-atop";
+  const gr = g.createLinearGradient(x0, 0, x1, 0);
+  gr.addColorStop(0, `rgba(0,0,0,${dark})`);
+  gr.addColorStop(0.45, "rgba(0,0,0,0)");
+  gr.addColorStop(0.85, "rgba(0,0,0,0.35)");
+  gr.addColorStop(1, "rgba(120,140,170,0.35)");
+  g.fillStyle = gr;
+  g.fillRect(0, 0, RW, RH);
+  g.restore();
+};
+/** Конечность — сужающаяся «кость» через точки с толщинами. */
+const limb = (g: CanvasRenderingContext2D, pts: [number, number, number][], fill: string) => {
+  g.lineJoin = "round";
+  g.lineCap = "round";
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x0, y0, w0] = pts[i];
+    const [x1, y1, w1] = pts[i + 1];
+    // контур, потом заливка — сужающаяся кость с круглыми суставами
+    for (const [col, extra] of [[INKC, 5], [fill, 0]] as [string, number][]) {
+      const steps = 8;
+      for (let k = 0; k < steps; k++) {
+        const t0 = k / steps;
+        const t1 = (k + 1) / steps;
+        g.beginPath();
+        g.moveTo(x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0);
+        g.lineTo(x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1);
+        g.strokeStyle = col;
+        g.lineWidth = (w0 + (w1 - w0) * t0) * 2 + extra;
+        g.stroke();
+      }
+    }
+    // выпирающий сустав
+    g.beginPath();
+    g.arc(x1, y1, w1 * 1.2, 0, Math.PI * 2);
+    g.fillStyle = fill;
+    g.fill();
+    g.strokeStyle = INKC;
+    g.lineWidth = 2.5;
+    g.stroke();
+  }
+};
+const claw = (g: CanvasRenderingContext2D, x: number, y: number, ang: number, len: number) => {
+  g.save();
+  g.translate(x, y);
+  g.rotate(ang);
+  g.beginPath();
+  g.moveTo(-5, 0);
+  g.quadraticCurveTo(len * 0.5, -4, len, 10);
+  g.quadraticCurveTo(len * 0.45, 6, -5, 6);
+  g.closePath();
+  g.fillStyle = "#16120e";
+  g.fill();
+  g.strokeStyle = "#5a524a";
+  g.lineWidth = 1.5;
+  g.stroke();
+  g.restore();
+};
+/** Кисть: ладонь и 4 длинных суставчатых пальца с когтями, направленных под углом dir. */
+const hand = (g: CanvasRenderingContext2D, x: number, y: number, dir: number, sc: number, fill: string) => {
+  g.save();
+  g.translate(x, y);
+  g.scale(sc, sc);
+  g.beginPath();
+  g.ellipse(0, 0, 34, 26, dir, 0, Math.PI * 2);
+  g.fillStyle = fill;
+  g.fill();
+  g.strokeStyle = INKC;
+  g.lineWidth = 4;
+  g.stroke();
+  for (let f = 0; f < 4; f++) {
+    const a = dir + (f - 1.5) * 0.28;
+    let px = Math.cos(a) * 26;
+    let py = Math.sin(a) * 26;
+    const pts: [number, number, number][] = [[px, py, 7]];
+    let aa = a;
+    for (let j = 0; j < 3; j++) {
+      aa += 0.35; // каждая фаланга загибается
+      px += Math.cos(aa) * (48 - j * 10);
+      py += Math.sin(aa) * (48 - j * 10);
+      pts.push([px, py, 6 - j * 1.3]);
+    }
+    limb(g, pts, fill);
+    claw(g, px, py, aa + 0.2, 26);
+  }
+  g.restore();
+};
+const glossyEye = (g: CanvasRenderingContext2D, x: number, y: number, r: number, look: number) => {
+  // глазница
+  g.beginPath();
+  g.ellipse(x, y, r * 1.45, r * 1.25, 0, 0, Math.PI * 2);
+  g.fillStyle = "rgba(8,6,6,.85)";
+  g.fill();
+  // мокрое глазное яблоко
+  const gr = g.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r);
+  gr.addColorStop(0, "#efe7d2");
+  gr.addColorStop(0.6, "#b9ae94");
+  gr.addColorStop(1, "#4a4236");
+  g.beginPath();
+  g.arc(x, y, r, 0, Math.PI * 2);
+  g.fillStyle = gr;
+  g.fill();
+  // красные прожилки
+  g.strokeStyle = "rgba(140,30,30,.5)";
+  g.lineWidth = 0.8;
+  for (let k = 0; k < 4; k++) {
+    const a = rnd(x + k) * Math.PI * 2;
+    g.beginPath();
+    g.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+    g.lineTo(x + Math.cos(a) * r * 0.55, y + Math.sin(a) * r * 0.55);
+    g.stroke();
+  }
+  // радужка и зрачок
+  const ix = x + look * r * 0.25;
+  const ir = g.createRadialGradient(ix, y, 0, ix, y, r * 0.55);
+  ir.addColorStop(0, "#050404");
+  ir.addColorStop(0.45, "#2a1a0e");
+  ir.addColorStop(1, "#6a5a2a");
+  g.beginPath();
+  g.arc(ix, y, r * 0.55, 0, Math.PI * 2);
+  g.fillStyle = ir;
+  g.fill();
+  g.beginPath();
+  g.arc(ix, y, r * 0.25, 0, Math.PI * 2);
+  g.fillStyle = "#000";
+  g.fill();
+  // острые блики
+  g.fillStyle = "rgba(255,255,255,.95)";
+  g.beginPath();
+  g.arc(x - r * 0.35, y - r * 0.38, Math.max(1.5, r * 0.18), 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = "rgba(255,255,255,.5)";
+  g.beginPath();
+  g.arc(x + r * 0.3, y + r * 0.3, Math.max(1, r * 0.08), 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = INKC;
+  g.lineWidth = 1.5;
+  g.beginPath();
+  g.arc(x, y, r, 0, Math.PI * 2);
+  g.stroke();
+};
+const SKIN = "#3d3a35";
+const SKIN_DARK = "#2a2825";
+
+/** Задний слой: длинные тонкие ноги с острыми коленями, спина и дальние руки в тени. */
+const drawBack = (g: CanvasRenderingContext2D) => {
+  const fill = "#151413";
+  // ноги: бедро вверх к острому колену, голень вниз, длинные стопы
+  for (const sd of [-1, 1]) {
+    limb(g, [[512 + sd * 60, 1300, 26], [512 + sd * 230, 1180, 20], [512 + sd * 200, 1960, 15]], fill);
+    // колено торчит шипом
+    g.beginPath();
+    g.moveTo(512 + sd * 225, 1160);
+    g.lineTo(512 + sd * 262, 1120);
+    g.lineTo(512 + sd * 245, 1190);
+    g.fillStyle = fill;
+    g.fill();
+    g.strokeStyle = INKC;
+    g.lineWidth = 3;
+    g.stroke();
+    for (let t = 0; t < 3; t++) limb(g, [[512 + sd * 200, 1960, 8], [512 + sd * (200 + (t - 1) * 40), 2030, 4]], fill);
+  }
+  // таз и сгорбленная спина
+  g.beginPath();
+  g.ellipse(512, 1300, 110, 70, 0, 0, Math.PI * 2);
+  g.fillStyle = fill;
+  g.fill();
+  g.stroke();
+  g.beginPath();
+  g.moveTo(380, 1290);
+  g.bezierCurveTo(330, 1000, 360, 760, 512, 640);
+  g.bezierCurveTo(664, 760, 694, 1000, 644, 1290);
+  g.closePath();
+  g.fill();
+  g.stroke();
+  // дальние руки с вывернутыми локтями
+  for (const sd of [-1, 1]) limb(g, [[512 + sd * 150, 760, 18], [512 + sd * 380, 620, 14], [512 + sd * 330, 1220, 11]], fill);
+  shade(g, 280, 760, 0.6);
+  skinNoise(g, 8000, 5000);
 };
 
-// глаза: хаотично на верхней половине головы, висках и скулах (детерминированно)
-const EYES = Array.from({ length: 23 }, (_, i) => {
-  const th = -1.25 + rnd(i + 6000) * 2.5; // по горизонтали
-  const ph = -0.15 + rnd(i + 6001) * 1.25; // по вертикали (вверх)
-  const r = 0.005 + rnd(i + 6002) * 0.011;
-  return { th, ph, r };
-});
-
-const Leg = ({ hm, side, k }: { hm: HM; side: 1 | -1; k: number }) => {
-  const hip: [number, number, number] = [side * 0.12, 1.2, 0];
-  const knee: [number, number, number] = [side * 0.2, 1.55 - k * 0.1, 0.45]; // острые колени торчат вверх-вперёд
-  const ankle: [number, number, number] = [side * 0.2, 0.12, 0.25];
-  return (
-    <group>
-      <Cap a={hip} b={knee} r={0.045} m={hm.skin} />
-      <mesh position={knee} rotation={[-0.6, 0, 0]} material={hm.skinDark}>
-        <coneGeometry args={[0.04, 0.11, 8]} />
-      </mesh>
-      <Cap a={knee} b={ankle} r={0.035} m={hm.skin} />
-      {/* длинная когтистая стопа */}
-      {[-0.04, 0, 0.04].map((x, i) => (
-        <group key={i}>
-          <Cap a={ankle} b={[ankle[0] + x * 2, 0.03, ankle[2] + 0.24]} r={0.012} m={hm.skin} />
-          <mesh position={[ankle[0] + x * 2, 0.03, ankle[2] + 0.29]} rotation={[Math.PI / 2, 0, 0]} material={hm.claw}>
-            <coneGeometry args={[0.01, 0.07, 6]} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
+/** Средний слой: костлявый торс с рёбрами и ключицами, длинная шея, маленькая голова с 20+ глазами и пастью-воронкой. */
+const drawMid = (g: CanvasRenderingContext2D) => {
+  // торс: впалый живот, широкая грудная клетка
+  g.beginPath();
+  g.moveTo(440, 1260);
+  g.bezierCurveTo(430, 1100, 400, 900, 415, 790);
+  g.bezierCurveTo(450, 740, 574, 740, 609, 790);
+  g.bezierCurveTo(624, 900, 594, 1100, 584, 1260);
+  g.bezierCurveTo(550, 1235, 474, 1235, 440, 1260);
+  g.closePath();
+  g.fillStyle = SKIN;
+  g.fill();
+  g.strokeStyle = INKC;
+  g.lineWidth = 5;
+  g.stroke();
+  // рёбра: тени и светлые края
+  for (let i = 0; i < 7; i++) {
+    const y = 820 + i * 46;
+    const w = 95 - i * 5;
+    for (const sd of [-1, 1]) {
+      g.beginPath();
+      g.moveTo(512 + sd * 12, y);
+      g.quadraticCurveTo(512 + sd * w * 0.7, y - 14, 512 + sd * w, y + 30);
+      g.strokeStyle = "rgba(10,10,10,.75)";
+      g.lineWidth = 9;
+      g.stroke();
+      g.strokeStyle = "rgba(170,170,165,.35)";
+      g.lineWidth = 2.5;
+      g.stroke();
+    }
+  }
+  // грудина и впалый живот
+  g.strokeStyle = "rgba(10,10,10,.6)";
+  g.lineWidth = 6;
+  g.beginPath();
+  g.moveTo(512, 800);
+  g.lineTo(512, 1150);
+  g.stroke();
+  // острые ключицы
+  for (const sd of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(512, 770);
+    g.quadraticCurveTo(512 + sd * 90, 740, 512 + sd * 170, 770);
+    g.strokeStyle = "rgba(190,188,180,.55)";
+    g.lineWidth = 6;
+    g.stroke();
+    g.strokeStyle = INKC;
+    g.lineWidth = 2;
+    g.stroke();
+  }
+  // плечевые суставы и ближние плечи
+  for (const sd of [-1, 1]) limb(g, [[512 + sd * 160, 775, 22], [512 + sd * 290, 700, 16]], SKIN);
+  // длинная тонкая шея, вперёд и вниз
+  limb(g, [[512, 760, 26], [512, 640, 20], [520, 540, 18]], SKIN);
+  // маленькая голова
+  const hx = 520;
+  const hy = 470;
+  g.beginPath();
+  g.ellipse(hx, hy, 72, 88, 0.05, 0, Math.PI * 2);
+  g.fillStyle = SKIN;
+  g.fill();
+  g.strokeStyle = INKC;
+  g.lineWidth = 5;
+  g.stroke();
+  shade(g, 300, 740, 0.85);
+  // объём головы: тёмный низ и висок, свет сверху
+  g.save();
+  g.globalCompositeOperation = "source-atop";
+  const hg = g.createRadialGradient(hx - 20, hy - 40, 10, hx, hy, 110);
+  hg.addColorStop(0, "rgba(255,255,255,.12)");
+  hg.addColorStop(1, "rgba(0,0,0,.6)");
+  g.fillStyle = hg;
+  g.fillRect(hx - 120, hy - 120, 240, 240);
+  // впадины живота
+  const bg = g.createRadialGradient(512, 1150, 10, 512, 1150, 140);
+  bg.addColorStop(0, "rgba(0,0,0,.55)");
+  bg.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = bg;
+  g.fillRect(360, 1000, 300, 300);
+  g.restore();
+  skinNoise(g, 8500, 9000);
+  // глаза: верхняя половина, виски, скулы — 23 штуки разного размера
+  for (let i = 0; i < 23; i++) {
+    const a = -Math.PI + rnd(i + 8800) * Math.PI; // верхний полукруг
+    const rr = 0.25 + rnd(i + 8801) * 0.72;
+    const x = hx + Math.cos(a) * 66 * rr;
+    const y = hy - 6 + Math.sin(a) * 78 * rr + (i > 18 ? 40 : 0);
+    const xs = i > 18 ? hx + (i % 2 ? -1 : 1) * (46 + rnd(i) * 14) : x;
+    glossyEye(g, xs, y, 4 + rnd(i + 8802) * 9, rnd(i + 8803) - 0.5);
+  }
+  // пасть-воронка: концентрические ряды игольчатых зубов уходят в темноту
+  const mx = hx;
+  const my = hy + 44;
+  const rings = [36, 28, 21, 14, 8];
+  const grd = g.createRadialGradient(mx, my, 2, mx, my, 40);
+  grd.addColorStop(0, "#000");
+  grd.addColorStop(0.5, "#1a0505");
+  grd.addColorStop(1, "#4a1010");
+  g.beginPath();
+  g.arc(mx, my, 40, 0, Math.PI * 2);
+  g.fillStyle = grd;
+  g.fill();
+  g.strokeStyle = INKC;
+  g.lineWidth = 4;
+  g.stroke();
+  rings.forEach((r, ri) => {
+    const n = 20 - ri * 3;
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * Math.PI * 2 + ri * 0.25;
+      const bx = mx + Math.cos(a) * r;
+      const by = my + Math.sin(a) * r;
+      const tip = r - (7 - ri);
+      const tx = mx + Math.cos(a + 0.08) * tip * 0.55;
+      const ty = my + Math.sin(a + 0.08) * tip * 0.55;
+      const pa = a + Math.PI / 2;
+      g.beginPath();
+      g.moveTo(bx + Math.cos(pa) * 2.4, by + Math.sin(pa) * 2.4);
+      g.lineTo(tx, ty);
+      g.lineTo(bx - Math.cos(pa) * 2.4, by - Math.sin(pa) * 2.4);
+      g.closePath();
+      g.fillStyle = `rgba(${225 - ri * 30},${215 - ri * 32},${185 - ri * 30},1)`;
+      g.fill();
+      g.strokeStyle = "rgba(20,10,8,.8)";
+      g.lineWidth = 0.8;
+      g.stroke();
+    }
+  });
+  // тёмная кровь по краю пасти
+  g.strokeStyle = "rgba(40,4,4,.8)";
+  g.lineWidth = 3;
+  for (let k = 0; k < 5; k++) {
+    const x = mx - 30 + k * 15;
+    g.beginPath();
+    g.moveTo(x, my + 34);
+    g.lineTo(x + 1, my + 50 + rnd(k + 9000) * 30);
+    g.stroke();
+  }
 };
 
-/** Рука: плечо → вывернутый локоть → предплечье → кисть с когтями. reach тянет к камере (горлу). */
-const Arm = ({ hm, side, reach, lag }: { hm: HM; side: 1 | -1; reach: number; lag: number }) => {
-  const sh: [number, number, number] = [side * 0.2, 1.72, 0.62];
-  const elbow: [number, number, number] = [side * (0.42 - reach * 0.1), 1.45 + lag * 0.1, 0.55 - reach * 0.05];
-  const wrist: [number, number, number] = [side * (0.22 - reach * 0.08), 1.4 + reach * 0.05, 0.95 + reach * 0.35 + lag * 0.1];
-  return (
-    <group>
-      <Cap a={sh} b={elbow} r={0.032} m={hm.skin} />
-      <mesh position={elbow} material={hm.skinDark}>
-        <sphereGeometry args={[0.04, 10, 8]} />
-      </mesh>
-      <Cap a={elbow} b={wrist} r={0.026} m={hm.skin} />
-      <group position={wrist} rotation={[0, side > 0 ? -Math.PI / 2 - 0.3 : -Math.PI / 2 + 0.3, side * 0.4]}>
-        <Hand hm={hm} curl={0.5 + reach * 0.4} s={1.7} />
-      </group>
-    </group>
-  );
+/** Передний слой: две длинные когтистые лапы, тянутся к камере (к горлу). */
+const drawFront = (g: CanvasRenderingContext2D) => {
+  for (const sd of [-1, 1]) {
+    limb(g, [[512 + sd * 290, 700, 15], [512 + sd * 420, 560, 13], [512 + sd * 250, 1030, 12]], SKIN);
+    hand(g, 512 + sd * 235, 1060, sd > 0 ? 2.2 : 0.95, 1.25, SKIN);
+  }
+  shade(g, 100, 920, 0.45);
+  skinNoise(g, 9100, 6000);
 };
 
-const Head = ({ hm, g }: { hm: HM; g: number }) => {
-  const open = 0.85 + 0.15 * Math.sin(g * 6);
-  return (
-    <group>
-      <mesh scale={[0.85, 1.05, 1.1]} material={hm.skin} castShadow>
-        <sphereGeometry args={[0.085, 18, 14]} />
-        <Outlines thickness={OL * 0.6} color={INK} />
-      </mesh>
-      {/* мокрые глянцевые глаза */}
-      {EYES.map((e, i) => {
-        const x = Math.sin(e.th) * 0.072;
-        const z = Math.cos(e.th) * 0.085;
-        const y = Math.sin(e.ph) * 0.08;
-        const sc = Math.cos(e.ph);
-        return (
-          <group key={i} position={[x * sc, y + 0.01, z * sc]}>
-            <mesh material={hm.eye}>
-              <sphereGeometry args={[e.r, 10, 8]} />
-            </mesh>
-            <mesh position={[x * sc * 0.06, y * 0.04, e.r * 0.55]} material={hm.maw}>
-              <sphereGeometry args={[e.r * 0.35, 8, 6]} />
-            </mesh>
-          </group>
-        );
-      })}
-      {/* пасть-воронка: глубокая круглая, концентрические ряды игольчатых зубов внутрь */}
-      <group position={[0, -0.045, 0.075]} rotation={[Math.PI / 2 - 0.15, 0, 0]} scale={open}>
-        <mesh material={hm.maw}>
-          <cylinderGeometry args={[0.06, 0.008, 0.1, 24, 1, true]} />
-        </mesh>
-        {[0.057, 0.046, 0.035, 0.024].map((r, ring) =>
-          Array.from({ length: 18 - ring * 3 }, (_, i) => {
-            const a = (i / (18 - ring * 3)) * Math.PI * 2 + ring * 0.2;
-            const y = 0.046 - ring * 0.022;
-            return (
-              <mesh key={`${ring}-${i}`} position={[Math.cos(a) * r, y, Math.sin(a) * r]} rotation={[0, -a, Math.PI / 2 + 0.6]} material={hm.tooth}>
-                <coneGeometry args={[0.005, 0.03 - ring * 0.004, 5]} />
-              </mesh>
-            );
-          }),
-        )}
-      </group>
-    </group>
-  );
+const makeLayer = (draw: (g: CanvasRenderingContext2D) => void) => {
+  const c = document.createElement("canvas");
+  c.width = RW;
+  c.height = RH;
+  draw(c.getContext("2d")!);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
 };
+const useRigMats = () =>
+  useMemo(() => {
+    const mk = (draw: (g: CanvasRenderingContext2D) => void, emissive: number) => {
+      const map = makeLayer(draw);
+      return new THREE.MeshStandardMaterial({ map, color: "#b5a68e", transparent: true, alphaTest: 0.04, roughness: 0.7, emissive: new THREE.Color("#ffffff"), emissiveMap: map, emissiveIntensity: emissive, side: THREE.DoubleSide });
+    };
+    return { back: mk(drawBack, 0.02), mid: mk(drawMid, 0.07), front: mk(drawFront, 0.06) };
+  }, []);
 
-const Giant = ({ hm, g, reach, lag }: { hm: HM; g: number; reach: number; lag: number }) => {
-  // туловище сильно наклонено вперёд, шея длинная и согнута
+/** 2.5D-риг: три плоскости на разной глубине — при тряске и броске видно объём. */
+const Rig25D = ({ g, wob }: { g: number; wob: number }) => {
+  const m = useRigMats();
+  const PW = 1.3;
+  const PH = 2.6;
   const breathe = Math.sin(g * 4) * 0.01;
   return (
     <group>
-      <Leg hm={hm} side={1} k={reach} />
-      <Leg hm={hm} side={-1} k={reach} />
-      <mesh position={[0, 1.2, 0]} scale={[1.3, 0.7, 0.9]} material={hm.skin}>
-        <sphereGeometry args={[0.1, 12, 10]} />
+      <mesh position={[0, PH / 2, -0.3]} material={m.back}>
+        <planeGeometry args={[PW, PH]} />
       </mesh>
-      {/* впалый живот и рёбра */}
-      <Cap a={[0, 1.22, 0]} b={[0, 1.45, 0.3]} r={0.07} m={hm.skin} />
-      <group position={[0, 1.58 + breathe, 0.47]} rotation={[1.05, 0, 0]}>
-        <mesh scale={[1.25, 1, 0.85]} material={hm.skin} castShadow>
-          <capsuleGeometry args={[0.11, 0.18, 8, 14]} />
-          <Outlines thickness={OL * 0.6} color={INK} />
-        </mesh>
-        {Array.from({ length: 6 }, (_, i) => (
-          <mesh key={i} position={[0, -0.12 + i * 0.05, 0.02]} rotation={[Math.PI / 2, 0, 0]} scale={[1.35, 1, 1]} material={hm.skinDark}>
-            <torusGeometry args={[0.1, 0.007, 6, 20, Math.PI]} />
-          </mesh>
-        ))}
-        {/* позвонки по спине */}
-        {Array.from({ length: 9 }, (_, i) => (
-          <mesh key={i} position={[0, -0.2 + i * 0.055, -0.1]} material={hm.skinDark}>
-            <sphereGeometry args={[0.018, 8, 6]} />
-          </mesh>
-        ))}
-      </group>
-      {/* острые ключицы */}
-      <Cap a={[-0.2, 1.72, 0.62]} b={[0, 1.66, 0.7]} r={0.014} m={hm.skinDark} />
-      <Cap a={[0.2, 1.72, 0.62]} b={[0, 1.66, 0.7]} r={0.014} m={hm.skinDark} />
-      {/* длинная тонкая шея, вперёд-вниз */}
-      <Cap a={[0, 1.7, 0.66]} b={[0, 1.55, 0.98]} r={0.028} m={hm.skin} />
-      <group position={[0, 1.52, 1.03]} rotation={[0.15 + lag * 0.3, Math.sin(g * 2.5) * 0.12, Math.sin(g * 7) * 0.06]}>
-        <Head hm={hm} g={g} />
-      </group>
-      <Arm hm={hm} side={1} reach={reach} lag={lag} />
-      <Arm hm={hm} side={-1} reach={reach} lag={-lag * 0.8} />
+      <mesh position={[wob * 0.03, PH / 2 + breathe, 0]} rotation={[0, 0, wob * 0.03]} material={m.mid}>
+        <planeGeometry args={[PW, PH]} />
+      </mesh>
+      <mesh position={[-wob * 0.05, PH / 2 - 0.02, 0.32]} rotation={[0, 0, -wob * 0.04]} material={m.front}>
+        <planeGeometry args={[PW, PH]} />
+      </mesh>
     </group>
   );
 };
@@ -881,7 +1142,7 @@ const Creature3D = ({ g, pose, hm }: { g: number; pose: Pose; hm: HM }) => {
   const b = clamp((g - T.burst) / 0.35);
   const e = 1 - Math.pow(1 - b, 3);
   const dir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, pose.yaw, 0, "YXZ"));
-  const near = new THREE.Vector3(pose.x, 0, pose.z).add(dir.clone().multiplyScalar(2.0));
+  const near = new THREE.Vector3(pose.x, 0, pose.z).add(dir.clone().multiplyScalar(1.25));
   const from = new THREE.Vector3(WR.x - 0.1, 0, WR.z);
   const p = from.clone().lerp(near, e);
   // вес и инерция: перелёт и затухающее раскачивание
@@ -890,8 +1151,8 @@ const Creature3D = ({ g, pose, hm }: { g: number; pose: Pose; hm: HM }) => {
   p.add(dir.clone().multiplyScalar(wob * 0.12));
   const yaw = pose.yaw + (1 - e) * 1.4;
   return (
-    <group position={[p.x, -0.02 + Math.sin(g * 31) * 0.006, p.z]} rotation={[0, yaw, wob * 0.05]}>
-      <Giant hm={hm} g={g} reach={e} lag={wob} />
+    <group position={[p.x, -0.18 + Math.sin(g * 31) * 0.006, p.z]} rotation={[0, yaw, wob * 0.05]}>
+      <Rig25D g={g} wob={wob} />
     </group>
   );
 };
@@ -923,7 +1184,7 @@ const Lights = ({ g, pose }: { g: number; pose: Pose }) => {
       )}
       {/* узкий тёплый клин из кухни на пол прихожей: длинные тени от вешалки, шкаф не заливает */}
       <primitive object={tgt} />
-      <spotLight position={[-1.4, 1.75, KZ]} target={tgt} color={WARM} intensity={26 * warmK * fin} angle={0.32} penumbra={0.3} distance={6} decay={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0004} />
+      <spotLight position={[-1.4, 1.75, KZ]} target={tgt} color={WARM} intensity={20 * warmK * fin} angle={0.32} penumbra={0.3} distance={6} decay={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0004} />
       {/* свет подъезда в щели под дверью — без тени ног */}
       <pointLight position={[0, 0.03, DOOR - 0.15]} color="#ffcf7a" intensity={2.2 * lamp(g + 3) * (g < T.finale ? 1 : 0)} distance={1.2} decay={2} />
       <pointLight position={[0.3, 1.5, DOOR + 0.55]} color={WARM} intensity={g > 35.9 && g < 38 ? 2.4 : 0.8} distance={1.6} decay={2} />
@@ -933,10 +1194,10 @@ const Lights = ({ g, pose }: { g: number; pose: Pose }) => {
       <pointLight position={[pose.x + dir.x, pose.y + dir.y, pose.z + dir.z]} color={PHONE} intensity={9 * phoneOn} distance={4.5} decay={1.5} />
       {flash > 0 && <pointLight position={[pose.x, pose.y + 0.3, pose.z - 0.5]} color="#fff1d0" intensity={6 * flash} distance={4} decay={1.5} />}
       {/* холодный верхний свет на существо (телефон в трясущейся руке) */}
-      {g >= T.burst && g < T.finale && <pointLight position={[pose.x + 0.2, pose.y + 0.45, pose.z - 0.15]} color={PHONE} intensity={4} distance={3} decay={1.6} />}
+      {g >= T.burst && g < T.finale && <pointLight position={[pose.x + 0.2, pose.y + 0.45, pose.z - 0.15]} color="#cfcfcf" intensity={3.2} distance={3} decay={1.6} />}
       {/* контровой блик на существо из кухни */}
       {g >= T.burst && g < T.finale && <pointLight position={[pose.x - 0.4, pose.y + 0.6, pose.z - 2.2]} color={WARM} intensity={3} distance={3} decay={1.5} />}
-      {g >= T.finale && <pointLight position={[0, 1.7, DOOR + 0.3]} color="#d8cfb8" intensity={1.6} distance={3.5} decay={1.6} />}
+      {g >= T.finale && <pointLight position={[0.4, 2.4, DOOR + 0.3]} color="#d8cfb8" intensity={1.0} distance={3.5} decay={1.6} />}
     </>
   );
 };
