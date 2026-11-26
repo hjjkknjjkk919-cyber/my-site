@@ -8,3 +8,4 @@ public/audio/voice/*_raw.mp3
 /pelmeni*.mp4
 /avito*.mp4
 /research_output/
+__pycache__/
