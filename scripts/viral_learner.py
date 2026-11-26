@@ -135,7 +135,7 @@ def channel_meta(vid: str, cache: dict) -> dict:
         m = (re.search(r'"content":"([0-9][0-9.,\s\xa0]*(?:тыс\.|млн|K|M)?\s*(?:подписчик|subscriber)[^"]*)"', page)
              or re.search(r'"subscriberCountText":\{"simpleText":"([^"]+)"', page))
         cache[url] = num(m.group(1)) if m else 0
-    return {"author": oe.get("author_name", ""), "author_url": url, "subs": cache.get(url, 0)}
+    return {"author": oe.get("author_name", ""), "author_url": url, "subs": cache.get(url, 0), "oe_title": oe.get("title", "")}
 
 
 # ---------- скачивание с обходом блокировок ----------
@@ -320,13 +320,25 @@ def speech_issues(rep: dict) -> list[str]:
 # ---------- режимы ----------
 
 def cmd_learn(a) -> None:
+    cands = search(a.queries or QUERIES[a.lang], a.min_views, a.max_age)
+    study(cands, a.top, a.model, skip_horizontal=True)
+
+
+def cmd_study(a) -> None:
+    ids = [m.group(1) for u in a.urls if (m := re.search(r"(?:shorts/|v=|youtu\.be/|^)([\w-]{11})(?:[?&#/]|$)", u.strip()))]
+    if not ids:
+        sys.exit("не нашёл id роликов в ссылках")
+    cands = [{"id": v, "title": "", "sec": 0, "views": 0, "channel": "", "published": "", "query": "study"} for v in dict.fromkeys(ids)]
+    study(cands, len(cands), a.model, skip_horizontal=False)
+
+
+def study(cands: list[dict], top: int, model: str, skip_horizontal: bool) -> None:
     for old in OUT.glob("storyboard_*.jpg"):
         old.unlink()
-    cands = search(a.queries or QUERIES[a.lang], a.min_views, a.max_age)
     batch, wins, fails, sub_cache = [], {}, 0, {}
     blocked, studied = False, 0
-    for c in cands[: a.top * 3]:
-        if studied >= a.top or (blocked and len(batch) >= a.top):
+    for c in cands[: top * 3]:
+        if studied >= top or (blocked and len(batch) >= top):
             break
         item = {**c, "url": f"{YT}/shorts/{c['id']}"}
         if blocked:
@@ -338,25 +350,27 @@ def cmd_learn(a) -> None:
                 item["download"] = method or "failed"
                 if errors and not path:
                     item["download_errors"] = errors
-                if path and not is_vertical(path):
+                if path and skip_horizontal and not is_vertical(path):
                     print(f"    горизонтальное, пропуск | {c['title'][:55]}")
                     continue
                 if path:
                     studied += 1
-                    item.update(analyze(path, work, OUT / f"storyboard_{studied:02d}_{c['id']}.jpg", None, a.model))
+                    item.update(analyze(path, work, OUT / f"storyboard_{studied:02d}_{c['id']}.jpg", None, model))
                     item["sec"] = item["sec"] or round(item["duration_sec"])
                     wins[method] = wins.get(method, 0) + 1
                 else:
                     fails += 1
             blocked = not wins and fails >= 2
         item.update(channel_meta(c["id"], sub_cache), **engagement(c["id"], 5))
+        item["title"] = item["title"] or item.get("oe_title", "")
+        item.pop("oe_title", None)
         item["viral_ratio"] = round(item["views"] / max(item["subs"], 200), 1)
         batch.append(item)
         print(f"{len(batch):>2}. {item['download'][:22]:<22} {item['sec']:>3}с {item['views']:>9} | {item['title'][:55]}")
 
     (OUT / "study_batch.json").write_text(json.dumps(batch, ensure_ascii=False, indent=2), encoding="utf-8")
     ok = sum(wins.values())
-    print(f"Кандидатов: {len(cands)} | изучено: {len(batch)} | скачано и разобрано: {ok} {wins or ''} -> research_output/study_batch.json")
+    print(f"Роликов: {len(cands)} | изучено: {len(batch)} | скачано и разобрано: {ok} {wins or ''} -> research_output/study_batch.json")
     if batch and not ok:
         errs = next((b["download_errors"] for b in batch if b.get("download_errors")), {})
         for k, v in errs.items():
@@ -392,12 +406,15 @@ def main() -> None:
     lr.add_argument("--min-views", type=int, default=45_000)
     lr.add_argument("--max-age", type=int, default=400, help="макс. возраст ролика, дней")
     lr.add_argument("--model", default="base", help="модель faster-whisper (base/small/medium)")
+    st = sub.add_parser("study", help="разобрать конкретные ролики по ссылкам")
+    st.add_argument("urls", nargs="+")
+    st.add_argument("--model", default="base")
     sc = sub.add_parser("selfcheck", help="проверить свой рендер")
     sc.add_argument("video")
     sc.add_argument("--lang", default="ru")
     sc.add_argument("--model", default="base")
     a = ap.parse_args()
-    cmd_learn(a) if a.mode == "learn" else cmd_selfcheck(a)
+    {"learn": cmd_learn, "study": cmd_study, "selfcheck": cmd_selfcheck}[a.mode](a)
 
 
 if __name__ == "__main__":

@@ -112,6 +112,7 @@ def engagement(vid: str, top_n: int = 5) -> dict:
         return {}
     facts = dict((label.split()[0].strip("\\"), val) for val, label in re.findall(r'"factoidRenderer":\{"value":\{"simpleText":"([^"]+)"\},"label":\{"simpleText":"([^"]+)"', s))
     likes = num(facts.get("Отметки", "") or facts.get("Likes", ""))
+    views = num(facts.get("Просмотры", "") or facts.get("Views", ""))
     m = re.search(r'"contextualInfo":\{"runs":\[\{"text":"([^"]+)"', s)
     comments = num(m.group(1)) if m else 0
     top = []
@@ -123,7 +124,7 @@ def engagement(vid: str, top_n: int = 5) -> dict:
         for i, t in enumerate(texts[:top_n]):
             text = json.loads(f'"{t}"') if t else ""
             top.append(f"[{lk[i] if i < len(lk) else '0'}♥] {text}")
-    return {"likes": likes, "comments": comments, "top_comments": top}
+    return {"likes": likes, "comments": comments, "top_comments": top, **({"views": views} if views else {})}
 
 
 def main():
