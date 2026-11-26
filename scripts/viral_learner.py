@@ -122,42 +122,73 @@ def parse_transcript_xml(xml_text: str) -> list[dict]:
     return lines
 
 
-def study_video(vid: str, sub_cache: dict[str, int]) -> dict | None:
-    # /watch из облака уводит на капчу google.com/sorry, страница /shorts/ отдаётся нормально
-    watch_html = http_get(f"{YT}/shorts/{vid}", timeout=10)
-    if not watch_html:
-        return None
+def http_post_json(url: str, payload: dict, timeout: int = 10) -> dict:
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip",
+        },
+    )
+    try:
+        raw = urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", errors="ignore")
+        return json.loads(raw)
+    except Exception:
+        return {}
 
-    player = extract_json_var(watch_html, "ytInitialPlayerResponse")
+
+def study_video(candidate: dict, sub_cache: dict[str, int]) -> dict | None:
+    """Метаданные и расшифровка через youtubei/v1/player (клиент ANDROID); фолбэк — данные поиска и oEmbed."""
+    vid = candidate["id"]
+    player = http_post_json(
+        f"{YT}/youtubei/v1/player?prettyPrint=false",
+        {"videoId": vid, "context": {"client": {"clientName": "ANDROID", "clientVersion": "19.09.37", "androidSdkVersion": 30, "hl": "ru", "gl": "RU"}}},
+    )
     status = player.get("playabilityStatus", {}).get("status")
     if status and status != "OK":
         BLOCKED.append(status)
+
     details = player.get("videoDetails", {})
-    dur = int(details.get("lengthSeconds") or 0)
-    views = int(details.get("viewCount") or 0)
+    dur = int(details.get("lengthSeconds") or candidate.get("duration") or 35)
+    views = int(details.get("viewCount") or candidate.get("views") or 0)
+    title = details.get("title") or candidate.get("title") or ""
+    author = details.get("author") or ""
+    channel_id = details.get("channelId") or ""
+
     if not (15 <= dur <= 95) or views < 45_000:
         return None
 
-    channel_id = details.get("channelId", "")
-    author = details.get("author", "")
+    # Фолбэк через лёгкий oEmbed, если player не вернул автора
+    author_url = f"{YT}/channel/{channel_id}" if channel_id else ""
+    if not author:
+        oe_raw = http_get(f"{YT}/oembed?url={YT}/watch?v={vid}&format=json", timeout=6)
+        if oe_raw:
+            try:
+                oe = json.loads(oe_raw)
+                author = oe.get("author_name", "")
+                author_url = oe.get("author_url", "")
+                title = title or oe.get("title", "")
+            except Exception:
+                pass
+
     subs = 0
-    if channel_id:
-        if channel_id in sub_cache:
-            subs = sub_cache[channel_id]
+    if author_url:
+        if author_url in sub_cache:
+            subs = sub_cache[author_url]
         else:
-            ch_html = http_get(f"{YT}/channel/{channel_id}", timeout=8)
+            ch_html = http_get(author_url, timeout=8)
             m = re.search(r'"subscriberCountText"\s*:\s*\{\s*"simpleText"\s*:\s*"([^"]+)"', ch_html)
             if not m:
                 m = re.search(r'"content"\s*:\s*"([0-9.,]+\s*(?:тыс\.|млн|K|M)?\s*(?:подписчик|subscriber)[^"]*)"', ch_html)
             if m:
                 subs = parse_human_number(m.group(1))
-            sub_cache[channel_id] = subs
+            sub_cache[author_url] = subs
 
-    # Отсеиваем гигантов (> 150k подписчиков), оставляем тех, кто пробил за счёт идеи
     if subs > 150_000:
         return None
 
-    # Расшифровка речи с таймингами (captionTracks)
     tracks = player.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
     transcript = []
     if tracks:
@@ -172,9 +203,11 @@ def study_video(vid: str, sub_cache: dict[str, int]) -> dict | None:
     return {
         "id": vid,
         "url": f"{YT}/shorts/{vid}",
-        "title": details.get("title", ""),
+        "title": title,
         "author": author,
         "subs": subs,
+        "subs_known": bool(subs),
+        "duration_known": bool(details.get("lengthSeconds")),
         "views": views,
         "viral_ratio": round(views / max(subs, 200), 1),
         "duration_sec": dur,
@@ -211,7 +244,7 @@ def main():
     studied = []
 
     for c in candidates[: args.limit * 2]:
-        res = study_video(c["id"], sub_cache)
+        res = study_video(c, sub_cache)
         if res:
             studied.append(res)
         if len(studied) >= args.limit:
@@ -221,8 +254,8 @@ def main():
     out_path = OUT_DIR / "study_batch.json"
     out_path.write_text(json.dumps(studied, ensure_ascii=False, indent=2), encoding="utf-8")
     with_text = sum(1 for s in studied if s["script_timed"])
-    if BLOCKED and not studied:
-        print(f"YouTube blocks video pages from this IP ({BLOCKED[0]}: sign-in / bot check). Run from a home IP.")
+    if BLOCKED:
+        print(f"Player API: {len(BLOCKED)}x {BLOCKED[0]} (bot check) — used search+oEmbed fallback, no durations/transcripts.")
     print(f"Candidates: {len(candidates)} | Studied: {len(studied)} viral Shorts ({with_text} with full timed scripts) -> {out_path}")
 
 
