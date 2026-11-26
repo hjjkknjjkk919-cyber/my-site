@@ -14,6 +14,7 @@ selfcheck — тот же разбор для своего рендера → re
             (+ список проблем: заикания, нечёткая речь, дыры в звуке, клиппинг).
 
 cookies.txt в корне репо — необязателен и только от ПУСТОГО Google-аккаунта, никогда от основного.
+Зависимости: pip install -U "yt-dlp[default]" faster-whisper (yt-dlp-ejs решает JS-задачи YouTube через node).
 """
 
 import argparse
