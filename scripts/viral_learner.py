@@ -1,262 +1,370 @@
 #!/usr/bin/env python3
 """
-Извлекает сценарии (тайминг-расшифровки), хуки 0-3с, длительность и метрики
-залетевших YouTube Shorts для обучения Claude и генерации идей.
-Работает через обычные веб-страницы YouTube (без поискового API, который отдаёт 403 в облаке).
+«Глаза и уши» для Shorts: учимся на залетевших роликах и проверяем свои рендеры.
+
+  python3 scripts/viral_learner.py learn [--lang en] [--top 6] ["запрос" ...]
+  python3 scripts/viral_learner.py selfcheck out/video.mp4 [--lang ru] [--model small]
+
+learn     — свежие Shorts из поиска YouTube → скачивание с обходом блокировок
+            (cookies.txt → yt-dlp с другими player_client → зеркала Piped) →
+            faster-whisper (речь по таймингу) + ffmpeg (склейки, паузы, громкость) +
+            раскадровка 5×2 из 10 кадров → research_output/study_batch.json и
+            research_output/storyboard_NN_<id>.jpg. Видео удаляется сразу после разбора.
+selfcheck — тот же разбор для своего рендера → research_output/selfcheck_<имя>.json/.jpg
+            (+ список проблем: заикания, нечёткая речь, дыры в звуке, клиппинг).
+
+cookies.txt в корне репо — необязателен и только от ПУСТОГО Google-аккаунта, никогда от основного.
 """
 
 import argparse
-import html
 import json
 import re
+import subprocess
+import sys
+import tempfile
 import urllib.parse
 import urllib.request
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
-OUT_DIR = Path("research_output")
-OUT_DIR.mkdir(exist_ok=True)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from engagement_finder import SHORT_VIDEO_FILTER, UA, YT, engagement, get, json_after, num, walk  # noqa: E402
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "research_output"
+OUT.mkdir(exist_ok=True)
+COOKIES = ROOT / "cookies.txt"
+FONT = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+PLAYER_CLIENTS = ["tv_embedded,web_embedded", "ios,mweb", "android_vr,tv"]
+PIPED_MIRRORS = ["pipedapi.kavin.rocks", "pipedapi.adminforge.de", "api.piped.private.coffee"]
+QUERIES = {
+    "ru": ["страшилки анимация", "правила выживания анимация", "pov анимация озвучка",
+           "смешная анимация озвучка", "почему нельзя анимация", "а что если я анимация"],
+    "en": ["animation storytime shorts", "rules horror animation", "pov animation funny",
+           "what if animation shorts"],
 }
-
-DEFAULT_QUERIES_RU = [
-    "анимация история shorts",
-    "страшная переписка озвучка shorts",
-    "правила выживания анимация shorts",
-    "почему нельзя анимация shorts",
-    "pov история озвучка shorts",
-    "смешная анимация озвучка shorts",
-]
-
-DEFAULT_QUERIES_EN = [
-    "2d animation storytime shorts",
-    "rules horror animation shorts",
-    "scary text story shorts",
-    "animated comedy skit shorts",
-]
-
-YT = "https://www.youtube.com"
-BLOCKED: list[str] = []  # статусы playabilityStatus, если YouTube требует вход («подтвердите, что вы не бот»)
+AGE_UNITS = [("сек", 0), ("мин", 0), ("час", 0), ("hour", 0), ("дн", 1), ("день", 1), ("day", 1),
+             ("нед", 7), ("week", 7), ("мес", 30), ("month", 30), ("год", 365), ("лет", 365), ("year", 365)]
 
 
-def http_get(url: str, timeout: int = 10) -> str:
-    req = urllib.request.Request(url, headers=HEADERS)
+# ---------- утилиты ----------
+
+def run(cmd: list[str], timeout: int = 180) -> tuple[int, str, str]:
     try:
-        return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", errors="ignore")
-    except Exception:
-        return ""
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return p.returncode, p.stdout, p.stderr
+    except subprocess.TimeoutExpired:
+        return -1, "", "timeout"
 
 
-def parse_human_number(text: str) -> int:
-    if not text:
-        return 0
-    s = text.lower().replace("\xa0", " ").replace(",", ".").strip()
-    m = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*(тыс|млн|k|m|b)?", s)
-    if not m:
-        digits = re.sub(r"\D", "", s)
-        return int(digits) if digits else 0
-    val = float(m.group(1))
-    unit = m.group(2) or ""
-    if unit in ("тыс", "k"):
-        val *= 1_000
-    elif unit in ("млн", "m"):
-        val *= 1_000_000
-    elif unit == "b":
-        val *= 1_000_000_000
-    return int(val)
+def short(err) -> str:
+    lines = [ln.strip() for ln in str(err).splitlines() if ln.strip()]
+    return (lines[-1] if lines else "unknown")[:160]
 
 
-def extract_json_var(page_html: str, var_name: str) -> dict:
-    """Достаёт JSON-объект после `var_name = ` (устойчиво к тому, что следует за ним в <script>)."""
-    m = re.search(rf"{re.escape(var_name)}\s*=\s*\{{", page_html)
-    if not m:
-        return {}
+def fetch(url: str, dest: Path, limit: int = 150_000_000) -> bool:
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=30) as r, open(dest, "wb") as f:
+        size = 0
+        while chunk := r.read(1 << 16):
+            size += len(chunk)
+            if size > limit:
+                return False
+            f.write(chunk)
+    return dest.stat().st_size > 50_000
+
+
+def age_days(published: str) -> int | None:
+    s = published.lower()
+    n = re.search(r"\d+", s)
+    for unit, days in AGE_UNITS:
+        if unit in s:
+            return int(n.group()) * days if n else days
+    return None
+
+
+# ---------- поиск и метаданные ----------
+
+def search(queries: list[str], min_views: int, max_age: int) -> list[dict]:
+    seen, out = set(), []
+    for q in queries:
+        found: list[dict] = []
+        walk(json_after(get(f"{YT}/results?search_query={urllib.parse.quote(q)}&sp={SHORT_VIDEO_FILTER}"), "ytInitialData"), found)
+        for f in found:
+            age = age_days(f.get("published", ""))
+            if f["id"] in seen or not (15 <= f["sec"] <= 95) or f["views"] < min_views or (age is not None and age > max_age):
+                continue
+            seen.add(f["id"])
+            f.update(query=q, age_days=age, views_per_day=round(f["views"] / max(age or 1, 1)))
+            out.append(f)
+    return sorted(out, key=lambda x: x["views_per_day"], reverse=True)
+
+
+def channel_meta(vid: str, cache: dict) -> dict:
     try:
-        obj, _ = json.JSONDecoder().raw_decode(page_html[m.end() - 1 :])
-        return obj if isinstance(obj, dict) else {}
-    except json.JSONDecodeError:
-        return {}
+        oe = json.loads(get(f"{YT}/oembed?url={urllib.parse.quote(f'{YT}/watch?v={vid}')}&format=json") or "{}")
+    except ValueError:
+        oe = {}
+    url = oe.get("author_url", "")
+    if url and url not in cache:
+        page = get(url)
+        m = (re.search(r'"content":"([0-9][0-9.,\s\xa0]*(?:тыс\.|млн|K|M)?\s*(?:подписчик|subscriber)[^"]*)"', page)
+             or re.search(r'"subscriberCountText":\{"simpleText":"([^"]+)"', page))
+        cache[url] = num(m.group(1)) if m else 0
+    return {"author": oe.get("author_name", ""), "author_url": url, "subs": cache.get(url, 0)}
 
 
-def walk_search_shorts(node, out: list[dict]):
-    if isinstance(node, dict):
-        if "shortsLockupViewModel" in node:
-            vm = node["shortsLockupViewModel"]
-            vid = vm.get("onTap", {}).get("innertubeCommand", {}).get("reelWatchEndpoint", {}).get("videoId")
-            overlay = vm.get("overlayMetadata", {})
-            title = overlay.get("primaryText", {}).get("content", "")
-            views = parse_human_number(overlay.get("secondaryText", {}).get("content", ""))
-            if vid:
-                out.append({"id": vid, "title": title, "views": views})
-        elif "videoRenderer" in node:
-            vr = node["videoRenderer"]
-            vid = vr.get("videoId")
-            title = "".join(r.get("text", "") for r in vr.get("title", {}).get("runs", []))
-            views = parse_human_number(vr.get("viewCountText", {}).get("simpleText", ""))
-            nav = vr.get("navigationEndpoint", {})
-            if vid and ("reelWatchEndpoint" in nav or "shorts" in title.lower()):
-                out.append({"id": vid, "title": title, "views": views})
-        for v in node.values():
-            walk_search_shorts(v, out)
-    elif isinstance(node, list):
-        for item in node:
-            walk_search_shorts(item, out)
+# ---------- скачивание с обходом блокировок ----------
+
+def via_ytdlp(url: str, work: Path, extra: list[str]) -> tuple[Path | None, str]:
+    code, _, err = run(["yt-dlp", "--quiet", "--no-warnings", "--no-playlist", "--js-runtimes", "node",
+                        "--socket-timeout", "15", "--retries", "1",
+                        "-f", "b[height<=720][ext=mp4]/bv*[height<=720]+ba/b", "--merge-output-format", "mp4",
+                        "-o", str(work / "v.%(ext)s"), *extra, url], 150)
+    files = [p for p in work.glob("v.*") if p.suffix in (".mp4", ".webm", ".mkv") and p.stat().st_size > 50_000]
+    return (files[0], "") if files else (None, short(err) if code else "no file")
 
 
-def parse_transcript_xml(xml_text: str) -> list[dict]:
-    if not xml_text.strip():
-        return []
-    lines = []
+def via_piped(vid: str, host: str, work: Path) -> tuple[Path | None, str]:
     try:
-        root = ET.fromstring(xml_text)
-        for elem in root.findall(".//text"):
-            start = round(float(elem.attrib.get("start", 0)), 1)
-            text = html.unescape("".join(elem.itertext())).replace("\n", " ").strip()
-            if text:
-                lines.append({"t": start, "text": text})
-    except ET.ParseError:
-        pass
-    return lines
+        req = urllib.request.Request(f"https://{host}/streams/{vid}", headers=UA)
+        data = json.loads(urllib.request.urlopen(req, timeout=15).read())
+    except Exception as e:  # noqa: BLE001 — любая сетевая ошибка = зеркало не сработало
+        return None, short(e)
 
+    def height(s: dict) -> int:
+        return int(re.sub(r"\D", "", s.get("quality") or "0") or 0)
 
-def http_post_json(url: str, payload: dict, timeout: int = 10) -> dict:
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=data,
-        headers={
-            "Content-Type": "application/json",
-            "User-Agent": "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip",
-        },
-    )
+    mp4 = [s for s in data.get("videoStreams", []) if "mp4" in (s.get("mimeType") or s.get("format") or "").lower() and 0 < height(s) <= 720]
+    muxed = sorted((s for s in mp4 if not s.get("videoOnly")), key=height)
     try:
-        raw = urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", errors="ignore")
-        return json.loads(raw)
-    except Exception:
-        return {}
+        dest = work / "v.mp4"
+        if muxed and fetch(muxed[-1]["url"], dest):
+            return dest, ""
+        video = sorted((s for s in mp4 if s.get("videoOnly")), key=height)
+        audio = sorted(data.get("audioStreams", []), key=lambda s: s.get("bitrate", 0))
+        if not (video and audio):
+            return None, "no streams"
+        vpart, apart = work / "v_only.mp4", work / "a_only.m4a"
+        if fetch(video[-1]["url"], vpart) and fetch(audio[-1]["url"], apart, limit=30_000_000):
+            run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(vpart), "-i", str(apart), "-c", "copy", "-shortest", str(dest)], 120)
+            vpart.unlink(missing_ok=True)
+            apart.unlink(missing_ok=True)
+            if dest.exists():
+                return dest, ""
+        return None, "stream download failed"
+    except Exception as e:  # noqa: BLE001
+        return None, short(e)
 
 
-def study_video(candidate: dict, sub_cache: dict[str, int]) -> dict | None:
-    """Метаданные и расшифровка через youtubei/v1/player (клиент ANDROID); фолбэк — данные поиска и oEmbed."""
-    vid = candidate["id"]
-    player = http_post_json(
-        f"{YT}/youtubei/v1/player?prettyPrint=false",
-        {"videoId": vid, "context": {"client": {"clientName": "ANDROID", "clientVersion": "19.09.37", "androidSdkVersion": 30, "hl": "ru", "gl": "RU"}}},
-    )
-    status = player.get("playabilityStatus", {}).get("status")
-    if status and status != "OK":
-        BLOCKED.append(status)
+def download(vid: str, work: Path) -> tuple[Path | None, str, dict]:
+    url = f"{YT}/shorts/{vid}"
+    tries: list[tuple[str, list[str]]] = []
+    if COOKIES.exists():
+        tries.append(("cookies", ["--cookies", str(COOKIES)]))
+    tries.append(("yt-dlp", []))
+    tries += [(f"yt-dlp:{c}", ["--extractor-args", f"youtube:player_client={c}"]) for c in PLAYER_CLIENTS]
+    errors: dict[str, str] = {}
+    for name, extra in tries:
+        path, err = via_ytdlp(url, work, extra)
+        if path:
+            return path, name, errors
+        errors[name] = err
+    for host in PIPED_MIRRORS:
+        path, err = via_piped(vid, host, work)
+        if path:
+            return path, f"piped:{host}", errors
+        errors[f"piped:{host}"] = err
+    return None, "", errors
 
-    details = player.get("videoDetails", {})
-    dur = int(details.get("lengthSeconds") or candidate.get("duration") or 35)
-    views = int(details.get("viewCount") or candidate.get("views") or 0)
-    title = details.get("title") or candidate.get("title") or ""
-    author = details.get("author") or ""
-    channel_id = details.get("channelId") or ""
 
-    if not (15 <= dur <= 95) or views < 45_000:
-        return None
+# ---------- глаза и уши ----------
 
-    # Фолбэк через лёгкий oEmbed, если player не вернул автора
-    author_url = f"{YT}/channel/{channel_id}" if channel_id else ""
-    if not author:
-        oe_raw = http_get(f"{YT}/oembed?url={YT}/watch?v={vid}&format=json", timeout=6)
-        if oe_raw:
-            try:
-                oe = json.loads(oe_raw)
-                author = oe.get("author_name", "")
-                author_url = oe.get("author_url", "")
-                title = title or oe.get("title", "")
-            except Exception:
-                pass
+def duration(path: Path) -> float:
+    _, out, _ = run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)], 30)
+    try:
+        return float(out.strip())
+    except ValueError:
+        return 0.0
 
-    subs = 0
-    if author_url:
-        if author_url in sub_cache:
-            subs = sub_cache[author_url]
-        else:
-            ch_html = http_get(author_url, timeout=8)
-            m = re.search(r'"subscriberCountText"\s*:\s*\{\s*"simpleText"\s*:\s*"([^"]+)"', ch_html)
-            if not m:
-                m = re.search(r'"content"\s*:\s*"([0-9.,]+\s*(?:тыс\.|млн|K|M)?\s*(?:подписчик|subscriber)[^"]*)"', ch_html)
-            if m:
-                subs = parse_human_number(m.group(1))
-            sub_cache[author_url] = subs
 
-    if subs > 150_000:
-        return None
+def scene_cuts(path: Path) -> list[float]:
+    _, _, err = run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(path), "-an",
+                     "-vf", "scale=360:-2,select='gt(scene,0.28)',showinfo", "-f", "null", "-"], 300)
+    return [round(float(t), 2) for t in re.findall(r"pts_time:([0-9.]+)", err)]
 
-    tracks = player.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
-    transcript = []
-    if tracks:
-        chosen = next((t for t in tracks if t.get("languageCode", "").startswith(("ru", "en"))), tracks[0])
-        base_url = chosen.get("baseUrl", "")
-        if base_url:
-            transcript = parse_transcript_xml(http_get(base_url, timeout=8))
 
-    hook_0_4s = " ".join(x["text"] for x in transcript if x["t"] <= 4.0)
-    full_script = " ".join(f"[{x['t']}s] {x['text']}" for x in transcript)
-
+def audio_telemetry(path: Path, dur: float) -> dict:
+    _, _, err = run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(path), "-vn",
+                     "-af", "silencedetect=noise=-35dB:d=0.35,volumedetect", "-f", "null", "-"], 300)
+    if "Audio:" not in err:
+        return {"has_audio": False}
+    starts = [max(float(x), 0.0) for x in re.findall(r"silence_start: (-?[0-9.]+)", err)]
+    ends = [float(x) for x in re.findall(r"silence_end: ([0-9.]+)", err)]
+    pauses = [[round(s, 2), round(ends[i] if i < len(ends) else dur, 2)] for i, s in enumerate(starts)]
+    mean = re.search(r"mean_volume: (-?[0-9.]+) dB", err)
+    peak = re.search(r"max_volume: (-?[0-9.]+) dB", err)
     return {
-        "id": vid,
-        "url": f"{YT}/shorts/{vid}",
-        "title": title,
-        "author": author,
-        "subs": subs,
-        "subs_known": bool(subs),
-        "duration_known": bool(details.get("lengthSeconds")),
-        "views": views,
-        "viral_ratio": round(views / max(subs, 200), 1),
-        "duration_sec": dur,
-        "keywords": (details.get("keywords") or [])[:10],
-        "description": (details.get("shortDescription") or "")[:200].replace("\n", " "),
-        "hook_0_4s": hook_0_4s,
-        "script_timed": full_script[:2200],
+        "has_audio": True,
+        "mean_db": float(mean.group(1)) if mean else None,
+        "peak_db": float(peak.group(1)) if peak else None,
+        "silence_total_sec": round(sum(e - s for s, e in pauses), 2),
+        "longest_pause_sec": round(max((e - s for s, e in pauses), default=0.0), 2),
+        "pauses": pauses[:30],
     }
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Viral Shorts Script & Hook Learner")
-    parser.add_argument("--lang", default="ru", choices=["ru", "en"])
-    parser.add_argument("--limit", type=int, default=18, help="Сколько роликов глубоко изучить")
-    parser.add_argument("queries", nargs="*")
-    args = parser.parse_args()
+_MODELS: dict = {}
 
-    queries = args.queries or (DEFAULT_QUERIES_EN if args.lang == "en" else DEFAULT_QUERIES_RU)
-    seen = set()
-    candidates = []
 
-    for q in queries:
-        html_page = http_get(f"{YT}/results?search_query={urllib.parse.quote(q)}")
-        data = extract_json_var(html_page, "ytInitialData")
-        found = []
-        walk_search_shorts(data, found)
-        for item in found:
-            if item["id"] not in seen and item["views"] >= 45_000:
-                seen.add(item["id"])
-                candidates.append(item)
+def transcribe(path: Path, work: Path, lang: str | None, model_name: str) -> list[dict]:
+    wav = work / "a.wav"
+    code, _, _ = run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(path), "-vn", "-ac", "1", "-ar", "16000", str(wav)], 120)
+    if code or not wav.exists():
+        return []
+    from faster_whisper import WhisperModel
 
-    candidates.sort(key=lambda x: x["views"], reverse=True)
-    sub_cache: dict[str, int] = {}
-    studied = []
+    if model_name not in _MODELS:
+        _MODELS[model_name] = WhisperModel(model_name, device="cpu", compute_type="int8")
+    segments, _ = _MODELS[model_name].transcribe(str(wav), language=lang, vad_filter=True, beam_size=5)
+    out = [{"t": round(s.start, 1), "end": round(s.end, 1), "text": s.text.strip(), "logprob": round(s.avg_logprob, 2)}
+           for s in segments if s.text.strip()]
+    wav.unlink(missing_ok=True)
+    return out
 
-    for c in candidates[: args.limit * 2]:
-        res = study_video(c, sub_cache)
-        if res:
-            studied.append(res)
-        if len(studied) >= args.limit:
-            break
 
-    studied.sort(key=lambda x: (bool(x["script_timed"]), x["viral_ratio"], x["views"]), reverse=True)
-    out_path = OUT_DIR / "study_batch.json"
-    out_path.write_text(json.dumps(studied, ensure_ascii=False, indent=2), encoding="utf-8")
-    with_text = sum(1 for s in studied if s["script_timed"])
-    if BLOCKED:
-        print(f"Player API: {len(BLOCKED)}x {BLOCKED[0]} (bot check) — used search+oEmbed fallback, no durations/transcripts.")
-    print(f"Candidates: {len(candidates)} | Studied: {len(studied)} viral Shorts ({with_text} with full timed scripts) -> {out_path}")
+def storyboard(path: Path, dur: float, dest: Path) -> list[float]:
+    step = max(dur / 10, 0.05)
+    font = f"fontfile={FONT}:" if FONT.exists() else ""
+    vf = (f"select='isnan(prev_selected_t)+gte(t-prev_selected_t,{step:.3f})',scale=216:-2,"
+          f"drawtext={font}text='%{{pts\\:hms}}':x=6:y=6:fontsize=20:fontcolor=white:box=1:boxcolor=black@0.65:boxborderw=4,"
+          "tile=5x2:padding=4:color=black")
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(path), "-vf", vf, "-frames:v", "1", "-q:v", "4", str(dest)], 300)
+    return [round(i * step, 1) for i in range(10)]
+
+
+def analyze(path: Path, work: Path, board: Path, lang: str | None, model: str) -> dict:
+    dur = duration(path)
+    cuts = scene_cuts(path)
+    audio = audio_telemetry(path, dur)
+    segs = transcribe(path, work, lang, model) if audio.get("has_audio") else []
+    times = storyboard(path, dur, board)
+    speech_sec = sum(s["end"] - s["t"] for s in segs)
+    words = sum(len(re.findall(r"\w+", s["text"])) for s in segs)
+    return {
+        "duration_sec": round(dur, 1),
+        "cuts": {
+            "count": len(cuts),
+            "first_cut_sec": cuts[0] if cuts else None,
+            "avg_shot_sec": round(dur / (len(cuts) + 1), 2) if dur else None,
+            "per_10s": round(len(cuts) / max(dur, 1) * 10, 1),
+            "times": cuts[:40],
+        },
+        "audio": audio,
+        "speech_ratio": round(speech_sec / max(dur, 1), 2),
+        "words_per_sec": round(words / max(speech_sec, 1), 2),
+        "hook_0_4s": " ".join(s["text"] for s in segs if s["t"] < 4.0),
+        "script_timed": " ".join(f"[{s['t']}s] {s['text']}" for s in segs)[:2500],
+        "segments": segs,
+        "storyboard": str(board.relative_to(ROOT)) if board.exists() else None,
+        "frames": [{"t": t, "speech": next((s["text"] for s in segs if s["t"] <= t <= s["end"]), "")} for t in times],
+    }
+
+
+def speech_issues(rep: dict) -> list[str]:
+    issues = []
+    audio = rep["audio"]
+    if not audio.get("has_audio"):
+        return ["нет звуковой дорожки"]
+    if (audio.get("peak_db") or -99) > -0.3:
+        issues.append(f"клиппинг: пик {audio['peak_db']} dB")
+    if (audio.get("mean_db") or 0) < -30:
+        issues.append(f"тихо: средняя громкость {audio['mean_db']} dB")
+    for s, e in audio.get("pauses", []):
+        if e - s > 1.5 and 1.0 < s < rep["duration_sec"] - 1.5:
+            issues.append(f"{s}s дыра в звуке {round(e - s, 1)} с")
+    for seg in rep["segments"]:
+        low = seg["text"].lower()
+        words = re.findall(r"\w+", low)
+        if any(a == b and len(a) > 1 for a, b in zip(words, words[1:])) or re.search(r"\b(\w{1,2})-\1", low):
+            issues.append(f"{seg['t']}s повтор/заикание: {seg['text']}")
+        if seg["logprob"] < -1.0:
+            issues.append(f"{seg['t']}s нечётко (logprob {seg['logprob']}): {seg['text']}")
+    return issues
+
+
+# ---------- режимы ----------
+
+def cmd_learn(a) -> None:
+    for old in OUT.glob("storyboard_*.jpg"):
+        old.unlink()
+    cands = search(a.queries or QUERIES[a.lang], a.min_views, a.max_age)
+    batch, wins, fails, sub_cache = [], {}, 0, {}
+    blocked = False
+    for i, c in enumerate(cands[: a.top]):
+        item = {**c, "url": f"{YT}/shorts/{c['id']}", **channel_meta(c["id"], sub_cache), **engagement(c["id"], 5)}
+        item["viral_ratio"] = round(item["views"] / max(item["subs"], 200), 1)
+        if blocked:
+            item["download"] = "skipped (все методы заблокированы на предыдущих роликах)"
+        else:
+            with tempfile.TemporaryDirectory(dir=OUT) as tmp:  # mp4 удаляется сразу после разбора
+                work = Path(tmp)
+                path, method, errors = download(c["id"], work)
+                item["download"] = method or "failed"
+                if errors and not path:
+                    item["download_errors"] = errors
+                if path:
+                    item.update(analyze(path, work, OUT / f"storyboard_{i + 1:02d}_{c['id']}.jpg", None, a.model))
+                    wins[method] = wins.get(method, 0) + 1
+                else:
+                    fails += 1
+            blocked = not wins and fails >= 2
+        batch.append(item)
+        print(f"{i + 1:>2}. {item['download'][:22]:<22} {item['sec']:>3}с {item['views']:>9} | {item['title'][:55]}")
+
+    (OUT / "study_batch.json").write_text(json.dumps(batch, ensure_ascii=False, indent=2), encoding="utf-8")
+    ok = sum(wins.values())
+    print(f"Кандидатов: {len(cands)} | изучено: {len(batch)} | скачано и разобрано: {ok} {wins or ''} -> research_output/study_batch.json")
+    if batch and not ok:
+        errs = next((b["download_errors"] for b in batch if b.get("download_errors")), {})
+        for k, v in errs.items():
+            print(f"   {k}: {v}")
+        print("Все методы заблокированы: положи cookies.txt от ПУСТОГО Google-аккаунта в корень репо "
+              "или разреши хост pipedapi.kavin.rocks (и его прокси видеопотоков) в окружении.")
+
+
+def cmd_selfcheck(a) -> None:
+    video = Path(a.video).resolve()
+    if not video.exists():
+        sys.exit(f"нет файла: {video}")
+    with tempfile.TemporaryDirectory(dir=OUT) as tmp:
+        rep = analyze(video, Path(tmp), OUT / f"selfcheck_{video.stem}.jpg", a.lang, a.model)
+    rep["issues"] = speech_issues(rep)
+    out = OUT / f"selfcheck_{video.stem}.json"
+    out.write_text(json.dumps(rep, ensure_ascii=False, indent=2), encoding="utf-8")
+    au = rep["audio"]
+    print(f"{video.name}: {rep['duration_sec']}с | склеек {rep['cuts']['count']} (≈{rep['cuts']['avg_shot_sec']}с/план) | "
+          f"речь {rep['speech_ratio']:.0%}, {rep['words_per_sec']} сл/с | {au.get('mean_db')}/{au.get('peak_db')} dB")
+    print(f"Хук 0–4с: {rep['hook_0_4s'] or '—'}")
+    print(f"Проблем: {len(rep['issues'])}" + "".join(f"\n  - {x}" for x in rep["issues"][:10]))
+    print(f"-> {out.relative_to(ROOT)}, {rep['storyboard']}")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description="Глаза и уши для Shorts: learn / selfcheck")
+    sub = ap.add_subparsers(dest="mode", required=True)
+    lr = sub.add_parser("learn", help="изучить свежие залетевшие Shorts")
+    lr.add_argument("queries", nargs="*")
+    lr.add_argument("--lang", default="ru", choices=["ru", "en"])
+    lr.add_argument("--top", type=int, default=6)
+    lr.add_argument("--min-views", type=int, default=45_000)
+    lr.add_argument("--max-age", type=int, default=400, help="макс. возраст ролика, дней")
+    lr.add_argument("--model", default="base", help="модель faster-whisper (base/small/medium)")
+    sc = sub.add_parser("selfcheck", help="проверить свой рендер")
+    sc.add_argument("video")
+    sc.add_argument("--lang", default="ru")
+    sc.add_argument("--model", default="base")
+    a = ap.parse_args()
+    cmd_learn(a) if a.mode == "learn" else cmd_selfcheck(a)
 
 
 if __name__ == "__main__":
