@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
-import { Bubble, ChatHeader, Dumplings, Earring, ez, Glow, GOLD, Hand, INK, Marker, MONT, OL, PAPER, Phone, RED, SKIN, SKIN_SH, Stage, Tamara, useLT, useSpr, Wave } from "./kit";
+import { DurCtx, KitDefs, Bubble, ChatHeader, Dumplings, Earring, ez, Glow, GOLD, Hand, INK, Marker, MONT, OL, PAPER, Phone, RED, SKIN, SKIN_SH, Stage, Tamara, useLT, useSpr, Wave } from "./kit";
 
 const STENCIL = "Russo One";
 const shakeXY = (t: number, a: number) => `translate(${Math.sin(t * 61) * a} ${Math.cos(t * 47) * a})`;
@@ -9,12 +9,19 @@ const shakeXY = (t: number, a: number) => `translate(${Math.sin(t * 61) * a} ${M
 export const S1Bedroom = () => {
   const t = useLT();
   return (
-    <Stage bg="#07080c" dur={3} zoom={[1.0, 1.12]} origin={[600, 1180]}>
+    <Stage bg="#07080c" light={{ x: 760, y: 360, color: "#9fb8ff", r: 1100, o: 0.35, rays: true }} zoom={[1.0, 1.12]} origin={[600, 1180]}>
       <rect width={1080} height={1920} fill="#141823" />
       {Array.from({ length: 9 }, (_, i) => <path key={i} d={`M${i * 130} 0 V1400`} stroke="#1b2130" strokeWidth={26} />)}
       <rect y={1400} width={1080} height={520} fill="#0d0f15" />
+      <rect x={600} y={180} width={360} height={520} fill="#0b1630" {...OL} />
+      <circle cx={850} cy={300} r={54} fill="#dfe8ff" opacity={0.9} />
+      {Array.from({ length: 14 }, (_, i) => <path key={i} d={`M600 ${200 + i * 30} q180 ${8 + Math.sin(t + i) * 4} 360 0`} stroke="#5b6ea8" strokeWidth={2} fill="none" opacity={0.25} />)}
+      <path d="M600 180 V700 M780 180 V700 M600 440 H960" stroke="#1b2130" strokeWidth={14} />
+      <path d={`M560 160 C600 360 ${590 + Math.sin(t) * 6} 560 570 760 L520 760 L520 160 Z`} fill="#3a2440" {...OL} />
+      <path d={`M1000 160 C960 360 ${970 - Math.sin(t) * 6} 560 990 760 L1040 760 L1040 160 Z`} fill="#3a2440" {...OL} />
       <rect x={-40} y={1180} width={560} height={300} rx={30} fill="#2a2f3e" {...OL} />
       <rect x={-40} y={1130} width={260} height={110} rx={40} fill="#d6d2c6" {...OL} />
+      {[60, 150, 250, 360, 450].map((x) => <path key={x} d={`M${x} 1250 q30 110 -10 220`} stroke="#1c2030" strokeWidth={5} fill="none" opacity={0.7} />)}
       <rect x={620} y={1230} width={300} height={250} fill="#3a2a20" {...OL} />
       <Glow id="s1g" x={700} y={1150} r={360} color="#ff3b3b" o={0.25 + 0.1 * Math.sin(t * 8)} />
       <Phone x={700} y={1130} s={0.22} rot={-12} screen="#14080a">
@@ -30,10 +37,11 @@ export const S1Bedroom = () => {
 /* ── 2. Прихожая кв. 43: мама в куртке уходит, дверь закрывается (3с) ── */
 export const S2Mom = () => {
   const t = useLT();
-  const walk = ez(t, 0.1, 1.6, 0, 1);
-  const close = ez(t, 1.5, 2.3, 0, 1);
+  const dur = React.useContext(DurCtx);
+  const walk = ez(t, 0.2, dur * 0.55, 0, 1);
+  const close = ez(t, dur * 0.5, dur * 0.78, 0, 1);
   return (
-    <Stage bg="#1a140f" dur={3} zoom={[1.04, 1.0]}>
+    <Stage bg="#1a140f" light={{ x: 540, y: 200, color: "#ffc070", r: 1100, o: 0.5, rays: true }} zoom={[1.04, 1.0]}>
       <rect width={1080} height={1920} fill="#3b2f24" />
       {Array.from({ length: 12 }, (_, i) => <circle key={i} cx={(i % 4) * 280 + 120} cy={Math.floor(i / 4) * 420 + 200} r={10} fill="#4a3b2d" />)}
       <rect y={1560} width={1080} height={360} fill="#2a1f17" />
@@ -56,7 +64,7 @@ export const S2Mom = () => {
         <rect x={350} y={480} width={380} height={1030} fill="none" stroke="#552c1b" strokeWidth={10} />
       </g>
       <circle cx={360} cy={1010} r={16} fill="#c9a24a" opacity={close} {...OL} strokeWidth={4} />
-      <text x={540} y={1720} textAnchor="middle" fontFamily={MONT} fontWeight={800} fontSize={40} fill={PAPER} opacity={ez(t, 2.2, 2.6)}>НОЧНАЯ СМЕНА ДО 8:00</text>
+      <text x={540} y={1720} textAnchor="middle" fontFamily={MONT} fontWeight={800} fontSize={40} fill={PAPER} opacity={ez(t, dur * 0.7, dur * 0.85)}>НОЧНАЯ СМЕНА ДО 8:00</text>
     </Stage>
   );
 };
@@ -68,7 +76,7 @@ export const S3Chat = () => {
   const m2 = useSpr(0.9);
   const m3 = useSpr(1.6);
   return (
-    <Stage bg="#06070a" dur={5} zoom={[1.0, 1.14]} origin={[540, 1050]}>
+    <Stage bg="#06070a" zoom={[1.0, 1.14]} origin={[540, 1050]} light={{ x: 540, y: 900, color: "#7fb0ff", r: 1000, o: 0.4 }}>
       <Glow id="s3g" x={540} y={960} r={700} color="#4f7fb0" o={0.25} />
       <Phone x={540} y={980} s={1.42} rot={-2}>
         <rect width={520} height={1040} fill="#0e1621" />
@@ -92,7 +100,7 @@ export const S4Board = () => {
     { x: 540, y: 1230, name: "ТАМАРА ИЛЬИНИЧНА, 68", tam: true },
   ];
   return (
-    <Stage bg="#1d2420" dur={4} zoom={[1.0, 1.12]} origin={[540, 1250]}>
+    <Stage bg="#1d2420" light={{ x: 540, y: 120, color: "#e8f2ff", r: 1300, o: 0.45, rays: true }} zoom={[1.0, 1.12]} origin={[540, 1250]}>
       <rect width={1080} height={1920} fill="#3e5a4c" />
       <rect y={1000} width={1080} height={920} fill="#2e463a" />
       <rect x={60} y={420} width={960} height={1330} fill="#7a5a3c" {...OL} />
@@ -121,7 +129,7 @@ export const S5Press = () => {
   const t = useLT();
   const press = useSpr(0.1, 16, 90);
   return (
-    <Stage bg="#2b2420" dur={3} zoom={[1.0, 1.08]}>
+    <Stage bg="#2b2420" light={{ x: 560, y: 900, color: "#ff8a7a", r: 900, o: 0.35 }} zoom={[1.0, 1.08]}>
       <rect width={1080} height={1920} fill="#6d5a4a" />
       {Array.from({ length: 10 }, (_, i) => (
         <g key={i}>
@@ -150,7 +158,7 @@ export const S6Recorder = () => {
   const flat = ez(t, 3.6, 4.0);
   const sec = Math.floor(t * 1.0);
   return (
-    <Stage bg="#0a0608" dur={5} zoom={[1.0, 1.1]}>
+    <Stage bg="#0a0608" light={{ x: 540, y: 700, color: "#ff3b3b", r: 900, o: 0.35 }} zoom={[1.0, 1.1]}>
       <g transform={flat < 1 ? shakeXY(t, 3 * (1 - flat)) : undefined}>
         <Phone x={540} y={960} s={1.5} screen="#100a0c">
           <text x={260} y={150} textAnchor="middle" fontFamily={MONT} fontWeight={700} fontSize={30} fill="#c9a0a0">Запись · 03:02</text>
@@ -171,9 +179,12 @@ export const S7Kitchen = () => {
   const t = useLT();
   const note = useSpr(0.6);
   return (
-    <Stage bg="#1d150e" dur={3} zoom={[1.0, 1.1]} origin={[540, 1100]}>
+    <Stage bg="#1d150e" zoom={[1.0, 1.1]} light={{ x: 540, y: 80, color: "#ffcf7a", r: 1400, o: 0.55, rays: true }} origin={[540, 1100]}>
       <rect width={1080} height={1920} fill="#4b3b2b" />
-      {Array.from({ length: 6 }, (_, i) => <rect key={i} x={0} y={i * 120} width={1080} height={118} fill={i % 2 ? "#d8d0bc" : "#cfc6b0"} />)}
+      {Array.from({ length: 7 }, (_, r) => Array.from({ length: 8 }, (_, c) => <rect key={`${r}-${c}`} x={c * 140 + (r % 2) * 70 - 70} y={r * 110} width={136} height={106} rx={6} fill={(r + c) % 3 ? "#d8d0bc" : "#cdc3ab"} stroke="#a99d84" strokeWidth={3} />))}
+      <path d="M540 0 V120" stroke={INK} strokeWidth={6} />
+      <path d="M440 200 C440 120 640 120 640 200 Z" fill="#2c4a3a" {...OL} />
+      <ellipse cx={540} cy={204} rx={40} ry={14} fill="#fff3c4" />
       <rect y={760} width={1080} height={1160} fill="#8a5a36" {...OL} />
       <Glow id="s7g" x={540} y={600} r={800} color="#ffcf7a" o={0.45} />
       <Dumplings x={480} y={1150} s={1.5} t={t} />
@@ -187,15 +198,15 @@ export const S7Kitchen = () => {
 };
 
 /* ── 8. Вилка с третьим пельменем, «ХРУСТ!» (2с) ── */
-export const S8Fork = () => {
+export const S8Fork = ({ hitAt = 1 }: { hitAt?: number }) => {
   const t = useLT();
   const up = ez(t, 0, 0.8, 0, 1);
-  const hit = ez(t, 0.98, 1.12);
+  const hit = ez(t, hitAt - 0.02, hitAt + 0.12);
   return (
-    <Stage bg="#140d08" dur={2} zoom={[1.05, 1.2]}>
+    <Stage bg="#140d08" light={{ x: 540, y: 500, color: "#ffcf7a", r: 1000, o: 0.5 }} zoom={[1.05, 1.2]}>
       <rect width={1080} height={1920} fill="#2a1a10" />
       <Glow id="s8g" x={540} y={800} r={700} color="#ffcf7a" o={0.35} />
-      <g transform={`translate(${540 + (hit > 0 ? Math.sin(t * 90) * 10 * (1 - ez(t, 1.1, 1.6)) : 0)} ${1300 - up * 300}) rotate(-20)`}>
+      <g transform={`translate(${540 + (hit > 0 ? Math.sin(t * 90) * 10 * (1 - ez(t, hitAt + 0.1, hitAt + 0.6)) : 0)} ${1300 - up * 300}) rotate(-20)`}>
         <rect x={-18} y={0} width={36} height={700} rx={14} fill="#c9ccd2" {...OL} />
         {[-36, -12, 12, 36].map((x) => <rect key={x} x={x - 7} y={-180} width={14} height={190} rx={7} fill="#c9ccd2" {...OL} strokeWidth={5} />)}
         <g transform="translate(0 -170) scale(2.4)">
@@ -216,7 +227,7 @@ export const S9Napkin = () => {
   const t = useLT();
   const shine = 0.5 + 0.5 * Math.sin(t * 7);
   return (
-    <Stage bg="#1d150e" dur={4} zoom={[1.0, 1.25]} origin={[560, 1000]}>
+    <Stage bg="#1d150e" zoom={[1.0, 1.25]} light={{ x: 560, y: 300, color: "#ffd88a", r: 1200, o: 0.45, rays: true }} origin={[560, 1000]}>
       <rect width={1080} height={1920} fill="#7a4e2e" />
       <path d="M140 520 L960 470 L1000 1420 L100 1470 Z" fill="#f4f1ea" {...OL} />
       {Array.from({ length: 8 }, (_, i) => <path key={i} d={`M${160 + i * 105} 520 L${130 + i * 110} 1460`} stroke="#e2ddd2" strokeWidth={4} />)}
@@ -236,7 +247,7 @@ export const S10Split = () => {
   const b = useSpr(0.35);
   const arrow = ez(t, 0.9, 1.6);
   return (
-    <Stage bg="#08090c" dur={3} zoom={[1.0, 1.04]}>
+    <Stage bg="#08090c" light={{ x: 540, y: 960, color: "#ffd9a0", r: 1200, o: 0.3 }} zoom={[1.0, 1.04]}>
       <g transform={`translate(${(1 - a) * -600} 0)`}>
         <rect x={0} y={0} width={1080} height={955} fill="#2b3530" />
         <rect x={250} y={180} width={580} height={700} fill={PAPER} {...OL} />
@@ -269,7 +280,7 @@ export const S11Bag = () => {
   const seal = ez(t, 1.0, 1.4);
   const drawer = ez(t, 1.6, 2.5);
   return (
-    <Stage bg="#130e0a" dur={3} zoom={[1.0, 1.06]}>
+    <Stage bg="#130e0a" light={{ x: 540, y: 300, color: "#ffcf7a", r: 1200, o: 0.5, rays: true }} zoom={[1.0, 1.06]}>
       <rect width={1080} height={1920} fill="#3a2a20" />
       <Glow id="s11g" x={540} y={700} r={700} color="#ffcf7a" o={0.3} />
       {/* ящик стола */}
@@ -295,7 +306,7 @@ export const S12Flash = () => {
   const on = ez(t, 0.05, 0.2);
   const buzz = t > 0.1 && t < 1.8 ? Math.sin(t * 95) * 8 : 0;
   return (
-    <Stage bg="#06070a" dur={3} zoom={[1.0, 1.15]} origin={[540, 1150]}>
+    <Stage bg="#06070a" zoom={[1.0, 1.15]} light={{ x: 540, y: 1150, color: "#ffffff", r: 1000, o: 0.45 }} origin={[540, 1150]}>
       <rect width={1080} height={1920} fill="#2a1d14" />
       <Glow id="s12g" x={540} y={1150} r={900} color="#ffffff" o={0.5 * on} />
       <g transform={`translate(${buzz} 0)`}>
@@ -316,7 +327,7 @@ export const S13DM = () => {
   const t = useLT();
   const m = useSpr(0.2);
   return (
-    <Stage bg="#06070a" dur={4} zoom={[1.0, 1.14]} origin={[540, 980]}>
+    <Stage bg="#06070a" zoom={[1.0, 1.14]} origin={[540, 980]} light={{ x: 540, y: 900, color: "#ff8a8a", r: 1000, o: 0.35 }}>
       <Glow id="s13g" x={540} y={960} r={700} color="#e06666" o={0.2} />
       <Phone x={540} y={960} s={1.42} rot={1.5}>
         <rect width={520} height={1040} fill="#0e1621" />
@@ -334,7 +345,7 @@ export const S14Face = () => {
   const pupil = ez(t, 0.3, 0.7, 30, 7);
   const tr = Math.sin(t * 55) * 4;
   return (
-    <Stage bg="#050608" dur={2} zoom={[1.08, 1.3]} origin={[540, 860]}>
+    <Stage bg="#050608" light={{ x: 540, y: 1700, color: "#8fb8ff", r: 1300, o: 0.5 }} zoom={[1.08, 1.3]} origin={[540, 860]}>
       <g transform={`translate(${tr} 0)`}>
         <path d="M120 1920 C140 1500 260 1300 540 1300 C820 1300 940 1500 960 1920 Z" fill="#2e3646" {...OL} />
         <ellipse cx={540} cy={900} rx={340} ry={430} fill={SKIN} {...OL} />
@@ -363,7 +374,7 @@ export const S15Door = () => {
   const knock = (at: number) => Math.max(0, 1 - Math.abs(t - at - 0.05) * 6);
   const hit = knock(0) + knock(1) + knock(2);
   return (
-    <Stage bg="#0a0806" dur={3} zoom={[1.0, 1.1]}>
+    <Stage bg="#0a0806" light={{ x: 540, y: 1780, color: "#ffcf7a", r: 1100, o: 0.55, rays: true }} zoom={[1.0, 1.1]}>
       <g transform={hit > 0 ? shakeXY(t, hit * 8) : undefined}>
         <rect width={1080} height={1920} fill="#2e241b" />
         <rect x={190} y={260} width={700} height={1500} fill="#4a2a1c" {...OL} />
@@ -403,6 +414,10 @@ const Neighbor = ({ t, talk }: { t: number; talk: number }) => (
     <rect x={-50} y={-110} width={100} height={70} fill={SKIN_SH} />
     <ellipse cx={0} cy={-230} rx={130} ry={155} fill={SKIN} stroke={INK} strokeWidth={8} />
     <path d="M-132 -250 C-140 -420 140 -420 132 -250 C110 -330 -110 -330 -132 -250 Z" fill="#3a3530" stroke={INK} strokeWidth={8} />
+    {Array.from({ length: 9 }, (_, i) => <path key={i} d={`M${-110 + i * 27} -330 q6 40 -4 70`} stroke="#1f1b18" strokeWidth={4} fill="none" />)}
+    <path d="M-86 -282 q36 -16 70 0 M16 -282 q36 -16 70 0" stroke="#1f1b18" strokeWidth={9} fill="none" strokeLinecap="round" />
+    <path d="M-120 -200 C-110 -120 -60 -100 0 -96" fill="none" stroke={SKIN_SH} strokeWidth={10} opacity={0.6} />
+    {[-90, -30, 30, 90].map((x) => <path key={x} d={`M${x} 60 q${x / 10} 300 ${x / 6} 640`} stroke="#000" strokeWidth={5} fill="none" opacity={0.5} />)}
     {/* глаза над маской: спокойные, не моргают */}
     {[-50, 50].map((x) => (
       <g key={x}>
@@ -418,18 +433,19 @@ const Neighbor = ({ t, talk }: { t: number; talk: number }) => (
   </g>
 );
 
-export const S16Peephole = () => {
+export const S16Peephole = ({ talkAt, talkEnd, freezeAt, end }: { talkAt: number; talkEnd: number; freezeAt: number; end: number }) => {
   const t = useLT();
-  const zoom = ez(t, 0, 5, 0.86, 0.92) * ez(t, 5, 8, 1, 1.25) * ez(t, 8, 16, 1, 1.1);
-  const talk = t > 5 && t < 7.5 ? Math.abs(Math.sin(t * 16)) : 0;
-  const freeze = t >= 8 ? ez(t, 8, 8.3) : 0;
-  const tt = t >= 8 ? 8 : t;
-  const b1 = useSpr(8.6);
-  const b2 = useSpr(9.0);
-  const ask = ez(t, 9.6, 10.1);
+  const zoom = ez(t, 0, talkAt, 0.86, 0.92) * ez(t, talkAt, freezeAt, 1, 1.25) * ez(t, freezeAt, end, 1, 1.1);
+  const talk = t > talkAt && t < talkEnd ? Math.abs(Math.sin(t * 16)) : 0;
+  const freeze = t >= freezeAt ? ez(t, freezeAt, freezeAt + 0.3) : 0;
+  const tt = Math.min(t, freezeAt);
+  const b1 = useSpr(freezeAt + 0.6);
+  const b2 = useSpr(freezeAt + 1.0);
+  const ask = ez(t, freezeAt + 1.6, freezeAt + 2.1);
   return (
     <AbsoluteFill style={{ background: "#020203" }}>
       <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
+        <KitDefs />
         <defs>
           <clipPath id="ph-c">
             <circle cx={540} cy={820} r={470} />
@@ -449,7 +465,7 @@ export const S16Peephole = () => {
           </g>
           <circle cx={540} cy={820} r={470} fill="url(#ph-v)" />
           {/* звуковая волна из-за двери */}
-          {t > 5 && t < 7.6 && [0, 1, 2].map((i) => {
+          {t > talkAt && t < talkEnd + 0.1 && [0, 1, 2].map((i) => {
             const p = ((t * 1.4 + i / 3) % 1);
             return <circle key={i} cx={540} cy={1050} r={80 + p * 380} fill="none" stroke="#bcd7e6" strokeWidth={6} opacity={0.5 * (1 - p)} />;
           })}

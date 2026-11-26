@@ -4,63 +4,91 @@ import { Audio } from "@remotion/media";
 import { loadFont as loadStencil } from "@remotion/google-fonts/RussoOne";
 import { loadFont as loadCaveat } from "@remotion/google-fonts/Caveat";
 import { Sfx } from "../components/audio";
-import { ez, GOLD, MONT, RED } from "./kit";
+import { DurCtx, ez, GOLD, MONT, RED } from "./kit";
 import { S10Split, S11Bag, S12Flash, S13DM, S14Face, S15Door, S16Peephole, S1Bedroom, S2Mom, S3Chat, S4Board, S5Press, S6Recorder, S7Kitchen, S8Fork, S9Napkin } from "./scenes";
 
 loadStencil();
 loadCaveat();
 
-export const PEL_FRAMES = 1980;
+/* ── озвучка: [файл, длительность, текст субтитров, ключевые слова, цвет] ── */
+type Vo = [string, number, string, string[], string];
+const V: Record<string, Vo> = Object.fromEntries(
+  ([
+    ["v01", 4.13, "Если в три ночи за стенкой гудит мясорубка — не стучи соседу.", ["мясорубка"], RED],
+    ["v02", 2.85, "Мама ушла в ночную смену. Ты в квартире один.", ["один"], GOLD],
+    ["v03", 5.98, "В чате дома сосед из сорок четвёртой продаёт пельмени. Пишет — свежее парное мясо.", ["парное", "мясо"], RED],
+    ["v04", 4.41, "А утром у лифта вешают три ориентировки: пропала старшая по подъезду.", ["пропала"], RED],
+    ["v05", 3.87, "Правило первое: не выдавай себя — просто запиши звук.", ["запиши"], GOLD],
+    ["v06", 4.62, "Ровно в три ноль две за стеной снова ревёт мясорубка и шуршат пакеты.", ["мясорубка"], RED],
+    ["v07", 4.05, "Вечером на кухне стоит тарелка. Мама пишет: сосед угостил.", ["угостил"], GOLD],
+    ["v08", 2.8, "На третьем пельмене зубы натыкаются на металл.", ["металл"], RED],
+    ["v09", 5.33, "Ты сплёвываешь на салфетку. В фарше блестит золотая серёжка с зелёным камнем.", ["серёжка"], GOLD],
+    ["v10", 2.8, "Точно такая же была в ушах у пропавшей соседки.", ["пропавшей"], RED],
+    ["v11", 3.92, "Правило второе: не мой улику — убери в пакет и спрячь.", ["улику"], GOLD],
+    ["v12", 2.74, "И в ту же секунду телефон на столе вибрирует.", ["вибрирует"], GOLD],
+    ["v13", 4.94, "Личка от соседа: «Дань… Ну как, счастливый пельмень попался?»", ["счастливый", "пельмень"], RED],
+    ["v14", 2.3, "Откуда он знает, что ты сел есть?!", ["знает"], RED],
+    ["v16", 4.88, "Ты смотришь в глазок. На площадке стоит он — в фартуке и с новой тарелкой.", ["он"], RED],
+    ["s17", 3.53, "Дань, открой на секунду. Я тебе не те пельмени отдал.", ["не", "те"], RED],
+    ["v18", 5.93, "Он стоит прямо за дверью. Что сделаешь? Выбирай: один или два — в комментариях.", ["один", "два"], GOLD],
+  ] as Vo[]).map((v) => [v[0], v])
+);
 
-/* ── монтаж: [начало, конец, сцена] ── */
-const SCENES: [number, number, React.FC][] = [
-  [0, 3, S1Bedroom],
-  [3, 6, S2Mom],
-  [6, 11, S3Chat],
-  [11, 15, S4Board],
-  [15, 18, S5Press],
-  [18, 23, S6Recorder],
-  [23, 26, S7Kitchen],
-  [26, 28, S8Fork],
-  [28, 32, S9Napkin],
-  [32, 35, S10Split],
-  [35, 38, S11Bag],
-  [38, 41, S12Flash],
-  [41, 45, S13DM],
-  [45, 47, S14Face],
-  [47, 50, S15Door],
-  [50, 66, S16Peephole],
+/* ── монтаж считается от длины реплик: сцена = max(минимум, вступление + реплика + хвост) ── */
+type Beat = { Scene: React.FC<any>; vo?: string; lead?: number; tail?: number; min: number; props?: (start: number) => object };
+const BEATS: Beat[] = [
+  { Scene: S1Bedroom, vo: "v01", min: 3 },
+  { Scene: S2Mom, vo: "v02", min: 3.4 },
+  { Scene: S3Chat, vo: "v03", min: 5 },
+  { Scene: S4Board, vo: "v04", min: 4 },
+  { Scene: S5Press, vo: "v05", min: 3 },
+  { Scene: S6Recorder, vo: "v06", lead: 0.9, min: 5 },
+  { Scene: S7Kitchen, vo: "v07", min: 3 },
+  { Scene: S8Fork, vo: "v08", lead: 0.3, tail: 1.1, min: 2.5, props: () => ({ hitAt: 0.3 + V.v08[1] + 0.05 }) },
+  { Scene: S9Napkin, vo: "v09", min: 4 },
+  { Scene: S10Split, vo: "v10", min: 3.2 },
+  { Scene: S11Bag, vo: "v11", min: 3 },
+  { Scene: S12Flash, vo: "v12", lead: 0.8, min: 3 },
+  { Scene: S13DM, vo: "v13", min: 4 },
+  { Scene: S14Face, vo: "v14", lead: 0.25, tail: 0.5, min: 2 },
+  { Scene: S15Door, min: 3.3 },
 ];
+const PAD_IN = 0.4;
+const PAD_OUT = 0.6;
+type Placed = { Scene: React.FC<any>; from: number; to: number; props: object };
+const VO: [string, number][] = [];
+const PLACED: Placed[] = [];
+let cursor = 0;
+for (const b of BEATS) {
+  const lead = b.lead ?? PAD_IN;
+  const len = b.vo ? Math.max(b.min, lead + V[b.vo][1] + (b.tail ?? PAD_OUT)) : b.min;
+  if (b.vo) VO.push([b.vo, cursor + lead]);
+  PLACED.push({ Scene: b.Scene, from: cursor, to: cursor + len, props: b.props?.(cursor) ?? {} });
+  cursor += len;
+}
+const at = (i: number) => PLACED[i].from;
+/* финал в глазке: реплика рассказчика → сосед → 0.5 с тишины → выбор */
+const P0 = cursor;
+const pv16 = 0.4;
+const ps17 = pv16 + V.v16[1] + 0.5;
+const pFreeze = ps17 + V.s17[1] + 0.5;
+const pv18 = pFreeze + 0.4;
+const pEnd = pv18 + V.v18[1] + 2.6;
+VO.push(["v16", P0 + pv16], ["s17", P0 + ps17], ["v18", P0 + pv18]);
+PLACED.push({ Scene: S16Peephole, from: P0, to: P0 + pEnd, props: { talkAt: ps17, talkEnd: ps17 + V.s17[1], freezeAt: pFreeze, end: pEnd } });
+const T_END = P0 + pEnd;
+export const PEL_FRAMES = Math.ceil(T_END * 30);
 
-/* ── озвучка: [файл, старт, длительность, текст субтитров, ключевые слова, цвет] ── */
-type Line = [string, number, number, string, string[], string];
-const VO: Line[] = [
-  ["v01", 0.1, 2.85, "Если в три ночи за стенкой гудит мясорубка — не стучи соседу.", ["мясорубка"], RED],
-  ["v02", 3.1, 2.77, "Мама ушла в ночную смену, ты в квартире один.", ["один"], GOLD],
-  ["v03", 6.1, 4.86, "В чате дома сосед из сорок четвёртой продаёт пельмени. Пишет — свежее парное мясо.", ["парное", "мясо"], RED],
-  ["v04", 11.15, 3.55, "А утром у лифта вешают три ориентировки: пропала старшая по подъезду.", ["пропала"], RED],
-  ["v05", 15.1, 2.85, "Правило первое: не выдавай себя — просто запиши звук.", ["запиши"], GOLD],
-  ["v06", 18.6, 4.05, "Ровно в три ноль две за стеной снова ревёт мясорубка и шуршат пакеты.", ["мясорубка"], RED],
-  ["v07", 23.1, 2.77, "Вечером на кухне стоит тарелка: мама пишет — сосед угостил.", ["угостил"], GOLD],
-  ["v08", 26.02, 1.96, "На третьем пельмене зубы натыкаются на металл.", ["металл"], RED],
-  ["v09", 28.1, 3.84, "Ты сплёвываешь на салфетку — в фарше блестит золотая серёжка с зелёным камнем.", ["серёжка"], GOLD],
-  ["v10", 32.2, 2.66, "Точно такая же была в ушах у пропавшей соседки.", ["пропавшей"], RED],
-  ["v11", 35.1, 2.85, "Правило второе: не мой улику — убери в пакет и спрячь.", ["улику"], GOLD],
-  ["v12", 38.6, 2.22, "И в ту же секунду телефон на столе вибрирует.", ["вибрирует"], GOLD],
-  ["v13", 41.1, 3.84, "Личка от соседа: «Дань, ну как, счастливый пельмень попался?»", ["счастливый", "пельмень"], RED],
-  ["v14", 45.04, 1.93, "Откуда он знает, что ты сел есть?!", ["знает"], RED],
-  ["v16", 50.3, 4.49, "Ты смотришь в глазок: на площадке стоит он — в фартуке и с новой тарелкой.", ["он"], RED],
-  ["s17", 54.94, 2.56, "Дань, открой на секунду, я тебе не те пельмени отдал.", ["не", "те"], RED],
-  ["v18", 58.4, 5.09, "Он стоит прямо за дверью. Что сделаешь? Выбирай: один или два — в комментариях.", ["один", "два"], GOLD],
-];
-const talking = (t: number) => VO.some(([, a, d]) => t > a - 0.1 && t < a + d + 0.1);
-const SILENCE: [number, number] = [57.5, 58.0];
+const talking = (t: number) => VO.some(([k, a]) => t > a - 0.1 && t < a + V[k][1] + 0.1);
+const SILENCE: [number, number] = [P0 + pFreeze - 0.5, P0 + pFreeze];
 const inSilence = (t: number) => t >= SILENCE[0] && t < SILENCE[1];
+const FINALE = P0 + pFreeze;
 
 /* ── субтитры: куски по 2–4 слова, время пропорционально длине ── */
 type Chunk = { from: number; to: number; words: string[]; keys: string[]; color: string };
 const norm = (w: string) => w.toLowerCase().replace(/[^а-яёa-z0-9]/g, "");
-const CHUNKS: Chunk[] = VO.flatMap(([, at, dur, text, keys, color]) => {
+const CHUNKS: Chunk[] = VO.flatMap(([k, at]) => {
+  const [, dur, text, keys, color] = V[k];
   const words = text.split(/\s+/).filter((w) => w !== "—");
   const groups: string[][] = [];
   for (let i = 0; i < words.length; ) {
@@ -83,7 +111,7 @@ const Subs = ({ t }: { t: number }) => {
   const c = CHUNKS.find((x) => t >= x.from && t < x.to + 0.05);
   if (!c) return null;
   const k = ez(t, c.from, c.from + 0.12);
-  const fin = t >= 58;
+  const fin = t >= FINALE;
   const top = fin ? 1300 : 1450;
   return (
     <AbsoluteFill style={{ alignItems: "center", pointerEvents: "none" }}>
@@ -102,11 +130,11 @@ const Subs = ({ t }: { t: number }) => {
 /* ── капсула-навигатор ── */
 const NAV: [number, string][] = [
   [0, "03:02 НОЧИ • КВ. 43"],
-  [6, "ДОМОВОЙ ЧАТ • КВ. 44"],
-  [15, "ПРАВИЛО №1: НЕ СТУЧИ"],
-  [28, "УЛИКА: СЕРЁЖКА"],
-  [35, "ПРАВИЛО №2: НЕ МОЙ УЛИКУ"],
-  [47, "ОН ЗА ДВЕРЬЮ"],
+  [at(2), "ДОМОВОЙ ЧАТ • КВ. 44"],
+  [at(4), "ПРАВИЛО №1: НЕ СТУЧИ"],
+  [at(8), "УЛИКА: СЕРЁЖКА"],
+  [at(10), "ПРАВИЛО №2: НЕ МОЙ УЛИКУ"],
+  [at(14), "ОН ЗА ДВЕРЬЮ"],
 ];
 const Nav = ({ t }: { t: number }) => {
   const i = NAV.reduce((acc, [a], j) => (t >= a ? j : acc), 0);
@@ -124,9 +152,9 @@ const Nav = ({ t }: { t: number }) => {
 
 /* ── мини-схема площадки: кв. 43 (ты) | кв. 44 (сосед) ── */
 const MiniMap = ({ t }: { t: number }) => {
-  const threat = (t > 18 && t < 23) || (t > 38 && t < 66);
+  const threat = (t > at(5) && t < at(6)) || t > at(11);
   const p = threat ? 0.5 + 0.5 * Math.sin(t * 12) : 0;
-  const onLanding = t > 47;
+  const onLanding = t > at(14);
   const nx = onLanding ? 112 : 190;
   const ny = onLanding ? 162 : 80;
   return (
@@ -135,7 +163,7 @@ const MiniMap = ({ t }: { t: number }) => {
         <rect x={2} y={2} width={246} height={206} rx={16} fill="rgba(8,10,14,.7)" stroke="rgba(255,255,255,.22)" strokeWidth={2} />
         <rect x={16} y={20} width={104} height={118} fill="rgba(95,208,104,.12)" stroke="#f4ead2" strokeWidth={3} />
         <rect x={130} y={20} width={104} height={118} fill={`rgba(229,38,43,${0.12 + 0.35 * p})`} stroke="#f4ead2" strokeWidth={3} />
-        <rect x={121} y={20} width={8} height={118} fill={t > 15 && t < 23 ? RED : "#8a7a66"} />
+        <rect x={121} y={20} width={8} height={118} fill={t > at(4) && t < at(6) ? RED : "#8a7a66"} />
         <rect x={16} y={146} width={218} height={46} fill="rgba(255,255,255,.06)" stroke="#f4ead2" strokeWidth={2} strokeDasharray="6 5" />
         <text x={68} y={52} textAnchor="middle" fontFamily={MONT} fontWeight={800} fontSize={17} fill="#f4ead2">КВ. 43</text>
         <text x={68} y={72} textAnchor="middle" fontFamily={MONT} fontWeight={700} fontSize={14} fill="#5fd068">(ТЫ)</text>
@@ -170,16 +198,16 @@ const Sound = () => (
   <>
     {/* фон: авто-дакинг −12 дБ под голосом, гробовая тишина 57.5–58.0 */}
     <Audio src={staticFile("audio/pelmeni/drone.mp3")} loop volume={(f) => (inSilence(f / 30) ? 0 : talking(f / 30) ? 0.32 * 0.25 : 0.32)} />
-    <Sfx at={4.4} name="pelmeni/doorclose" vol={0.45} />
-    <Sfx at={18.0} name="pelmeni/grinder" vol={(f) => (f / 30 + 18 > 18.55 ? 0.42 : 0.8)} dur={4.8} />
-    <Sfx at={26.22} name="pelmeni/crunch" vol={0.9} />
-    <Sfx at={28.1} name="pelmeni/sting" vol={0.35} dur={1.8} />
-    <Sfx at={38.1} name="dontopen/phonebuzz" vol={0.75} dur={2.0} />
-    <Sfx at={45.0} name="pelmeni/sting" vol={0.4} dur={1.8} />
-    <Sfx at={46.96} name="pelmeni/knocks3" vol={1.0} />
-    <Sfx at={58.0} name="pelmeni/sting" vol={0.6} dur={2} />
-    {VO.map(([k, at]) => (
-      <Sfx key={k} at={at} name={`pelmeni/${k}`} vol={1.15} />
+    <Sfx at={at(1) + 1.4} name="pelmeni/doorclose" vol={0.45} />
+    <Sfx at={at(5)} name="pelmeni/grinder" vol={(f) => (f / 30 > 0.8 ? 0.42 : 0.8)} dur={PLACED[5].to - at(5)} loop />
+    <Sfx at={at(7) + 0.3 + V.v08[1] + 0.05 - 0.78} name="pelmeni/crunch" vol={0.9} />
+    <Sfx at={at(8)} name="pelmeni/sting" vol={0.35} dur={1.8} />
+    <Sfx at={at(11) + 0.1} name="dontopen/phonebuzz" vol={0.75} dur={2.0} />
+    <Sfx at={at(13)} name="pelmeni/sting" vol={0.4} dur={1.8} />
+    <Sfx at={at(14) - 0.04} name="pelmeni/knocks3" vol={1.0} />
+    <Sfx at={FINALE} name="pelmeni/sting" vol={0.6} dur={2} />
+    {VO.map(([k, a]) => (
+      <Sfx key={k} at={a} name={`pelmeni/${k}`} vol={1.15} />
     ))}
   </>
 );
@@ -190,9 +218,11 @@ export const Pelmeni43 = () => {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <Sound />
-      {SCENES.map(([a, b, Scene], i) => (
-        <Sequence key={i} from={Math.round(a * 30)} durationInFrames={Math.round((b - a) * 30)}>
-          <Scene />
+      {PLACED.map(({ Scene, from, to, props }, i) => (
+        <Sequence key={i} from={Math.round(from * 30)} durationInFrames={Math.round(to * 30) - Math.round(from * 30)}>
+          <DurCtx.Provider value={to - from}>
+            <Scene {...props} />
+          </DurCtx.Provider>
         </Sequence>
       ))}
       <Film f={f} />

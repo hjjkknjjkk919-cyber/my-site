@@ -9,7 +9,61 @@ export const GOLD = "#f2b632";
 export const PAPER = "#efe6d2";
 export const SKIN = "#e9b994";
 export const SKIN_SH = "#c98d6c";
-export const OL = { stroke: INK, strokeWidth: 7, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
+export const OL = { stroke: INK, strokeWidth: 7, strokeLinejoin: "round" as const, strokeLinecap: "round" as const, filter: "url(#pk-sh)" };
+
+/** Длительность текущей сцены (сек) — задаётся монтажом. */
+export const DurCtx = React.createContext(3);
+
+/** Общие фильтры: мягкая тень под объектами, бумажная фактура. */
+export const KitDefs = () => (
+  <defs>
+    <filter id="pk-sh" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="10" floodColor="#000" floodOpacity="0.45" />
+    </filter>
+    <filter id="pk-tex" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves={4} seed={7} />
+      <feColorMatrix type="matrix" values="0 0 0 0 0.5  0 0 0 0 0.45  0 0 0 0 0.4  0 0 0 1.4 -0.45" />
+    </filter>
+    <filter id="pk-blur">
+      <feGaussianBlur stdDeviation="6" />
+    </filter>
+  </defs>
+);
+
+export type Light = { x: number; y: number; color: string; r?: number; o?: number; rays?: boolean };
+
+/** Световой проход: тёплый/холодный ореол, лучи, пыль в луче, затемнение углов. */
+const LightPass = ({ l, t, id }: { l: Light; t: number; id: string }) => {
+  const r = l.r ?? 900;
+  const o = (l.o ?? 0.55) * (0.94 + 0.06 * Math.sin(t * 2.3));
+  return (
+    <g style={{ pointerEvents: "none" }}>
+      <defs>
+        <radialGradient id={`${id}-l`} cx={l.x} cy={l.y} r={r} gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor={l.color} stopOpacity={o} />
+          <stop offset="45%" stopColor={l.color} stopOpacity={o * 0.35} />
+          <stop offset="100%" stopColor={l.color} stopOpacity={0} />
+        </radialGradient>
+        <radialGradient id={`${id}-d`} cx={l.x} cy={l.y} r={r * 1.5} gradientUnits="userSpaceOnUse">
+          <stop offset="35%" stopColor="#000" stopOpacity={0} />
+          <stop offset="100%" stopColor="#000" stopOpacity={0.7} />
+        </radialGradient>
+      </defs>
+      <rect width={1080} height={1920} fill={`url(#${id}-d)`} />
+      <rect width={1080} height={1920} fill={`url(#${id}-l)`} style={{ mixBlendMode: "screen" }} />
+      {l.rays &&
+        [-0.5, -0.2, 0.15, 0.45].map((a, i) => (
+          <path key={i} d={`M${l.x} ${l.y} L${l.x + Math.sin(a - 0.06) * 2400} ${l.y + Math.cos(a - 0.06) * 2400} L${l.x + Math.sin(a + 0.06) * 2400} ${l.y + Math.cos(a + 0.06) * 2400} Z`} fill={l.color} opacity={0.05 + 0.03 * Math.sin(t * 1.3 + i)} filter="url(#pk-blur)" style={{ mixBlendMode: "screen" }} />
+        ))}
+      {Array.from({ length: 26 }, (_, i) => {
+        const px = l.x + Math.sin(i * 12.9) * r * 0.6 + Math.sin(t * 0.4 + i) * 30;
+        const py = l.y + Math.cos(i * 7.3) * r * 0.6 - ((t * 18 + i * 37) % 120);
+        return <circle key={i} cx={px} cy={py} r={1.5 + (i % 3)} fill="#fff" opacity={0.25 + 0.2 * Math.sin(t * 3 + i)} />;
+      })}
+      <rect width={1080} height={1920} filter="url(#pk-tex)" opacity={0.55} style={{ mixBlendMode: "multiply" }} />
+    </g>
+  );
+};
 
 const BZ = Easing.bezier(0.22, 1, 0.36, 1);
 /** Плавная интерполяция t∈[a,b] → [from,to] с кривой (0.22, 1, 0.36, 1). */
@@ -27,14 +81,20 @@ export const useSpr = (at: number, damping = 14, stiffness = 120) => {
 };
 
 /** Полотно сцены 1080×1920 с медленным наездом камеры. */
-export const Stage = ({ bg, zoom = [1, 1.06], dur, origin = [540, 960], children }: { bg: string; zoom?: [number, number]; dur: number; origin?: [number, number]; children: React.ReactNode }) => {
+export const Stage = ({ bg, zoom = [1, 1.06], origin = [540, 960], light, children }: { bg: string; zoom?: [number, number]; dur?: number; origin?: [number, number]; light?: Light; children: React.ReactNode }) => {
   const t = useLT();
+  const dur = React.useContext(DurCtx);
+  const id = React.useId().replace(/:/g, "");
   const s = ez(t, 0, dur, zoom[0], zoom[1]);
   const [ox, oy] = origin;
   return (
     <AbsoluteFill style={{ background: bg }}>
       <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
-        <g transform={`translate(${ox} ${oy}) scale(${s}) translate(${-ox} ${-oy})`}>{children}</g>
+        <KitDefs />
+        <g transform={`translate(${ox} ${oy}) scale(${s}) translate(${-ox} ${-oy})`}>
+          {children}
+          {light && <LightPass l={light} t={t} id={id} />}
+        </g>
       </svg>
     </AbsoluteFill>
   );
@@ -133,11 +193,24 @@ export const ChatHeader = ({ w, title, sub, avatar, color }: { w: number; title:
 export const Hand = ({ x, y, s = 1, rot = 0, sleeve = "#3b4250" }: { x: number; y: number; s?: number; rot?: number; sleeve?: string }) => (
   <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
     <path d="M-95 260 L-85 120 L85 120 L95 260 Z" fill={sleeve} {...OL} />
+    <path d="M-85 130 L85 130 L87 152 L-87 152 Z" fill="#000" opacity={0.25} />
+    {[-60, -30, 0, 30, 60].map((rx) => <path key={rx} d={`M${rx} 160 l4 90`} stroke="#000" strokeWidth={3} opacity={0.25} />)}
     <path d="M-80 130 C-95 60 -90 0 -70 -30 L70 -30 C92 0 95 60 80 130 Z" fill={SKIN} {...OL} />
-    {[-52, -18, 16, 50].map((fx, i) => (
-      <rect key={i} x={fx - 15} y={-120 + Math.abs(i - 1.5) * 14} width={30} height={110} rx={15} fill={SKIN} {...OL} strokeWidth={6} />
-    ))}
+    <path d="M40 -20 C70 10 76 80 70 126 L80 130 C95 60 92 0 70 -30 Z" fill={SKIN_SH} opacity={0.8} />
+    {[-52, -18, 16, 50].map((fx, i) => {
+      const top = -120 + Math.abs(i - 1.5) * 14;
+      return (
+        <g key={i}>
+          <rect x={fx - 15} y={top} width={30} height={110} rx={15} fill={SKIN} {...OL} strokeWidth={6} />
+          <rect x={fx + 4} y={top + 6} width={8} height={96} rx={4} fill={SKIN_SH} opacity={0.6} />
+          <rect x={fx - 9} y={top + 4} width={18} height={22} rx={8} fill="#f6d9c6" stroke="#b98b72" strokeWidth={2} />
+          <path d={`M${fx - 9} ${top + 52} q9 5 18 0 M${fx - 8} ${top + 80} q8 4 16 0`} stroke="#a8735c" strokeWidth={2.5} fill="none" />
+        </g>
+      );
+    })}
     <path d="M-78 70 C-120 40 -132 0 -118 -24 C-104 -36 -84 -20 -76 6 Z" fill={SKIN} {...OL} strokeWidth={6} />
+    <path d="M-120 -16 q8 -10 18 -4 l-4 14 q-8 2 -14 -10 Z" fill="#f6d9c6" stroke="#b98b72" strokeWidth={2} />
+    <path d="M-40 60 C-10 80 20 80 50 60" stroke="#a8735c" strokeWidth={3} fill="none" opacity={0.7} />
   </g>
 );
 
