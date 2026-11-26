@@ -58,7 +58,7 @@ export const S1Hook = ({ ovalAt, yawnAt }: { ovalAt: number; yawnAt: number }) =
       <Backlight x={860} y={900} r={560} o={0.45} />
       <Wardrobe x={760} w={400} />
       <Nuance x={880 - out * 20} y={FLOOR_Y} s={0.9} t={t} pose={{ armL: nuanceReach(-1, 760, 1040, 860, FLOOR_Y, 0.9), armR: nuanceReach(1, 1000, 1040, 860, FLOOR_Y, 0.9), head: 6, mouth: 0.3 }} />
-      <Dima x={300} y={DY} s={DS} t={t} pose={{ armR: dimaReach(1, 430, 1250, 300, DY, DS), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 180, 1310, 300, DY, DS), itemL: <PhoneItem t={t} mode="avito" />, head: 4, look: -0.1, yawn: ez(t, yawnAt, yawnAt + 0.4) * (1 - ez(t, yawnAt + 1.2, yawnAt + 1.6)) }} />
+      <Dima x={300} y={DY} s={DS} t={t} pose={{ armR: dimaReach(1, 480, 1270, 300, DY, DS), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 130, 1300, 300, DY, DS), itemL: <PhoneItem t={t} mode="avito" />, head: 4, look: -0.1, yawn: ez(t, yawnAt, yawnAt + 0.4) * (1 - ez(t, yawnAt + 1.2, yawnAt + 1.6)) }} />
       <g transform="translate(430 330) scale(0.78) translate(-540 -330)">
         <AvitoCard x={540} y={330} k={card} oval={ez(t, ovalAt, ovalAt + 0.8)} />
       </g>
@@ -82,14 +82,14 @@ export const S2Voice = ({ cut1, cut2 }: { cut1: number; cut2: number }) => {
     const lunge = ez(t, 0, cut1, 0, 1);
     // когти на камеру: кисти перед грудью, пальцы веером вверх-наружу
     const claw = (side: -1 | 1, tx: number, ty: number) => {
-      const p = nuanceReach(side, tx, ty, 540, 2785, 1.9);
+      const p = nuanceReach(side, tx, ty, 540, 2300, 1.3);
       return { ...p, wr: 180 + side * 25 - (p.sh + p.el) };
     };
     return (
       <Shot to={cut1} origin={[540, 900]} bg="#0c0d10">
         {bg}
         <Backlight x={540} y={700} r={760} o={0.5} />
-        <Nuance x={540} y={2785} s={1.9} t={t} pose={{ armL: claw(-1, 300 + lunge * 20, 1330 - lunge * 40), armR: claw(1, 780 - lunge * 20, 1330 - lunge * 40), hand: 1.6 + lunge * 0.4, head: -4, mouth: 1 }} />
+        <Nuance x={540} y={2300} s={1.3 + lunge * 0.08} t={t} pose={{ armL: claw(-1, 140 + lunge * 20, 1480 - lunge * 60), armR: claw(1, 940 - lunge * 20, 1480 - lunge * 60), hand: 2.0 + lunge * 0.4, head: -4, mouth: 1 }} />
       </Shot>
     );
   }
@@ -138,11 +138,11 @@ export const S3Recruit = ({ chatEnd, handAt }: { chatEnd: number; handAt: number
   const h2 = handoff(t, handAt + 1.1);
   // перфоратор: правая кисть Димы ↔ левая лапа Нюанса
   const m1: [number, number] = [560, 1320];
-  const dR = lerp(lerp([390, 1480], m1, h1.go), [390, 1480], h1.done ? h1.back : 0);
-  const nL = lerp(lerp([700, 1500], [m1[0] + 64, m1[1] - 6], h1.go), [690, 1430], h1.done ? h1.back : 0);
+  const dR = lerp(lerp([460, 1480], m1, h1.go), [470, 1520], h1.done ? h1.back : 0);
+  const nL = lerp(lerp([700, 1500], [m1[0] + 64, m1[1] - 6], h1.go), [640, 900], h1.done ? h1.back : 0);
   // уровень: левая кисть Димы ↔ правая лапа Нюанса
-  const m2: [number, number] = [520, 1170];
-  const dL = lerp(lerp([130, 1460], m2, h2.go), [180, 1480], h2.done ? h2.back : 0);
+  const m2: [number, number] = [400, 1180];
+  const dL = lerp(lerp([110, 1460], m2, h2.go), [110, 1460], h2.done ? h2.back : 0);
   const nR = lerp(lerp([1000, 1500], [m2[0] + 70, m2[1] - 6], h2.go), [1010, 1400], h2.done ? h2.back : 0);
   const drill = (
     <g transform="rotate(-90)">
@@ -206,7 +206,7 @@ export const S4Shelf = ({ drillOn, drillOff, fixAt }: { drillOn: number; drillOf
           ),
         }}
       />
-      <Dima x={860} y={DY} s={1.7} t={t} pose={{ lean: 3, armL: dimaReach(-1, 700, 980, 860, DY, 1.7), pointL: true, armR: dimaReach(1, 930, 1350, 860, DY, 1.7), itemR: <Mug t={t} steam />, head: -4 }} />
+      <Dima x={860} y={DY} s={1.7} t={t} pose={{ lean: 3, armL: dimaReach(-1, 600, 1110, 860, DY, 1.7), pointL: true, armR: dimaReach(1, 930, 1350, 860, DY, 1.7), itemR: <Mug t={t} steam />, head: -4 }} />
       {on && <text x={70 + Math.sin(t * 70) * 5} y={470 + Math.cos(t * 60) * 4} fontFamily={MONT} fontWeight={900} fontSize={72} fill="#fff" stroke={LINE} strokeWidth={8} paintOrder="stroke" transform="rotate(-8 70 470)">ВЖЖЖ!</text>}
     </Shot>
   );

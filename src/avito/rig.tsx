@@ -478,8 +478,13 @@ export const ik = (sx: number, sy: number, tx: number, ty: number, up: number, f
   const b = Math.acos((up * up + fo * fo - D * D) / (2 * up * fo)) * deg;
   const pick = (k: number) => ({ sh: base + k * a, el: -k * (180 - b) });
   if (bend !== 0) return pick(bend);
-  const ey = (k: number) => Math.cos(((base + k * a) * Math.PI) / 180);
-  return pick(ey(1) >= ey(-1) ? 1 : -1);
+  // локоть вниз и наружу от корпуса: не выворачивается к спине и не перекрещивает руки
+  const side = Math.sign(sx) || 1;
+  const score = (k: number) => {
+    const r = ((base + k * a) * Math.PI) / 180;
+    return Math.cos(r) + 0.8 * side * -Math.sin(r);
+  };
+  return pick(score(1) >= score(-1) ? 1 : -1);
 };
 /** Рука Нюанса к точке кадра (wx,wy). */
 export const nuanceReach = (side: -1 | 1, wx: number, wy: number, x: number, y: number, s: number, crouch = 0, _bend = 0) =>
