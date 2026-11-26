@@ -38,8 +38,8 @@ FONT = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
 PLAYER_CLIENTS = ["tv_embedded,web_embedded", "ios,mweb", "android_vr,tv"]
 PIPED_MIRRORS = ["pipedapi.kavin.rocks", "pipedapi.adminforge.de", "api.piped.private.coffee"]
 QUERIES = {
-    "ru": ["страшилки анимация", "правила выживания анимация", "pov анимация озвучка",
-           "смешная анимация озвучка", "почему нельзя анимация", "а что если я анимация"],
+    "ru": ["выжить 3 дня с бабайкой", "выжить 3 ночи анимация", "страшная 3d анимация",
+           "правила выживания анимация", "почему нельзя анимация", "а что если я анимация"],
     "en": ["animation storytime shorts", "rules horror animation", "pov animation funny",
            "what if animation shorts"],
 }
@@ -85,19 +85,43 @@ def age_days(published: str) -> int | None:
 
 # ---------- поиск и метаданные ----------
 
+def walk_lockups(node, out: list[dict]) -> None:
+    """Настоящие Shorts из обычной выдачи (shortsLockupViewModel): id, название, просмотры."""
+    if isinstance(node, dict):
+        vm = node.get("shortsLockupViewModel")
+        if isinstance(vm, dict):
+            vid = vm.get("onTap", {}).get("innertubeCommand", {}).get("reelWatchEndpoint", {}).get("videoId")
+            ov = vm.get("overlayMetadata", {})
+            if vid:
+                out.append({"id": vid, "title": ov.get("primaryText", {}).get("content", ""), "sec": 0,
+                            "views": num(ov.get("secondaryText", {}).get("content", "")), "channel": "", "published": ""})
+        for v in node.values():
+            walk_lockups(v, out)
+    elif isinstance(node, list):
+        for v in node:
+            walk_lockups(v, out)
+
+
 def search(queries: list[str], min_views: int, max_age: int) -> list[dict]:
     seen, out = set(), []
     for q in queries:
         found: list[dict] = []
         walk(json_after(get(f"{YT}/results?search_query={urllib.parse.quote(q)}&sp={SHORT_VIDEO_FILTER}"), "ytInitialData"), found)
+        walk_lockups(json_after(get(f"{YT}/results?search_query={urllib.parse.quote(q)}"), "ytInitialData"), found)
         for f in found:
             age = age_days(f.get("published", ""))
-            if f["id"] in seen or not (15 <= f["sec"] <= 95) or f["views"] < min_views or (age is not None and age > max_age):
+            if f["id"] in seen or (f["sec"] and not 15 <= f["sec"] <= 95) or f["views"] < min_views or (age is not None and age > max_age):
                 continue
             seen.add(f["id"])
-            f.update(query=q, age_days=age, views_per_day=round(f["views"] / max(age or 1, 1)))
+            f.update(query=q, age_days=age, views_per_day=round(f["views"] / (age or 30)))
             out.append(f)
     return sorted(out, key=lambda x: x["views_per_day"], reverse=True)
+
+
+def is_vertical(path: Path) -> bool:
+    _, out, _ = run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", str(path)], 30)
+    w, _, h = out.strip().partition(",")
+    return w.isdigit() and h.isdigit() and int(h) > int(w)
 
 
 def channel_meta(vid: str, cache: dict) -> dict:
@@ -300,10 +324,11 @@ def cmd_learn(a) -> None:
         old.unlink()
     cands = search(a.queries or QUERIES[a.lang], a.min_views, a.max_age)
     batch, wins, fails, sub_cache = [], {}, 0, {}
-    blocked = False
-    for i, c in enumerate(cands[: a.top]):
-        item = {**c, "url": f"{YT}/shorts/{c['id']}", **channel_meta(c["id"], sub_cache), **engagement(c["id"], 5)}
-        item["viral_ratio"] = round(item["views"] / max(item["subs"], 200), 1)
+    blocked, studied = False, 0
+    for c in cands[: a.top * 3]:
+        if studied >= a.top or (blocked and len(batch) >= a.top):
+            break
+        item = {**c, "url": f"{YT}/shorts/{c['id']}"}
         if blocked:
             item["download"] = "skipped (все методы заблокированы на предыдущих роликах)"
         else:
@@ -313,14 +338,21 @@ def cmd_learn(a) -> None:
                 item["download"] = method or "failed"
                 if errors and not path:
                     item["download_errors"] = errors
+                if path and not is_vertical(path):
+                    print(f"    горизонтальное, пропуск | {c['title'][:55]}")
+                    continue
                 if path:
-                    item.update(analyze(path, work, OUT / f"storyboard_{i + 1:02d}_{c['id']}.jpg", None, a.model))
+                    studied += 1
+                    item.update(analyze(path, work, OUT / f"storyboard_{studied:02d}_{c['id']}.jpg", None, a.model))
+                    item["sec"] = item["sec"] or round(item["duration_sec"])
                     wins[method] = wins.get(method, 0) + 1
                 else:
                     fails += 1
             blocked = not wins and fails >= 2
+        item.update(channel_meta(c["id"], sub_cache), **engagement(c["id"], 5))
+        item["viral_ratio"] = round(item["views"] / max(item["subs"], 200), 1)
         batch.append(item)
-        print(f"{i + 1:>2}. {item['download'][:22]:<22} {item['sec']:>3}с {item['views']:>9} | {item['title'][:55]}")
+        print(f"{len(batch):>2}. {item['download'][:22]:<22} {item['sec']:>3}с {item['views']:>9} | {item['title'][:55]}")
 
     (OUT / "study_batch.json").write_text(json.dumps(batch, ensure_ascii=False, indent=2), encoding="utf-8")
     ok = sum(wins.values())
