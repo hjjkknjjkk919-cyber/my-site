@@ -209,16 +209,17 @@ export const S3Shift = ({ vpnFrom, blockAt, toggleAt, doorFrom }: { vpnFrom: num
     const on = ez(t, toggleAt, toggleAt + 0.35);
     const ring = ez(t, toggleAt + 0.1, toggleAt + 1.0);
     const play = t > toggleAt + 0.9;
+    const ad = ez(t, vpnFrom + 0.2, vpnFrom + 0.6);
     const glow = play ? "#7CFFB2" : blocked ? "#ff5a5a" : "#9fc4ff";
     return (
-      <Shot from={vpnFrom} to={doorFrom} origin={[540, 900]} zoom={[1, 1.06]} bg="#07080c">
+      <Shot from={vpnFrom} to={doorFrom} origin={[540, 900]} zoom={[1, 1]} bg="#07080c">
         <rect width={1080} height={1920} fill="#0b0d12" />
         {Array.from({ length: 30 }, (_, i) => <circle key={i} cx={(i * 137) % 1080} cy={(i * 251 + lt * 40) % 1600} r={2 + (i % 3)} fill="#fff" opacity={0.12} />)}
         <g opacity={0.9}>
           <NuansV2 x={330} y={2700} s={1.5} t={t} amp={0} pose={{ apron: true, armL: { sh: 4, el: 2 }, armR: { sh: -4, el: -2 }, head: 14, happy: play ? 1 : 0, guilty: blocked && !play ? 1 : 0 }} />
         </g>
         <Glow x={560} y={900} r={620} color={glow} o={0.45} />
-        <g transform="translate(560 1020) scale(2.2)">
+        <g transform="translate(560 1290) scale(1.35)">
           <ClawHand x={0} y={0} grip={1} dir={1} size={1} item={
             <g transform="translate(0 -160)">
               <rect x={-120} y={-230} width={240} height={460} rx={30} fill="#111318" {...OUT} />
@@ -253,13 +254,28 @@ export const S3Shift = ({ vpnFrom, blockAt, toggleAt, doorFrom }: { vpnFrom: num
             </g>
           } />
         </g>
-        {/* карточка интеграции в верхней безопасной зоне */}
-        <g opacity={on} transform={`translate(470 ${300 - (1 - on) * 40})`}>
-          <rect x={-380} y={-90} width={760} height={180} rx={28} fill="rgba(10,20,16,.92)" stroke="#7CFFB2" strokeWidth={4} />
-          <path d="M-300 -40 l40 -16 l40 16 v30 c0 30 -20 46 -40 56 c-20 -10 -40 -26 -40 -56 Z" fill="#2fbf71" {...OUT} />
-          <path d="M-280 4 l14 14 l28 -30" stroke="#fff" strokeWidth={7} fill="none" strokeLinecap="round" />
-          <text x={-190} y={-12} fontFamily={MONT} fontWeight={900} fontSize={46} fill="#fff">{VPN_NAME}</text>
-          <text x={-190} y={44} fontFamily={MONT} fontWeight={800} fontSize={30} fill="#7CFFB2">{VPN_PROMO}</text>
+        {/* рекламный блок = 25% кадра: 855×606 в безопасной зоне (x 70–925, y 150–756) */}
+        <g opacity={ad} transform={`translate(0 ${(1 - ad) * -40})`}>
+          <defs>
+            <linearGradient id="vpnbg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#0c2a1e" />
+              <stop offset="100%" stopColor="#06110d" />
+            </linearGradient>
+          </defs>
+          <rect x={70} y={150} width={855} height={606} rx={44} fill="url(#vpnbg)" stroke={on > 0.5 ? "#7CFFB2" : "#3a4a44"} strokeWidth={6} />
+          <circle cx={240} cy={330} r={110 + ring * 60} fill="#7CFFB2" opacity={0.12 + 0.2 * on} />
+          <path d="M240 230 l90 36 v70 c0 70 -46 106 -90 128 c-44 -22 -90 -58 -90 -128 v-70 Z" fill={on > 0.5 ? "#2fbf71" : "#4a5a54"} stroke="#0c0a0e" strokeWidth={6} strokeLinejoin="round" />
+          {on > 0.5 ? <path d="M196 346 l32 32 l62 -70" stroke="#fff" strokeWidth={16} fill="none" strokeLinecap="round" strokeLinejoin="round" /> : <rect x={214} y={320} width={52} height={44} rx={8} fill="#c9ccd2" />}
+          <text x={390} y={300} fontFamily={MONT} fontWeight={900} fontSize={78} fill="#fff">{VPN_NAME}</text>
+          <text x={390} y={350} fontFamily={MONT} fontWeight={800} fontSize={30} fill="#b9d6c8">Открывает всё. Даже</text>
+          <text x={390} y={388} fontFamily={MONT} fontWeight={800} fontSize={30} fill="#b9d6c8">туториалы для демонов</text>
+          {/* большой переключатель */}
+          <rect x={390} y={420} width={170} height={84} rx={42} fill={on > 0.5 ? "#2fbf71" : "#4a4f5e"} stroke="#0c0a0e" strokeWidth={5} />
+          <circle cx={432 + on * 86} cy={462} r={34} fill="#fff" />
+          <text x={580} y={474} fontFamily={MONT} fontWeight={900} fontSize={34} fill={on > 0.5 ? "#7CFFB2" : "#9aa0a8"}>{on > 0.5 ? "ПОДКЛЮЧЕНО" : "ОТКЛЮЧЕНО"}</text>
+          <rect x={110} y={560} width={775} height={150} rx={28} fill="#7CFFB2" />
+          <text x={497} y={630} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={52} fill="#06110d">{VPN_PROMO}</text>
+          <text x={497} y={684} textAnchor="middle" fontFamily={MONT} fontWeight={800} fontSize={30} fill="#0c2a1e">ссылка и скидка — в описании</text>
         </g>
       </Shot>
     );
