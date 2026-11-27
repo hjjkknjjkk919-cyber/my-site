@@ -166,7 +166,7 @@ export const KidBack = ({ x, y, s = 1, hood, flash, t }: { x: number; y: number;
 /** Админ квеста за стойкой: голова, торс, руки-кости протягивают пачку купюр. */
 export const Admin = ({ x, y, t, give, amp }: { x: number; y: number; t: number; give: number; amp: number }) => {
   const shake = Math.sin(t * 50) * 2;
-  const pose = { sh: -60 - give * 30, el: -40 + give * 30, wr: 0 };
+  const pose = { sh: -6 - give * 26, el: -8 - give * 4, wr: 0 };
   const hand = (wx: number, wy: number) => (
     <GripHand x={wx} y={wy} itemRot={-(pose.sh + pose.el)} item={<g transform="scale(0.8)">{[0, 1, 2].map((i) => <rect key={i} x={-40} y={-20 + i * 6} width={80} height={44} rx={4} fill="#F472B6" {...OUT} />)}<text x={0} y={14} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={16} fill="#831843">5000 ₽</text></g>} />
   );
@@ -182,6 +182,52 @@ export const Admin = ({ x, y, t, give, amp }: { x: number; y: number; t: number;
       <ellipse cx={0} cy={-284} rx={14} ry={3 + amp * 14} fill="#3B0D11" {...OUT} />
       <Arm sx={70} sy={-210} up={110} fo={100} w={24} color="#2b2f3a" pose={pose} pass="out" hand={hand} />
       <Arm sx={70} sy={-210} up={110} fo={100} w={24} color="#2b2f3a" pose={pose} pass="fill" hand={hand} />
+    </g>
+  );
+};
+
+/** Подросток 2D в худи и кепке: лицо, руки-кости, смартфон со вспышкой. dir 1 — смотрит вправо. run 0..1 — бежит (шаги + наклон). */
+export const Teen = ({ x, y, s = 1, t, hoodie, cap, flash = 0, dir = 1, run = 0, phoneUp = 1 }: { x: number; y: number; s?: number; t: number; hoodie: string; cap: string; flash?: number; dir?: number; run?: number; phoneUp?: number }) => {
+  const step = run > 0 ? Math.sin(t * 16) * 28 * run : 0;
+  const armUp = { sh: (110 + Math.sin(t * 2 + x) * 3) * phoneUp + (1 - phoneUp) * 20, el: -20 * phoneUp, wr: 0 };
+  const armDown = { sh: -8 + (run > 0 ? -step * 0.8 : 0), el: -14, wr: 0 };
+  const phone = (
+    <g transform="translate(0 -30)">
+      <rect x={-26} y={-52} width={52} height={96} rx={9} fill="#16181d" {...OUT} />
+      <circle cx={-10} cy={-36} r={6} fill="#333" />
+      <circle cx={8} cy={-36} r={5} fill={flash > 0 ? "#fff" : "#999"} />
+      {flash > 0 && <circle cx={8} cy={-36} r={80 * flash} fill="#fff" opacity={0.5 * flash} />}
+    </g>
+  );
+  const hand = (wx: number, wy: number) => <GripHand x={wx} y={wy} item={phone} itemRot={-(armUp.sh + armUp.el)} />;
+  const empty = (wx: number, wy: number) => <GripHand x={wx} y={wy} />;
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s * dir} ${s}) rotate(${run * 10})`}>
+      <ellipse cx={0} cy={0} rx={80} ry={12} fill="#000" opacity={0.35} />
+      {/* ноги: джинсы и кроссовки */}
+      {[-1, 1].map((d) => (
+        <g key={d} transform={`rotate(${d * step} 0 -300)`}>
+          <path d={`M${d * 22} -300 L${d * 26} -20`} stroke={LINE} strokeWidth={42} strokeLinecap="round" />
+          <path d={`M${d * 22} -300 L${d * 26} -20`} stroke="#3d5a80" strokeWidth={36} strokeLinecap="round" />
+          <path d={`M${d * 26 - 24} 0 C${d * 26 - 24} -26 ${d * 26 + 30} -30 ${d * 26 + 40} 0 Z`} fill="#f1f1f1" {...OUT} />
+        </g>
+      ))}
+      <Arm sx={-52} sy={-520} up={120} fo={110} w={26} color={hoodie} pose={armDown} pass="out" hand={empty} />
+      <Arm sx={-52} sy={-520} up={120} fo={110} w={26} color={hoodie} pose={armDown} pass="fill" hand={empty} />
+      {/* худи */}
+      <path d="M-74 -290 C-86 -420 -80 -520 -62 -548 C-40 -572 40 -572 62 -548 C80 -520 86 -420 74 -290 Z" fill={hoodie} {...OUT} />
+      <path d="M-40 -400 h80 v50 h-80 Z" fill="#000" opacity={0.15} />
+      <path d="M-20 -548 l6 60 M20 -548 l-6 60" stroke="#f1f1f1" strokeWidth={4} />
+      {/* голова и кепка */}
+      <rect x={-14} y={-590} width={28} height={40} fill={SKIN} {...OUT} />
+      <ellipse cx={0} cy={-640} rx={54} ry={60} fill={SKIN} {...OUT} />
+      <circle cx={14} cy={-646} r={5} fill="#151214" />
+      <circle cx={-14} cy={-646} r={5} fill="#151214" />
+      <path d="M-8 -610 q10 -2 20 1" stroke={LINE} strokeWidth={3} fill="none" />
+      <path d="M-56 -660 C-56 -716 56 -716 56 -660 Z" fill={cap} {...OUT} />
+      <path d="M40 -664 L104 -664 C104 -650 60 -648 40 -652 Z" fill={cap} {...OUT} />
+      <Arm sx={52} sy={-520} up={120} fo={110} w={26} color={hoodie} pose={run > 0 ? { sh: step * 0.8, el: -30 } : armUp} pass="out" hand={run > 0 ? empty : hand} />
+      <Arm sx={52} sy={-520} up={120} fo={110} w={26} color={hoodie} pose={run > 0 ? { sh: step * 0.8, el: -30 } : armUp} pass="fill" hand={run > 0 ? empty : hand} />
     </g>
   );
 };

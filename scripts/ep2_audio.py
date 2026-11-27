@@ -16,16 +16,16 @@ V = {"dima": "kwajW3Xh5svCeKU5ky2S", "nuance": "PRfCKe8kdrG3nuXOAnoH", "mom": "F
 
 LINES = [
     ("l01", "dima", "[tired, sarcastic] Купил, блядь, у Валеры диван с сюрпризом. Сюрприз — мама моего демона. И через пять минут у меня в хате начался полный пиздец."),
-    ("l02", "mom", "[shouting, commanding] Триста лет балбесу, а он всё по шкафам шкерится! Полка кривая, свет жжёшь, за хату не платишь — пиздуй работать!"),
-    ("l03", "nuance", "[embarrassed, panicking] Мам, блядь, ну не при Диме! Я древнее зло, какой нахер работать?"),
+    ("l02", "mom", "[grumpy, nagging, fast, loud] Триста лет балбесу, а он всё по шкафам шкерится! Полка кривая, свет жжёшь, за хату не платишь — пиздуй работать!"),
+    ("l03", "nuance", "[panicking, whining, fast] Мам, блядь, ну не при Диме же! Я древнее зло, какой нахер работать?!"),
     ("l04", "dima", "[calm, deadpan] Не-не, продолжайте. Коммуналку теперь на троих пилим."),
     ("l05", "dima", "[dry, sarcastic] Короче, собрали князя тьмы как в первый класс: бутерброд в фольгу и вакансию в хоррор-квест."),
     ("l05b", "dima", "[dry, sarcastic] Правда, туториал «как пугать людей» у него не грузился — заблокировано. Ну я включил ВПН — и князь тьмы снова в теме."),
     ("l06", "dima", "[deadpan] Слышь, инфернальный, только хату не позорь."),
-    ("l07", "nuance", "[confident, smug] Дима, расслабься. У меня три века стажа, они там обосрутся."),
+    ("l07", "nuance", "[smug, fast] Дима, расслабься. У меня три века стажа, они там обосрутся."),
     ("l08", "kid", "[bored, yawning] Чё за хуйня, пацаны? Смотри, какой-то дед в колготках сутулится. Ставлю одну звезду."),
-    ("l09", "nuance", "[trembling, sad] Они назвали меня сутулой шваброй, Дима... Я разучился пугать людей, блядь."),
-    ("l10", "admin", "[stuttering, ecstatic] Б-боже... Вот это психология! Вы приняты, аванс сразу!"),
+    ("l09", "nuance", "[whining, crying, panicking] Они назвали меня сутулой шваброй, Дима... Я разучился пугать людей, блядь!"),
+    ("l10", "admin", "[terrified, ecstatic, breathless, stuttering] Б-б-боже... Вот это психология! Вы приняты, аванс сразу!"),
     ("l11", "dima", "[deadpan, tired] Да я вообще-то за этим долбоёбом зашёл."),
     ("l12", "dima", "[dry, satisfied] Короче, за свет закрыл я. Валере ставлю пять звёзд. Шесть — если заберёт маму."),
 ]
@@ -68,7 +68,7 @@ def post(url: str, body: dict, dest: Path) -> None:
 def tts(item):
     name, who, text = item
     raw = OUT / f"{name}_raw.mp3"
-    post(f"{API}/text-to-speech/{V[who]}?output_format=mp3_44100_128", {"text": text, "model_id": "eleven_v3", "voice_settings": {"stability": 0.5}}, raw)
+    post(f"{API}/text-to-speech/{V[who]}?output_format=mp3_44100_128", {"text": text, "model_id": "eleven_v3", "voice_settings": {"stability": 0.0 if who != "dima" else 0.5}}, raw)
     # обрезаем тишину в начале и конце, громкость выравниваем
     af = "silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,loudnorm=I=-16:TP=-1.5"
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-af", af, "-ar", "44100", "-b:a", "160k", str(OUT / f"{name}.mp3")], check=True)

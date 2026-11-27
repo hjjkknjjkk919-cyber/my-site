@@ -10,19 +10,15 @@ import { speechEnergy } from "../AvitoWardrobe/useLipSync";
 import D from "./durs.json";
 import { AmpCtx, type Amp, BannerAd, S1Hook, S2Council, S3Shift, S4Quest, S5Door, S6Payoff } from "./scenes";
 
-export const NUANS2_FRAMES = 2400;
-const TOTAL = 80;
-const G = 0.15;
-export const BANNER_AT = 37.0;
 const BANNER_LEN = 6.0;
-
+const STARE = 2.8;
 type Who = keyof Amp;
 type LineId = keyof typeof D;
 /** Субтитры: мат в тексте закрыт одной звёздочкой (в озвучке — без цензуры). */
 const LINES: Record<LineId, { who: Who; text: string; keys: string[]; color: string }> = {
   l01: { who: "dima", text: "Купил, бл*дь, у Валеры диван с сюрпризом. Сюрприз — мама моего демона. И через пять минут у меня в хате начался полный п*здец.", keys: ["сюрпризом.", "мама", "п*здец."], color: ORANGE },
   l02: { who: "mom", text: "Триста лет балбесу, а он всё по шкафам шкерится! Полка кривая, свет жжёшь, за хату не платишь — п*здуй работать!", keys: ["триста", "кривая,", "п*здуй", "работать!"], color: REDK },
-  l03: { who: "nuance", text: "Мам, бл*дь, ну не при Диме! Я древнее зло, какой нах*р «работать»?", keys: ["диме!", "древнее", "зло,"], color: ORANGE },
+  l03: { who: "nuance", text: "Мам, бл*дь, ну не при Диме же! Я древнее зло, какой нах*р «работать»?", keys: ["диме", "древнее", "зло,"], color: ORANGE },
   l04: { who: "dima", text: "Не-не, продолжайте. Коммуналку теперь на троих пилим.", keys: ["на", "троих"], color: ORANGE },
   l05: { who: "dima", text: "Короче, собрали князя тьмы как в первый класс: бутерброд в фольгу и вакансию в хоррор-квест.", keys: ["первый", "класс:", "хоррор-квест."], color: ORANGE },
   l05b: { who: "dima", text: "Правда, туториал «как пугать людей» у него не грузился — заблокировано. Ну я включил VPN — и князь тьмы снова в теме.", keys: ["заблокировано.", "vpn"], color: "#7CFFB2" },
@@ -40,7 +36,7 @@ const src = (id: string) => staticFile(`audio/nuans2/${id}.mp3`);
 type Placed = { Scene: React.FC<any>; from: number; to: number; props: object; amb: string; nav: string };
 type TL = { placed: Placed[]; vo: [LineId, number][]; sfx: [string, number, number?][]; punch: number[]; shake: [number, number][] };
 
-const build = (): TL => {
+const build = (preG: number, stare: number): TL & { pre: number; total: number } => {
   const placed: Placed[] = [];
   const vo: [LineId, number][] = [];
   const sfx: [string, number, number?][] = [];
@@ -63,31 +59,33 @@ const build = (): TL => {
     fx("springs", 0.35);
     fx("thud", momAt);
     punch.push(cur + momAt + 0.1);
-    scene(S1Hook, e + G, { momAt }, "room", "ДИВАН ОТ ВАЛЕРЫ ПЕРЕКУПА");
+    scene(S1Hook, e + 0.6 + preG, { momAt }, "room", "ДИВАН ОТ ВАЛЕРЫ ПЕРЕКУПА");
   }
-  // 2. семейный совет
+  // 2. семейный совет: мама → Нюанс сразу, без паузы → квитанция в руке Димы и глоток
   {
     const e2 = say("l02", 0.1);
     shake.push([cur + 0.1, cur + e2]);
-    const s3 = e2 + G;
+    const s3 = e2 + 0.1;
     const e3 = say("l03", s3);
     punch.push(cur + s3 + 0.05);
-    const s4 = e3 + G;
+    const s4 = e3 + preG + 0.8;
+    const showAt = e3 + preG;
+    fx("slap", showAt + 0.1);
     const e4 = say("l04", s4);
-    const slapAt = s4 - 0.1;
-    const sipAt = e4 - 0.25;
-    fx("slap", slapAt);
+    const sipAt = e4 + 0.1;
     fx("slurp", sipAt + 0.3);
     punch.push(cur + s4 + D.l04 * 0.55);
-    scene(S2Council, e4 + 0.45, { cutB: s3 - 0.05, cutC: s4 - 0.35, slapAt, sipAt }, "room", "СЕМЕЙНЫЙ СОВЕТ • КОММУНАЛКА ÷3");
+    scene(S2Council, sipAt + 1.2 + preG, { cutB: s3 - 0.05, cutC: showAt - 0.1, slapAt: showAt + 0.1, sipAt }, "room", "СЕМЕЙНЫЙ СОВЕТ • КОММУНАЛКА ÷3");
   }
-  // 3. сборы → дверь → БАННЕР ровно в центре ролика (37.0–43.0 с) → «три века стажа»
+  // 3. сборы → дверь → БАННЕР в центре ролика → «три века стажа»
+  let pre = 0;
   {
     const e5 = say("l05", 0.1);
     fx("foil", 1.2);
-    const s6 = e5 + G;
+    const s6 = e5 + preG;
     const e6 = say("l06", s6);
-    scene(S3Shift, BANNER_AT - cur, { vpnFrom: e5 + 0.05, blockAt: 0, toggleAt: 0, doorFrom: e5 + 0.05 }, "room", "ПЕРВЫЙ РАБОЧИЙ ДЕНЬ");
+    scene(S3Shift, e6 + 1.2 + preG, { vpnFrom: e5 + 0.05, blockAt: 0, toggleAt: 0, doorFrom: e5 + 0.05 }, "room", "ПЕРВЫЙ РАБОЧИЙ ДЕНЬ");
+    pre = cur;
     scene(BannerAd, BANNER_LEN, {}, "none", "");
     const e7 = say("l07", 0.15);
     punch.push(cur + e7 - 1.3);
@@ -96,35 +94,33 @@ const build = (): TL => {
   }
   // 4. квест
   {
-    fx("roar", 0.05, 0.25);
+    fx("roar", 0.05, 0.3);
     shake.push([cur + 0.05, cur + 1.35]);
     const s8 = 1.4;
     const e8 = say("l08", s8);
     const flashes = [0.4, 0.9, 1.4, 2.2, 2.9].map((x) => s8 + x);
     fx("shutter", s8 + 0.4);
     punch.push(cur + e8 - 1.4);
-    const s9 = e8 + G;
+    const s9 = e8 + 0.15;
     const e9 = say("l09", s9);
     scene(S4Quest, e9 + 0.3, { roarEnd: 1.35, kidsFrom: 1.35, starAt: e8 - 1.2, cornerFrom: e8 + 0.05, flashes }, "quest", "ХОРРОР-КВЕСТ «СКЛЕП»");
   }
   // 5. дверь и взгляд
-  const tail = D.l12 + 0.3 + 0.1 + 1.0; // сцена 6
   {
-    const fixed = 0.7 + D.l10 + G + D.l11 + 0.2;
-    const stareEnd = TOTAL - tail - cur - fixed;
+    const stareEnd = 0.5 + stare;
     fx("irondoor", 0, 0.2);
     fx("subboom", 1.0, 0.25);
     fx("teens", stareEnd, 0.18);
-    const s10 = stareEnd + 0.7;
+    const s10 = stareEnd + 0.6;
     const e10 = say("l10", s10);
-    const giveAt = s10 + D.l10 * 0.6;
+    const giveAt = s10 + D.l10 * 0.55;
     fx("money", giveAt);
-    const s11 = e10 + G;
+    const s11 = e10 + 0.15;
     const e11 = say("l11", s11);
     punch.push(cur + s11 + 0.9);
     scene(S5Door, e11 + 0.2, { stareEnd, fleeAt: stareEnd, giveAt }, "quest", "КОНЕЦ СМЕНЫ");
   }
-  // 6. панчлайн и пуш — до кадра 2400
+  // 6. панчлайн и пуш (+0.6 с на чтение пуша)
   {
     const e12 = say("l12", 0.3);
     fx("dishes", 0, 0.1);
@@ -133,10 +129,21 @@ const build = (): TL => {
     punch.push(cur + e12 - 1.8);
     const pushAt = e12 + 0.1;
     fx("push", pushAt, 0.2);
-    scene(S6Payoff, TOTAL - cur, { reviewAt, pushAt }, "room", "ОТЗЫВ: 5 ИЗ 5");
+    scene(S6Payoff, pushAt + 1.0 + 0.6, { reviewAt, pushAt }, "room", "ОТЗЫВ: 5 ИЗ 5");
   }
-  return { placed, vo, sfx, punch, shake };
+  return { placed, vo, sfx, punch, shake, pre, total: cur };
 };
+
+/** Баннер — ровно в центре: досчитываем паузы до/после так, чтобы до и после баннера было поровну. */
+const plan = () => {
+  const p1 = build(0.25, STARE);
+  const post = p1.total - p1.pre - BANNER_LEN;
+  const diff = post - p1.pre;
+  return diff > 0 ? build(0.25 + diff / 6, STARE) : build(0.25, STARE - diff);
+};
+const TLINE = plan();
+export const NUANS2_FRAMES = Math.round(TLINE.total * 30);
+export const BANNER_AT = TLINE.pre;
 
 /* ── субтитры: 2–4 слова, в безопасной зоне (y < 1495, x < 925) ── */
 type Chunk = { from: number; to: number; words: string[]; keys: string[]; color: string };
@@ -208,7 +215,7 @@ const Film = ({ f }: { f: number }) => (
 export const NuansEp2 = () => {
   const f = useCurrentFrame();
   const t = f / 30;
-  const tl = useMemo(build, []);
+  const tl = TLINE;
   const subs = useMemo(() => chunks(tl.vo), [tl]);
   const audio = IDS.map((id) => useAudioData(src(id)));
   const talking = (tt: number) => (tt >= BANNER_AT && tt < BANNER_AT + BANNER_LEN) || tl.vo.some(([id, a]) => tt > a - 0.1 && tt < a + D[id] + 0.1);

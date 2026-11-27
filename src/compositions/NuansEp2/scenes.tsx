@@ -3,7 +3,7 @@ import { AbsoluteFill, OffthreadVideo, staticFile } from "remotion";
 import { DurCtx, ez, MONT, useLT, useSpr } from "../../pelmeni/kit";
 import { BillsFan, FLOOR_Y, FrontDoor, HallDecor, Level, Mug, Push, Receipt, Room, Shelf, Sink, Wardrobe } from "../AvitoWardrobe/props";
 import { ClawHand, dimaReach, LINE, nuanceReach, OUT } from "../AvitoWardrobe/rig";
-import { Admin, Briefcase, DimaV2, GOLD_RIM, ICE_RIM, KidBack, Magnifier, MomDemon, NuansV2, Sandwich, ShopBag } from "./chars";
+import { Admin, Briefcase, DimaV2, GOLD_RIM, ICE_RIM, KidBack, Teen, Magnifier, MomDemon, NuansV2, Sandwich, ShopBag } from "./chars";
 
 /* ── константы интеграции: поменять бренд/промокод можно здесь, озвучка бренд не называет ── */
 export const VPN_NAME = "ВАШ VPN";
@@ -89,6 +89,9 @@ const SofaFront = ({ x, sag }: { x: number; sag: number }) => (
   </g>
 );
 
+/** Кисть когтями вниз (закрывает морду), независимо от направления руки. */
+const palmDown = (p: { sh: number; el: number }) => ({ ...p, wr: -(p.sh + Math.sign(p.el) * Math.min(115, Math.abs(p.el))) });
+
 const DY = 2100;
 const DS = 1.9;
 
@@ -106,14 +109,12 @@ export const S1Hook = ({ momAt }: { momAt: number }) => {
   return (
     <Shot to={dur} origin={[400, 900]} back={<><Window x={70} /><Rays x={120} y={320} /></>} front={<rect x={-40} y={1640} width={1160} height={300} fill="#2a1a14" />}>
       <Room wall="#3b3240" pattern="#433a49" floor="#4a3426" glow={{ x: 300, w: 300 }} />
-      <Shelf x={820} y={500} w={300} tilt={4} />
       <Glow x={400} y={700} r={700} color="#ffcf8a" o={0.28} />
       <SofaBack x={560} burst={burst} />
       <MomDemon x={800} y={2550 - rise * 900} s={0.95} t={t} amp={a.mom} pose={{ armL: nuanceReach(-1, 640, 1150 + (1 - rise) * 600, 800, 2550 - rise * 900, 1.03), armR: nuanceReach(1, 1000, 1000 + (1 - rise) * 600, 800, 2550 - rise * 900, 1.03), head: -8, mouth: 0.4 }} />
       <DimaV2 x={330} y={dy} s={DS} t={t} pose={{ armR: dimaReach(1, 520, 1260, 330, dy, DS), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 120, 1200, 330, dy, DS), head: shocked ? -6 : 4, look: shocked ? 0.9 : 0.1, lid: shocked ? 0.3 : 0.55 }} />
       <SofaFront x={560} sag={sag} />
       {t > momAt && t < momAt + 0.9 && <text x={760} y={900} fontFamily={MONT} fontWeight={900} fontSize={80} fill="#fff" stroke={LINE} strokeWidth={9} paintOrder="stroke" transform="rotate(-8 760 900)">ХРУСЬ!</text>}
-      {t > 0.45 && t < 1.2 && <text x={140} y={1560} fontFamily={MONT} fontWeight={900} fontSize={70} fill="#fff" stroke={LINE} strokeWidth={9} paintOrder="stroke" transform="rotate(-6 140 1560)">ДЗЫНЬ-ТРЕСК</text>}
     </Shot>
   );
 };
@@ -134,7 +135,7 @@ export const S2Council = ({ cutB, cutC, slapAt, sipAt }: { cutB: number; cutC: n
         <g transform="translate(300 520) rotate(4)"><Level w={260} tilt={1} /></g>
         <Wardrobe x={930} w={380} open={0} />
         <MomDemon x={MX} y={FLOOR_Y} s={0.8} t={t} amp={a.mom} pose={{ armL: nuanceReach(-1, 330, 700, MX, FLOOR_Y, 0.864), gripL: 1, itemL: <Magnifier />, armR: point > 0 ? nuanceReach(1, 860, 760, MX, FLOOR_Y, 0.864) : nuanceReach(1, 600, 1080, MX, FLOOR_Y, 0.864), head: -6 }} />
-        <DimaV2 x={880} y={DY} s={1.6} t={t} pose={{ armR: dimaReach(1, 1000, 1300, 880, DY, 1.6), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 760, 1340, 880, DY, 1.6), head: -4, look: -0.6 }} />
+        <DimaV2 x={880} y={DY} s={1.6} t={t} pose={{ armR: dimaReach(1, 1010, 1580, 880, DY, 1.6), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 740, 1590, 880, DY, 1.6), head: -4, look: -0.6 }} />
       </Shot>
     );
   }
@@ -144,27 +145,26 @@ export const S2Council = ({ cutB, cutC, slapAt, sipAt }: { cutB: number; cutC: n
         <rect width={1080} height={1920} fill="#2b2430" />
         <g filter="url(#bl15)"><Wardrobe x={540} w={640} open={1} /></g>
         <Glow x={540} y={700} r={700} color="#ff8fb1" o={0.25} />
-        <NuansV2 x={540} y={2785} s={1.9} t={t} amp={a.nuance} blush={ez(t, cutB, cutB + 0.4)} pose={{ apron: true, crouch: 0.25, armL: nuanceReach(-1, 380, 760, 540, 2785, 1.9, 0.25), armR: nuanceReach(1, 700, 760, 540, 2785, 1.9, 0.25), gripL: 1, gripR: 1, head: 12, guilty: 1 }} />
+        <NuansV2 x={540} y={2785} s={1.9} t={t} amp={a.nuance} blush={ez(t, cutB, cutB + 0.4)} pose={{ apron: true, crouch: 0.35, armL: nuanceReach(-1, 330, 1420, 540, 2785, 1.9, 0.35), armR: palmDown(nuanceReach(1, 560, 600, 540, 2785, 1.9, 0.35)), head: 14, guilty: 1 }} />
       </Shot>
     );
   }
-  const slap = ez(t, slapAt - 0.15, slapAt);
-  const sip = ez(t, sipAt, sipAt + 0.35) * (1 - ez(t, sipAt + 1.2, sipAt + 1.5));
+  const show = ez(t, slapAt - 0.35, slapAt);
+  const sip = ez(t, sipAt, sipAt + 0.35) * (1 - ez(t, sipAt + 0.9, sipAt + 1.2));
+  const receipt = (
+    <g transform="scale(0.62)">
+      <Receipt />
+      <g transform="translate(-6 -160) rotate(-12)" opacity={ez(t, slapAt, slapAt + 0.15)}>
+        <rect x={-122} y={-42} width={244} height={84} rx={10} fill="rgba(255,255,255,.75)" stroke="#d62828" strokeWidth={9} />
+        <text x={0} y={18} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={42} fill="#d62828">ДЕЛИМ НА 3</text>
+      </g>
+    </g>
+  );
   return (
     <Shot from={cutC} to={dur} origin={[540, 1100]} back={<><Window x={680} /><Rays x={720} y={320} /></>}>
       <Room wall="#3b3240" pattern="#433a49" floor="#4a3426" />
       <MomDemon x={760} y={FLOOR_Y} s={0.68} t={t} amp={a.mom} pose={{ armL: nuanceReach(-1, 640, 1160, 760, FLOOR_Y, 0.734), armR: nuanceReach(1, 880, 1120, 760, FLOOR_Y, 0.734), head: 4 }} />
-      <DimaV2 x={300} y={DY} s={DS} t={t} pose={{ armR: dimaReach(1, 480 - sip * 160, 1240 - sip * 420, 300, DY, DS), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 140, 1330, 300, DY, DS), head: 2 - sip * 8, lid: 0.6 }} />
-      {/* стол на переднем плане и квитанция */}
-      <rect x={-20} y={1480} width={1120} height={60} fill="#5a3a24" {...OUT} />
-      <rect x={-20} y={1540} width={1120} height={400} fill="#3a2416" />
-      <g transform={`translate(560 ${1430 - (1 - slap) * 500}) rotate(${-6 + (1 - slap) * 20}) scale(1.1)`} opacity={slap > 0 ? 1 : 0}>
-        <Receipt />
-        <g transform="translate(-6 -150) rotate(-14)" opacity={ez(t, slapAt + 0.05, slapAt + 0.2)}>
-          <rect x={-120} y={-40} width={240} height={80} rx={10} fill="none" stroke="#d62828" strokeWidth={9} />
-          <text x={0} y={18} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={42} fill="#d62828">ДЕЛИМ НА 3</text>
-        </g>
-      </g>
+      <DimaV2 x={330} y={DY} s={DS} t={t} pose={{ armL: dimaReach(-1, 230, 1560 - show * 300, 330, DY, DS), itemL: receipt, armR: dimaReach(1, 560 - sip * 60, 1600 - sip * 330, 330, DY, DS), itemR: <Mug t={t} steam />, head: 2 - sip * 4, lid: 0.6 }} />
       {t > slapAt && t < slapAt + 0.7 && <text x={640} y={1200} fontFamily={MONT} fontWeight={900} fontSize={80} fill="#fff" stroke={LINE} strokeWidth={9} paintOrder="stroke" transform="rotate(-8 640 1200)">ШЛЁП!</text>}
     </Shot>
   );
@@ -289,7 +289,7 @@ export const S3Shift = ({ vpnFrom, blockAt, toggleAt, doorFrom }: { vpnFrom: num
       <g transform={`translate(${NX} ${FLOOR_Y}) scale(${1 + proud * 0.05} 1) translate(${-NX} ${-FLOOR_Y})`}>
         <NuansV2 x={NX} y={FLOOR_Y} s={0.95} t={t} amp={a.nuance} pose={{ apron: true, armL: nuanceReach(-1, 560, 1040, NX, FLOOR_Y, 0.95), gripL: 1, itemL: <Briefcase />, armR: nuanceReach(1, 820, 560 - proud * 40, NX, FLOOR_Y, 0.95), head: -10 * proud, happy: proud > 0.5 && a.nuance === 0 ? 1 : 0 }} />
       </g>
-      <DimaV2 x={250} y={DY} s={1.7} t={t} pose={{ lean: 4, armR: dimaReach(1, 420, 1300, 250, DY, 1.7), itemR: <Mug t={t} />, armL: dimaReach(-1, 100, 1250, 250, DY, 1.7), head: -6, look: 0.6 }} />
+      <DimaV2 x={250} y={DY} s={1.7} t={t} pose={{ lean: 4, armR: dimaReach(1, 470, 1530, 250, DY, 1.7), itemR: <Mug t={t} />, armL: dimaReach(-1, 60, 1560, 250, DY, 1.7), head: -6, look: 0.6 }} />
     </Shot>
   );
 };
@@ -331,7 +331,6 @@ export const S4Quest = ({ roarEnd, kidsFrom, starAt, cornerFrom, flashes }: { ro
           <Glow x={540} y={760} r={600} color="#5a0010" o={0.8 * roar} />
           <NuansV2 x={540} y={FLOOR_Y + 120} s={1.05} t={t} amp={0} pose={{ apron: true, crouch: 0.25 * roar, head: -14 * roar, horror: roar, armL: nuanceReach(-1, 200, 600, 540, FLOOR_Y + 120, 1.05, 0.25 * roar), armR: nuanceReach(1, 880, 600, 540, FLOOR_Y + 120, 1.05, 0.25 * roar) }} />
           {fog}
-          {roar > 0.3 && <text x={540} y={420} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={120} fill="#fff" stroke="#3a0008" strokeWidth={12} paintOrder="stroke">Р-Р-Р-А!</text>}
         </g>
       </Shot>
     );
@@ -341,11 +340,11 @@ export const S4Quest = ({ roarEnd, kidsFrom, starAt, cornerFrom, flashes }: { ro
     return (
       <Shot from={kidsFrom} to={cornerFrom} origin={[540, 900]} bg="#0b0607">
         {basement}
-        <NuansV2 x={600} y={FLOOR_Y} s={0.95} t={t} amp={0} blush={0.6} pose={{ apron: true, crouch: 0.15, armL: nuanceReach(-1, 560, 1100, 600, FLOOR_Y, 0.95, 0.15), armR: nuanceReach(1, 650, 1100, 600, FLOOR_Y, 0.95, 0.15), gripL: 1, gripR: 1, head: 12, guilty: 1 }} />
+        <NuansV2 x={780} y={FLOOR_Y} s={0.95} t={t} amp={0} blush={0.6} pose={{ apron: true, crouch: 0.15, armL: nuanceReach(-1, 740, 1100, 780, FLOOR_Y, 0.95, 0.15), armR: nuanceReach(1, 830, 1100, 780, FLOOR_Y, 0.95, 0.15), gripL: 1, gripR: 1, head: 12, guilty: 1 }} />
         {fog}
-        <KidBack x={200} y={1900} s={1.05} hood="#3b5bdb" flash={fl} t={t} />
-        <KidBack x={520} y={1960} s={1.15} hood="#2b2b2b" flash={fl * 0.8} t={t + 1} />
-        <KidBack x={820} y={1910} s={1.0} hood="#c92a2a" flash={fl} t={t + 2} />
+        <Teen x={130} y={1560} s={1.0} t={t} hoodie="#3b5bdb" cap="#f2c14e" flash={fl} />
+        <Teen x={300} y={1610} s={1.08} t={t + 1} hoodie="#2b2b2b" cap="#e5262b" flash={fl * 0.8} phoneUp={0} />
+        <Teen x={470} y={1580} s={1.02} t={t + 2} hoodie="#c92a2a" cap="#1c1c1c" flash={fl} />
         {fl > 0 && <rect width={1080} height={1920} fill="#fff" opacity={fl * 0.35} />}
         <g opacity={star} transform={`translate(470 ${300 + (1 - star) * 60}) rotate(-2)`}>
           <rect x={-400} y={-100} width={800} height={200} rx={26} fill="#fff" {...OUT} />
@@ -361,7 +360,7 @@ export const S4Quest = ({ roarEnd, kidsFrom, starAt, cornerFrom, flashes }: { ro
     <Shot from={cornerFrom} to={dur} origin={[300, 1100]} zoom={[1.05, 1.15]} bg="#0b0607">
       {basement}
       <rect x={0} y={0} width={420} height={1920} fill="#000" opacity={0.35} />
-      <NuansV2 x={330} y={FLOOR_Y} s={0.95} t={t} amp={a.nuance} pose={{ apron: true, crouch: 1, armL: nuanceReach(-1, 260, 1110, 330, FLOOR_Y, 0.95, 1), armR: nuanceReach(1, 400, 1110, 330, FLOOR_Y, 0.95, 1), gripL: 1, gripR: 1, head: 20, guilty: 1 }} />
+      <NuansV2 x={330} y={FLOOR_Y} s={0.95} t={t} amp={a.nuance} pose={{ apron: true, crouch: 1, armL: palmDown(nuanceReach(-1, 300, 400, 330, FLOOR_Y, 0.95, 1)), armR: palmDown(nuanceReach(1, 360, 405, 330, FLOOR_Y, 0.95, 1)), head: 16, guilty: 1 }} />
       {fog}
       {[0, 1].map((i) => <ellipse key={i} cx={320 + i * 40} cy={1010 + ((t * 120 + i * 50) % 120)} rx={4} ry={7} fill="#9fd0ff" opacity={0.8} />)}
     </Shot>
@@ -388,21 +387,29 @@ export const S5Door = ({ stareEnd, fleeAt, giveAt }: { stareEnd: number; fleeAt:
           <rect x={360} y={260} width={360} height={1120} fill="#0a1220" {...OUT} />
           <path d={`M${540 - 180 * open} 260 L${540 + 180 * open} 260 L${540 + 420 * open} 1920 L${540 - 420 * open} 1920 Z`} fill="#7fb3d5" opacity={0.28} />
           <rect x={360} y={260} width={360 * open} height={1120} fill="#cfe6ff" opacity={0.35} />
-          <DimaV2 x={540} y={DY - 120} s={1.7} t={t} rim="#7fb3d5" blink={t > stareEnd} pose={{ armL: dimaReach(-1, 380, 1250, 540, DY - 120, 1.7), itemL: <ShopBag />, armR: dimaReach(1, 690, 1270, 540, DY - 120, 1.7), head: 0, look: 0, lid: 0.62 }} />
-          {/* створка железной двери */}
+          {/* створка железной двери — позади Димы */}
           <g transform={`translate(720 0) scale(${1 - open * 0.85} 1) translate(-720 0)`}>
             <rect x={360} y={260} width={360} height={1120} fill="#3a3f46" {...OUT} />
             {[0, 1, 2, 3].map((i) => <circle key={i} cx={390} cy={330 + i * 300} r={8} fill="#222" />)}
           </g>
-          {after && <Admin x={150} y={1400} t={t} give={give} amp={a.admin} />}
-          {after && <rect x={-20} y={1380} width={360} height={540} fill="#2a1a18" {...OUT} />}
-          {t > fleeAt && flee < 1 && [0, 1, 2].map((i) => (
-            <g key={i} transform={`translate(${600 + flee * 700 + i * 90} ${1500 + i * 40}) skewX(-20)`} opacity={1 - flee}>
-              <rect x={-60} y={-260} width={120} height={300} rx={40} fill={["#3b5bdb", "#2b2b2b", "#c92a2a"][i]} />
-              <circle cx={0} cy={-300} r={50} fill={["#3b5bdb", "#2b2b2b", "#c92a2a"][i]} />
+          {after && (
+            <g>
+              <rect x={30} y={300} width={170} height={70} rx={8} fill="#1f9d55" {...OUT} />
+              <text x={115} y={348} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={34} fill="#fff">ВЫХОД</text>
+              {flee < 1 && [0, 1, 2].map((i) => (
+                <g key={i} opacity={1 - ez(t, fleeAt + 0.7, fleeAt + 1.1)}>
+                  <Teen x={330 - flee * 330 + i * 70} y={1180 + i * 20} s={0.42} t={t + i} hoodie={["#3b5bdb", "#2b2b2b", "#c92a2a"][i]} cap={["#f2c14e", "#e5262b", "#1c1c1c"][i]} dir={-1} run={1} />
+                </g>
+              ))}
             </g>
-          ))}
-          {t > fleeAt && t < fleeAt + 1.2 && <text x={640} y={1200} fontFamily={MONT} fontWeight={900} fontSize={110} fill="#fff" stroke={LINE} strokeWidth={10} paintOrder="stroke" transform="rotate(-8 640 1200)">А-А-А-А!</text>}
+          )}
+          <DimaV2 x={540} y={DY - 120} s={1.7} t={t} rim="#7fb3d5" blink={t > stareEnd} pose={{ armL: dimaReach(-1, 360, 1470, 540, DY - 120, 1.7), itemL: <ShopBag />, armR: dimaReach(1, 720, 1480, 540, DY - 120, 1.7), head: 0, look: 0, lid: 0.62 }} />
+          {after && (
+            <g transform="translate(220 1400) scale(1.85) translate(-220 -1400)">
+              <Admin x={220} y={1400} t={t} give={give} amp={a.admin} />
+            </g>
+          )}
+          {after && <rect x={-20} y={1380} width={430} height={540} fill="#2a1a18" {...OUT} />}
         </g>
         {/* виньетка во время взгляда */}
         <rect width={1080} height={1920} fill="url(#vig5)" />
@@ -433,8 +440,8 @@ export const S6Payoff = ({ reviewAt, pushAt }: { reviewAt: number; pushAt: numbe
       <g filter="url(#bl15)">
         <NuansV2 x={780} y={FLOOR_Y} s={0.8} t={t} amp={0} pose={{ apron: true, crouch: 0.62, head: 14, armL: nuanceReach(-1, 720 + scrub, 1090, 780, FLOOR_Y, 0.8, 0.62), armR: nuanceReach(1, 840 - scrub, 1090, 780, FLOOR_Y, 0.8, 0.62) }} />
       </g>
-      <MomDemon x={290} y={FLOOR_Y + 80} s={0.74} t={t} amp={0} pose={{ armR: nuanceReach(1, 470, 1060, 290, FLOOR_Y + 80, 0.8), gripR: 1, itemR: <BillsFan />, armL: nuanceReach(-1, 150, 1120, 290, FLOOR_Y + 80, 0.8), head: nod, happy: 1 }} />
-      <DimaV2 x={820} y={DY} s={1.7} t={t} pose={{ armL: dimaReach(-1, 690, 1260, 820, DY, 1.7), itemL: <Mug t={t} steam flip />, armR: dimaReach(1, 960, 1340, 820, DY, 1.7), head: -3, look: -0.4 }} />
+      <MomDemon x={290} y={FLOOR_Y + 80} s={0.74} t={t} amp={0} pose={{ armR: nuanceReach(1, 500, 930, 290, FLOOR_Y + 80, 0.8), gripR: 1, itemR: <g transform="scale(0.7) translate(0 40)"><BillsFan /></g>, armL: nuanceReach(-1, 150, 1120, 290, FLOOR_Y + 80, 0.8), head: nod, happy: 1 }} />
+      <DimaV2 x={820} y={DY} s={1.7} t={t} pose={{ armL: dimaReach(-1, 650, 1560, 820, DY, 1.7), itemL: <Mug t={t} steam flip />, armR: dimaReach(1, 990, 1580, 820, DY, 1.7), head: -3, look: -0.4 }} />
       <g opacity={review} transform={`translate(470 ${360 + (1 - review) * 60})`}>
         <rect x={-380} y={-90} width={760} height={180} rx={26} fill="#fff" {...OUT} />
         <text x={-340} y={-30} fontFamily={MONT} fontWeight={900} fontSize={32} fill="#111">Валера Перекуп — Отзыв отправлен</text>
@@ -451,22 +458,20 @@ export const S6Payoff = ({ reviewAt, pushAt }: { reviewAt: number; pushAt: numbe
 /* ── Рекламный баннер (6 с, со своей озвучкой): поверх размытой прихожей, углы скруглены маской, без хромакея ── */
 export const BannerAd = () => {
   const t = useLT();
-  const pop = useSpr(0, 13, 140);
-  const out = ez(t, 5.75, 6.0);
-  const W = 1000;
+  const k = ez(t, 0, 0.25) * (1 - ez(t, 5.8, 6.0));
+  const W = 980;
   const H = Math.round((W * 552) / 1374);
   return (
     <AbsoluteFill style={{ background: "#05070c" }}>
-      <AbsoluteFill style={{ filter: "blur(18px) brightness(0.45)", transform: "scale(1.08)" }}>
+      {/* живая сцена прихожей продолжается под баннером, только притемнена */}
+      <AbsoluteFill style={{ filter: `brightness(${1 - 0.45 * k})` }}>
         <DurCtx.Provider value={6}>
           <S3Shift vpnFrom={0} blockAt={0} toggleAt={0} doorFrom={0} />
         </DurCtx.Provider>
       </AbsoluteFill>
-      <AbsoluteFill style={{ background: "radial-gradient(60% 40% at 50% 42%, rgba(60,110,255,.35), rgba(0,0,0,0) 70%)" }} />
-      <div style={{ position: "absolute", left: 540 - W / 2, top: 760 - H / 2, width: W, height: H, transform: `scale(${(0.6 + 0.4 * pop) * (1 - 0.15 * out)})`, opacity: Math.min(1, pop * 1.5) * (1 - out), filter: "drop-shadow(0 0 28px rgba(60,120,255,.75)) drop-shadow(0 24px 60px rgba(0,0,0,.6))" }}>
+      <div style={{ position: "absolute", left: 540 - W / 2, top: 560 - H / 2, width: W, height: H, opacity: k, filter: "drop-shadow(0 0 24px rgba(60,120,255,.7)) drop-shadow(0 20px 50px rgba(0,0,0,.6))" }}>
         <OffthreadVideo src={staticFile("ads/sout_banner_v2.webm")} transparent volume={1} style={{ width: W, height: H }} />
       </div>
-      <div style={{ position: "absolute", left: 70, top: 1080, width: 800, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 30, letterSpacing: 6, color: "rgba(255,255,255,.55)", opacity: pop * (1 - out) }}>РЕКЛАМА</div>
     </AbsoluteFill>
   );
 };
