@@ -36,3 +36,4 @@
 2026-11-27 14:54 [my-site] session-start scan: files=2 parsed=2 principles=0
 2026-11-27 14:56:55 checkpoint ep2 idea round: observation records listed: 0001, 0002 (use_evidence appended); no new corrections or incidents
 2026-11-27 15:36:58 checkpoint ep2 render delivered: observation records listed: 0001, 0002; no new corrections (user change request: VPN ad 25% of frame — spec change, not methodology)
+2026-11-27 16:52:05 checkpoint ep2 final delivered: observation records listed: 0001, 0002; no new corrections (user revision list = spec changes)
