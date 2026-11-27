@@ -9,14 +9,14 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 FPS, DUR = 30, 55.0
-CX, CY, R = 540.0, 1405.0, 455.0
-BR = 36.0
-G = 1500.0
+CX, CY, R = 540.0, 1536.0, 345.0
+BR = 30.0
+G = 1200.0
 DT = 1 / 240
 
 balls = [
-    {"p": np.array([430.0, 1180.0]), "v": np.array([420.0, -260.0])},
-    {"p": np.array([660.0, 1240.0]), "v": np.array([-340.0, -380.0])},
+    {"p": np.array([450.0, 1400.0]), "v": np.array([360.0, -220.0])},
+    {"p": np.array([630.0, 1440.0]), "v": np.array([-300.0, -320.0])},
 ]
 frames, hits, clashes = [], [], []
 t, step = 0.0, 0
@@ -37,7 +37,7 @@ while t < DUR + 1e-9:
             if vn > 0:
                 b["v"] -= 2 * vn * n
                 sp = float(np.linalg.norm(b["v"]))
-                target = min(1650.0, max(sp, 900.0) * 1.012)  # разгоняется с каждым ударом
+                target = min(1350.0, max(sp, 750.0) * 1.012)  # разгоняется с каждым ударом
                 b["v"] *= target / sp
                 if t - last_hit[i] > 0.05:
                     hits.append({"t": round(t, 3), "b": i, "x": round(CX + n[0] * R, 1), "y": round(CY + n[1] * R, 1)})

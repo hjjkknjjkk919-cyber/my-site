@@ -6,14 +6,14 @@ import GAME from "./game.json";
 import VO from "./vo.json";
 
 export const REMAKE_FRAMES = Math.round(55 * 30);
-const TOP_H = 880; // верх 46% — история, низ — залипалка
+const TOP_H = 1152; // верх 60% — мульт, низ 40% — залипалка
 const COL = ["#39ff6a", "#3fc8ff"];
 const LABEL = ["Ч", "П"];
 
 /* ── верх: исходный ролик без звука, кадр без вшитых субтитров; после 53 с — стоп-кадр ── */
 const Story = () => {
   const end = Math.round(VO.end * 30);
-  const video = <OffthreadVideo src={staticFile("remake/src.mp4")} muted style={{ width: 1080, height: 1920, position: "absolute", top: -250 }} />;
+  const video = <OffthreadVideo src={staticFile("remake/src.mp4")} muted style={{ width: 1080, height: 1920, position: "absolute", top: -60 }} />;
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: TOP_H, overflow: "hidden", background: "#111" }}>
       <Sequence durationInFrames={end} layout="none">{video}</Sequence>
@@ -73,11 +73,11 @@ const Game = ({ f, t }: { f: number; t: number }) => {
       ))}
       {/* счёт */}
       <g fontFamily={MONT} fontWeight={900}>
-        <text x={340} y={1100} textAnchor="middle" fontSize={64} fill={COL[0]} opacity={0.85}>{score[0]}</text>
-        <text x={540} y={1100} textAnchor="middle" fontSize={44} fill="#fff" opacity={0.5}>:</text>
-        <text x={740} y={1100} textAnchor="middle" fontSize={64} fill={COL[1]} opacity={0.85}>{score[1]}</text>
-        <text x={340} y={1140} textAnchor="middle" fontSize={24} fill={COL[0]} opacity={0.7}>ЧУШПАНЫ</text>
-        <text x={740} y={1140} textAnchor="middle" fontSize={24} fill={COL[1]} opacity={0.7}>ПАЦАНЫ</text>
+        <text x={400} y={GAME.cy - GAME.r + 95} textAnchor="middle" fontSize={52} fill={COL[0]} opacity={0.85}>{score[0]}</text>
+        <text x={540} y={GAME.cy - GAME.r + 95} textAnchor="middle" fontSize={36} fill="#fff" opacity={0.5}>:</text>
+        <text x={680} y={GAME.cy - GAME.r + 95} textAnchor="middle" fontSize={52} fill={COL[1]} opacity={0.85}>{score[1]}</text>
+        <text x={400} y={GAME.cy - GAME.r + 125} textAnchor="middle" fontSize={20} fill={COL[0]} opacity={0.7}>ЧУШПАНЫ</text>
+        <text x={680} y={GAME.cy - GAME.r + 125} textAnchor="middle" fontSize={20} fill={COL[1]} opacity={0.7}>ПАЦАНЫ</text>
       </g>
     </svg>
   );
@@ -116,11 +116,11 @@ const EndCard = ({ t }: { t: number }) => {
   return (
     <>
       <AbsoluteFill style={{ height: TOP_H, background: `rgba(0,0,0,${0.55 * k})` }} />
-      <div style={{ position: "absolute", left: 70, top: 300, width: 940, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 92, color: "#fff", WebkitTextStroke: "14px #000", paintOrder: "stroke fill", opacity: k }}>
+      <div style={{ position: "absolute", left: 70, top: 420, width: 940, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 92, color: "#fff", WebkitTextStroke: "14px #000", paintOrder: "stroke fill", opacity: k }}>
         ЧАСТЬ 3<br />
         <span style={{ color: "#ffd23a" }}>ЗАВТРА</span>
       </div>
-      <div style={{ position: "absolute", left: 70, top: 1180, width: 940, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 52, color: "#fff", WebkitTextStroke: "10px #000", paintOrder: "stroke fill", opacity: k }}>
+      <div style={{ position: "absolute", left: 70, top: 1620, width: 940, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 52, color: "#fff", WebkitTextStroke: "10px #000", paintOrder: "stroke fill", opacity: k }}>
         КТО ПОБЕДИЛ? ПИШИ В КОММЕНТЫ
       </div>
     </>
@@ -130,7 +130,6 @@ const EndCard = ({ t }: { t: number }) => {
 export const Remake90s = () => {
   const f = useCurrentFrame();
   const t = f / 30;
-  const talking = (tt: number) => VO.lines.some((l) => tt > l.at - 0.05 && tt < l.at + l.dur + 0.05);
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <Story />
@@ -138,7 +137,6 @@ export const Remake90s = () => {
       <div style={{ position: "absolute", left: 0, top: TOP_H - 3, width: 1080, height: 6, background: "#fff", opacity: 0.85 }} />
       <BigWord t={t} />
       <EndCard t={t} />
-      <Audio src={staticFile("remake/game.mp3")} volume={(fr) => (talking(fr / 30) ? 0.22 : 0.45)} />
       {VO.lines.map((l) => (
         <Sequence key={l.file} from={Math.round(l.at * 30)} layout="none">
           <Audio src={staticFile(`remake/${l.file}.mp3`)} volume={1} />
