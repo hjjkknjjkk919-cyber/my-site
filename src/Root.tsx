@@ -11,6 +11,7 @@ import { Pelmeni43, PEL_FRAMES } from "./pelmeni/Pelmeni43";
 import { PUSH_FRAMES, Pushistik1 } from "./compositions/Pushistik/Pushistik1";
 import { Avatar } from "./compositions/Avatar/Avatar";
 import { CLINIC_FRAMES, ClinicAnime } from "./compositions/ClinicAnime/ClinicAnime";
+import { REMAKE_FRAMES, Remake90s } from "./compositions/Remake90s/Remake90s";
 import { NUANS2_FRAMES, NuansEp2 } from "./compositions/NuansEp2/NuansEp2";
 import { AVITO_DEFAULT_FRAMES, AvitoWardrobe, calcAvitoMetadata } from "./compositions/AvitoWardrobe/AvitoWardrobe";
 import { Choice3D, Pov3D, Station3D } from "./train/Pov3D";
@@ -35,6 +36,7 @@ export const Root = () => (
     <Composition id="Avatar" component={Avatar} width={1080} height={1080} fps={30} durationInFrames={1} />
     <Composition id="ClinicAnime" component={ClinicAnime} width={1080} height={1920} fps={30} durationInFrames={CLINIC_FRAMES} />
     <Composition id="Pushistik1" component={Pushistik1} width={1080} height={1920} fps={30} durationInFrames={PUSH_FRAMES} />
+    <Composition id="Remake90s" component={Remake90s} width={1080} height={1920} fps={30} durationInFrames={REMAKE_FRAMES} />
     <Composition id="NuansEp2" component={NuansEp2} width={1080} height={1920} fps={30} durationInFrames={NUANS2_FRAMES} />
     <Composition id="AvitoWardrobe" component={AvitoWardrobe} width={1080} height={1920} fps={30} durationInFrames={AVITO_DEFAULT_FRAMES} defaultProps={{ durs: [] as number[] }} calculateMetadata={calcAvitoMetadata} />
     <Composition id="Pelmeni43" component={Pelmeni43} width={1080} height={1920} fps={30} durationInFrames={PEL_FRAMES} />
