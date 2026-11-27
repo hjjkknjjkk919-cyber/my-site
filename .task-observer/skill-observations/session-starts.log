@@ -10,3 +10,5 @@
 2026-11-26 21:43:55 session start 4-5: activation=CLAUDE.md block present concurrency=per-file log, no guard needed
 2026-11-26 22:40 [my-site] session start: 1 storage=ok 2 scan=files 0 parsed 0 3 review=last never, marker absent 6 staged=none 7 log=0 entries; 4-5 appended by the session
 2026-11-26 22:40:45 session start 4-5: activation=CLAUDE.md block present concurrency=per-file log, no guard needed
+2026-11-27 14:54 [my-site] session start: 1 storage=ok 2 scan=files 2 parsed 2 3 review=last never, marker absent 6 staged=none 7 log=2 entries; 4-5 appended by the session
+2026-11-27 14:54:32 session start 4-5: activation=CLAUDE.md block present concurrency=per-file log, no guard needed

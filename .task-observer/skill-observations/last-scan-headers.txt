@@ -1,0 +1,42 @@
+# 0001-examples-before-keyword-search.md
+id: 1
+title: "Trend research ran broad keyword searches for a format named by nickname instead of asking for example links first"
+status: open
+type: open-source
+skill: []
+proposes_skill: []
+target_file: [/home/user/my-site/CLAUDE.md]
+siblings_checked: "none — no skill-families.md registry; target is the project instruction file, not a skill"
+area: "CLAUDE.md, «поучись на трендах» command, step 1 (choosing what to study)"
+date: 2026-11-26
+session_context: "running scripts/viral_learner.py learn to study a Shorts format the user named as 'like survive 3 days with Babayka'"
+parked_until:
+resolved:
+resolution:
+reference:
+commands_verified: none
+next_actor: review
+use_evidence:
+escalated:
+---
+# 0002-assumed-artifact-from-metric.md
+id: 2
+title: "Assumed which video was the user's own from a coincidental view count instead of asking"
+status: open
+type: open-source
+skill: []
+proposes_skill: []
+target_file: [/home/user/my-site/CLAUDE.md]
+siblings_checked: "none — no skill-families.md registry; target is the project instruction file, not a skill"
+area: "reviewing 'our' published video performance (the 'what is wrong with us' review step)"
+date: 2026-11-26
+session_context: "user asked why their first video got 1300 views in two days; I picked a reference link with 1395 views as theirs"
+parked_until:
+resolved:
+resolution:
+reference:
+commands_verified: none
+next_actor: review
+use_evidence:
+escalated:
+---

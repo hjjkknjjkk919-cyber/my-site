@@ -17,6 +17,7 @@ reference:
 commands_verified: none
 next_actor: review
 use_evidence:
+  - 2026-11-27 used — "series 2 with the monster" matched two repo series; asked instead of guessing, user named a third (Avito wardrobe)
 escalated:
 ---
 

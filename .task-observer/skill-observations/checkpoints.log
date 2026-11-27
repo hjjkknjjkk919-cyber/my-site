@@ -32,3 +32,6 @@
 2026-11-26 22:59:15 checkpoint channel video review: observation records listed: 0001 examples-before-keyword-search; no new corrections or incidents
 2026-11-26 23:03:17 checkpoint first-video review (corrected): observation records listed: 0001 examples-before-keyword-search, 0002 assumed-artifact-from-metric (user correction: wrong video analysed)
 2026-11-26 23:07:00 checkpoint new-idea round: observation records listed: 0001, 0002 (unchanged); no new corrections or incidents
+2026-11-27 14:54 loaded task-observer — 0 open observations
+2026-11-27 14:54 [my-site] session-start scan: files=2 parsed=2 principles=0
+2026-11-27 14:56:55 checkpoint ep2 idea round: observation records listed: 0001, 0002 (use_evidence appended); no new corrections or incidents
