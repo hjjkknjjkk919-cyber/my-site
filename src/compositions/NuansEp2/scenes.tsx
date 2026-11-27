@@ -1,5 +1,6 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, staticFile } from "remotion";
+import { AbsoluteFill, staticFile } from "remotion";
+import { Audio } from "@remotion/media";
 import { DurCtx, ez, MONT, useLT, useSpr } from "../../pelmeni/kit";
 import { BillsFan, FLOOR_Y, FrontDoor, HallDecor, Level, Mug, Push, Receipt, Room, Shelf, Sink, Wardrobe } from "../AvitoWardrobe/props";
 import { ClawHand, dimaReach, LINE, nuanceReach, OUT } from "../AvitoWardrobe/rig";
@@ -111,7 +112,7 @@ export const S1Hook = ({ momAt }: { momAt: number }) => {
       <Room wall="#3b3240" pattern="#433a49" floor="#4a3426" glow={{ x: 300, w: 300 }} />
       <Glow x={400} y={700} r={700} color="#ffcf8a" o={0.28} />
       <SofaBack x={560} burst={burst} />
-      <MomDemon x={800} y={2550 - rise * 900} s={0.95} t={t} amp={a.mom} pose={{ armL: nuanceReach(-1, 640, 1150 + (1 - rise) * 600, 800, 2550 - rise * 900, 1.03), armR: nuanceReach(1, 1000, 1000 + (1 - rise) * 600, 800, 2550 - rise * 900, 1.03), head: -8, mouth: 0.4 }} />
+      <MomDemon x={800} y={2950 - rise * 1300} s={0.95} t={t} amp={a.mom} pose={{ armL: nuanceReach(-1, 640, 1150 + (1 - rise) * 1000, 800, 2950 - rise * 1300, 1.03), armR: nuanceReach(1, 1000, 1000 + (1 - rise) * 1000, 800, 2950 - rise * 1300, 1.03), head: -8, mouth: 0.4 }} />
       <DimaV2 x={330} y={dy} s={DS} t={t} pose={{ armR: dimaReach(1, 520, 1260, 330, dy, DS), itemR: <Mug t={t} steam />, armL: dimaReach(-1, 120, 1200, 330, dy, DS), head: shocked ? -6 : 4, look: shocked ? 0.9 : 0.1, lid: shocked ? 0.3 : 0.55 }} />
       <SofaFront x={560} sag={sag} />
       {t > momAt && t < momAt + 0.9 && <text x={760} y={900} fontFamily={MONT} fontWeight={900} fontSize={80} fill="#fff" stroke={LINE} strokeWidth={9} paintOrder="stroke" transform="rotate(-8 760 900)">ХРУСЬ!</text>}
@@ -458,20 +459,17 @@ export const S6Payoff = ({ reviewAt, pushAt }: { reviewAt: number; pushAt: numbe
 /* ── Рекламный баннер (6 с, со своей озвучкой): поверх размытой прихожей, углы скруглены маской, без хромакея ── */
 export const BannerAd = () => {
   const t = useLT();
-  const k = ez(t, 0, 0.25) * (1 - ez(t, 5.8, 6.0));
-  const W = 980;
-  const H = Math.round((W * 552) / 1374);
+  const k = ez(t, 0, 0.3) * (1 - ez(t, 5.7, 6.0));
   return (
     <AbsoluteFill style={{ background: "#05070c" }}>
-      {/* живая сцена прихожей продолжается под баннером, только притемнена */}
+      {/* живая сцена прихожей продолжается, плавно притемняется; сам баннер (60 fps, с ключом) накладывается на финальном монтаже ffmpeg */}
       <AbsoluteFill style={{ filter: `brightness(${1 - 0.45 * k})` }}>
         <DurCtx.Provider value={6}>
           <S3Shift vpnFrom={0} blockAt={0} toggleAt={0} doorFrom={0} />
         </DurCtx.Provider>
       </AbsoluteFill>
-      <div style={{ position: "absolute", left: 540 - W / 2, top: 560 - H / 2, width: W, height: H, opacity: k, filter: "drop-shadow(0 0 24px rgba(60,120,255,.7)) drop-shadow(0 20px 50px rgba(0,0,0,.6))" }}>
-        <OffthreadVideo src={staticFile("ads/sout_banner_v2.webm")} transparent volume={1} style={{ width: W, height: H }} />
-      </div>
+      <AbsoluteFill style={{ background: `radial-gradient(52% 16% at 50% 29%, rgba(60,120,255,${0.45 * k}), rgba(0,0,0,0) 100%)` }} />
+      <Audio src={staticFile("ads/sout_audio.mp3")} volume={1} />
     </AbsoluteFill>
   );
 };

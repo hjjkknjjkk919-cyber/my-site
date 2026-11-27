@@ -18,7 +18,7 @@ type LineId = keyof typeof D;
 const LINES: Record<LineId, { who: Who; text: string; keys: string[]; color: string }> = {
   l01: { who: "dima", text: "Купил, бл*дь, у Валеры диван с сюрпризом. Сюрприз — мама моего демона. И через пять минут у меня в хате начался полный п*здец.", keys: ["сюрпризом.", "мама", "п*здец."], color: ORANGE },
   l02: { who: "mom", text: "Триста лет балбесу, а он всё по шкафам шкерится! Полка кривая, свет жжёшь, за хату не платишь — п*здуй работать!", keys: ["триста", "кривая,", "п*здуй", "работать!"], color: REDK },
-  l03: { who: "nuance", text: "Мам, бл*дь, ну не при Диме же! Я древнее зло, какой нах*р «работать»?", keys: ["диме", "древнее", "зло,"], color: ORANGE },
+  l03: { who: "nuance", text: "Мам, бл*дь, ну не при Диме! Я древнее зло, какой нах*р «работать»?", keys: ["диме", "древнее", "зло,"], color: ORANGE },
   l04: { who: "dima", text: "Не-не, продолжайте. Коммуналку теперь на троих пилим.", keys: ["на", "троих"], color: ORANGE },
   l05: { who: "dima", text: "Короче, собрали князя тьмы как в первый класс: бутерброд в фольгу и вакансию в хоррор-квест.", keys: ["первый", "класс:", "хоррор-квест."], color: ORANGE },
   l05b: { who: "dima", text: "Правда, туториал «как пугать людей» у него не грузился — заблокировано. Ну я включил VPN — и князь тьмы снова в теме.", keys: ["заблокировано.", "vpn"], color: "#7CFFB2" },
@@ -59,23 +59,23 @@ const build = (preG: number, stare: number): TL & { pre: number; total: number }
     fx("springs", 0.35);
     fx("thud", momAt);
     punch.push(cur + momAt + 0.1);
-    scene(S1Hook, e + 0.6 + preG, { momAt }, "room", "ДИВАН ОТ ВАЛЕРЫ ПЕРЕКУПА");
+    scene(S1Hook, e + 0.3 + preG, { momAt }, "room", "ДИВАН ОТ ВАЛЕРЫ ПЕРЕКУПА");
   }
   // 2. семейный совет: мама → Нюанс сразу, без паузы → квитанция в руке Димы и глоток
   {
     const e2 = say("l02", 0.1);
     shake.push([cur + 0.1, cur + e2]);
-    const s3 = e2 + 0.1;
+    const s3 = e2 + preG;
     const e3 = say("l03", s3);
     punch.push(cur + s3 + 0.05);
-    const s4 = e3 + preG + 0.8;
+    const s4 = e3 + preG + 0.4;
     const showAt = e3 + preG;
     fx("slap", showAt + 0.1);
     const e4 = say("l04", s4);
     const sipAt = e4 + 0.1;
     fx("slurp", sipAt + 0.3);
     punch.push(cur + s4 + D.l04 * 0.55);
-    scene(S2Council, sipAt + 1.2 + preG, { cutB: s3 - 0.05, cutC: showAt - 0.1, slapAt: showAt + 0.1, sipAt }, "room", "СЕМЕЙНЫЙ СОВЕТ • КОММУНАЛКА ÷3");
+    scene(S2Council, sipAt + 0.9, { cutB: s3 - 0.05, cutC: showAt - 0.1, slapAt: showAt + 0.1, sipAt }, "room", "СЕМЕЙНЫЙ СОВЕТ • КОММУНАЛКА ÷3");
   }
   // 3. сборы → дверь → БАННЕР в центре ролика → «три века стажа»
   let pre = 0;
@@ -84,7 +84,7 @@ const build = (preG: number, stare: number): TL & { pre: number; total: number }
     fx("foil", 1.2);
     const s6 = e5 + preG;
     const e6 = say("l06", s6);
-    scene(S3Shift, e6 + 1.2 + preG, { vpnFrom: e5 + 0.05, blockAt: 0, toggleAt: 0, doorFrom: e5 + 0.05 }, "room", "ПЕРВЫЙ РАБОЧИЙ ДЕНЬ");
+    scene(S3Shift, e6 + 0.25, { vpnFrom: e5 + 0.05, blockAt: 0, toggleAt: 0, doorFrom: e5 + 0.05 }, "room", "ПЕРВЫЙ РАБОЧИЙ ДЕНЬ");
     pre = cur;
     scene(BannerAd, BANNER_LEN, {}, "none", "");
     const e7 = say("l07", 0.15);
@@ -134,14 +134,7 @@ const build = (preG: number, stare: number): TL & { pre: number; total: number }
   return { placed, vo, sfx, punch, shake, pre, total: cur };
 };
 
-/** Баннер — ровно в центре: досчитываем паузы до/после так, чтобы до и после баннера было поровну. */
-const plan = () => {
-  const p1 = build(0.25, STARE);
-  const post = p1.total - p1.pre - BANNER_LEN;
-  const diff = post - p1.pre;
-  return diff > 0 ? build(0.25 + diff / 6, STARE) : build(0.25, STARE - diff);
-};
-const TLINE = plan();
+const TLINE = build(0.15, 3.0);
 export const NUANS2_FRAMES = Math.round(TLINE.total * 30);
 export const BANNER_AT = TLINE.pre;
 
