@@ -468,7 +468,7 @@ export const BannerAd = () => {
           <S3Shift vpnFrom={0} blockAt={0} toggleAt={0} doorFrom={0} />
         </DurCtx.Provider>
       </AbsoluteFill>
-      <AbsoluteFill style={{ background: `radial-gradient(52% 16% at 50% 29%, rgba(60,120,255,${0.45 * k}), rgba(0,0,0,0) 100%)` }} />
+      <AbsoluteFill style={{ background: `radial-gradient(60% 18% at 50% 50%, rgba(60,120,255,${0.45 * k}), rgba(0,0,0,0) 100%)` }} />
       <Audio src={staticFile("ads/sout_audio.mp3")} volume={1} />
     </AbsoluteFill>
   );
