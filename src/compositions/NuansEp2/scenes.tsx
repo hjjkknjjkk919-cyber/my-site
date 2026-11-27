@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill } from "remotion";
+import { AbsoluteFill, OffthreadVideo, staticFile } from "remotion";
 import { DurCtx, ez, MONT, useLT, useSpr } from "../../pelmeni/kit";
 import { BillsFan, FLOOR_Y, FrontDoor, HallDecor, Level, Mug, Push, Receipt, Room, Shelf, Sink, Wardrobe } from "../AvitoWardrobe/props";
 import { ClawHand, dimaReach, LINE, nuanceReach, OUT } from "../AvitoWardrobe/rig";
@@ -445,5 +445,28 @@ export const S6Payoff = ({ reviewAt, pushAt }: { reviewAt: number; pushAt: numbe
         <Push k={push} y={660} lines={["Брат, есть холодильник с нюансом.", "Морозит до −600, иногда матерится"]} />
       </g>
     </Shot>
+  );
+};
+
+/* ── Рекламный баннер (6 с, со своей озвучкой): поверх размытой прихожей, углы скруглены маской, без хромакея ── */
+export const BannerAd = () => {
+  const t = useLT();
+  const pop = useSpr(0, 13, 140);
+  const out = ez(t, 5.75, 6.0);
+  const W = 1000;
+  const H = Math.round((W * 552) / 1374);
+  return (
+    <AbsoluteFill style={{ background: "#05070c" }}>
+      <AbsoluteFill style={{ filter: "blur(18px) brightness(0.45)", transform: "scale(1.08)" }}>
+        <DurCtx.Provider value={6}>
+          <S3Shift vpnFrom={0} blockAt={0} toggleAt={0} doorFrom={0} />
+        </DurCtx.Provider>
+      </AbsoluteFill>
+      <AbsoluteFill style={{ background: "radial-gradient(60% 40% at 50% 42%, rgba(60,110,255,.35), rgba(0,0,0,0) 70%)" }} />
+      <div style={{ position: "absolute", left: 540 - W / 2, top: 760 - H / 2, width: W, height: H, transform: `scale(${(0.6 + 0.4 * pop) * (1 - 0.15 * out)})`, opacity: Math.min(1, pop * 1.5) * (1 - out), filter: "drop-shadow(0 0 28px rgba(60,120,255,.75)) drop-shadow(0 24px 60px rgba(0,0,0,.6))" }}>
+        <OffthreadVideo src={staticFile("ads/sout_banner_v2.webm")} transparent volume={1} style={{ width: W, height: H }} />
+      </div>
+      <div style={{ position: "absolute", left: 70, top: 1080, width: 800, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 30, letterSpacing: 6, color: "rgba(255,255,255,.55)", opacity: pop * (1 - out) }}>РЕКЛАМА</div>
+    </AbsoluteFill>
   );
 };

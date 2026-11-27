@@ -8,11 +8,13 @@ import { ORANGE, REDK } from "../AvitoWardrobe/props";
 import { MouthCtx } from "../AvitoWardrobe/rig";
 import { speechEnergy } from "../AvitoWardrobe/useLipSync";
 import D from "./durs.json";
-import { AmpCtx, type Amp, S1Hook, S2Council, S3Shift, S4Quest, S5Door, S6Payoff } from "./scenes";
+import { AmpCtx, type Amp, BannerAd, S1Hook, S2Council, S3Shift, S4Quest, S5Door, S6Payoff } from "./scenes";
 
 export const NUANS2_FRAMES = 2400;
 const TOTAL = 80;
 const G = 0.15;
+export const BANNER_AT = 37.0;
+const BANNER_LEN = 6.0;
 
 type Who = keyof Amp;
 type LineId = keyof typeof D;
@@ -79,19 +81,18 @@ const build = (): TL => {
     punch.push(cur + s4 + D.l04 * 0.55);
     scene(S2Council, e4 + 0.45, { cutB: s3 - 0.05, cutC: s4 - 0.35, slapAt, sipAt }, "room", "СЕМЕЙНЫЙ СОВЕТ • КОММУНАЛКА ÷3");
   }
-  // 3. сборы → VPN → дверь
+  // 3. сборы → дверь → БАННЕР ровно в центре ролика (37.0–43.0 с) → «три века стажа»
   {
     const e5 = say("l05", 0.1);
     fx("foil", 1.2);
-    const sb = e5 + G;
-    const eb = say("l05b", sb);
-    const s6 = eb + G;
+    const s6 = e5 + G;
     const e6 = say("l06", s6);
-    const s7 = e6 + G;
-    const e7 = say("l07", s7);
+    scene(S3Shift, BANNER_AT - cur, { vpnFrom: e5 + 0.05, blockAt: 0, toggleAt: 0, doorFrom: e5 + 0.05 }, "room", "ПЕРВЫЙ РАБОЧИЙ ДЕНЬ");
+    scene(BannerAd, BANNER_LEN, {}, "none", "");
+    const e7 = say("l07", 0.15);
     punch.push(cur + e7 - 1.3);
     fx("lock", e7 + 0.1);
-    scene(S3Shift, e7 + 0.45, { vpnFrom: e5 + 0.05, blockAt: sb + D.l05b * 0.45, toggleAt: sb + D.l05b * 0.66, doorFrom: eb + 0.05 }, "room", "ПЕРВЫЙ РАБОЧИЙ ДЕНЬ");
+    scene(S3Shift, e7 + 0.45, { vpnFrom: 0, blockAt: 0, toggleAt: 0, doorFrom: 0 }, "room", "ПЕРВЫЙ РАБОЧИЙ ДЕНЬ");
   }
   // 4. квест
   {
@@ -179,6 +180,7 @@ const Subs = ({ t, list }: { t: number; list: Chunk[] }) => {
 
 const Nav = ({ t, placed }: { t: number; placed: Placed[] }) => {
   const i = placed.reduce((acc, p, j) => (t >= p.from ? j : acc), 0);
+  if (!placed[i].nav) return null;
   const k = ez(t, placed[i].from, placed[i].from + 0.35);
   return (
     <div style={{ position: "absolute", left: 50, top: 60, maxWidth: 830, display: "flex", alignItems: "center", gap: 12, fontFamily: MONT, fontWeight: 900, fontSize: 32, color: "#fff", background: "rgba(10,10,12,.86)", padding: "12px 26px", borderRadius: 999, border: "3px solid rgba(255,255,255,.16)", opacity: 0.3 + 0.7 * k }}>
@@ -209,7 +211,7 @@ export const NuansEp2 = () => {
   const tl = useMemo(build, []);
   const subs = useMemo(() => chunks(tl.vo), [tl]);
   const audio = IDS.map((id) => useAudioData(src(id)));
-  const talking = (tt: number) => tl.vo.some(([id, a]) => tt > a - 0.1 && tt < a + D[id] + 0.1);
+  const talking = (tt: number) => (tt >= BANNER_AT && tt < BANNER_AT + BANNER_LEN) || tl.vo.some(([id, a]) => tt > a - 0.1 && tt < a + D[id] + 0.1);
   const amp: Amp = { dima: 0, nuance: 0, mom: 0, kid: 0, admin: 0 };
   for (const [id, a] of tl.vo) {
     if (t >= a && t < a + D[id]) amp[LINES[id].who] = speechEnergy(audio[IDS.indexOf(id)], f - Math.round(a * 30), 30);
@@ -221,7 +223,7 @@ export const NuansEp2 = () => {
   const vol = (base: number, at = 0) => (fr: number) => (talking(fr / 30 + at) ? base * 0.5 : base);
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      {tl.placed.map((s, i) => (
+      {tl.placed.filter((s) => s.amb !== "none").map((s, i) => (
         <Sequence key={`a${i}`} from={Math.round(s.from * 30)} durationInFrames={Math.round(s.to * 30) - Math.round(s.from * 30)} layout="none">
           <Audio src={staticFile(`audio/nuans2/sfx_${s.amb}.mp3`)} loop volume={vol(0.08, s.from)} />
         </Sequence>
