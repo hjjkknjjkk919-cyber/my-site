@@ -20,10 +20,11 @@ const build = () => {
   const v: number[] = [];
   const seg: number[] = [0];
   const dv: number[] = [];
+  let ad = 0;
   let t = 0.47;
   v.push(t);
   t += D[0];
-  const step = (blink: boolean, dima = -1) => {
+  const step = (blink: boolean, dima = -1, adBreak = false) => {
     seg.push(t + 0.1);
     t = t + 0.1 + (blink ? 0.22 : 0.08);
     v.push(t);
@@ -32,19 +33,24 @@ const build = () => {
       dv[dima] = t + 0.2;
       t += 0.2 + DD[dima] + 0.1;
     }
+    if (adBreak) {
+      ad = t + 0.2; // рекламная пауза 6 с: сцена живёт дальше, притемнена; баннер накладывается ffmpeg (scripts/banner_overlay.sh)
+      t += 0.2 + 6.0 + 0.25;
+    }
   };
   step(true); // 2: окно открыто, монстр за изножьем
   step(false, 0); // 3: Дима сверху 1
   step(true); // 4: поднимается над изножьем
-  step(true); // 5: к коридору
+  step(true, -1, true); // 5: его уже нет (+ реклама)
   step(false, 1); // 6: Дима сверху 2
   step(true); // 7: пропал
   step(true, 2); // 8: Дима сверху 3
   seg.push(t + 0.05); // 9: выбор
   v.push(t + 0.1);
-  return { v, seg, dv };
+  return { v, seg, dv, ad };
 };
-const { v: V, seg: S, dv: DV } = build();
+const { v: V, seg: S, dv: DV, ad: AD } = build();
+export const SLEEP_AD = AD;
 export const SLEEP_FRAMES = Math.round((V[8] + D[8] + 1.3) * 30);
 const BLINKS = [S[1], S[3], S[4], S[6], S[7]];
 const segAt = (t: number) => S.reduce((a, s, i) => (t >= s ? i : a), 0) + 1;
@@ -135,7 +141,8 @@ export const Sleep = () => {
     bpm: bpm(t),
   };
   const top = sg === 3 || sg === 6 || sg === 8;
-  const talking = (tt: number) => V.some((s, i) => tt > s - 0.05 && tt < s + D[i] + 0.05) || DV.some((s, i) => tt > s - 0.05 && tt < s + DD[i] + 0.05);
+  const talking = (tt: number) => V.some((s, i) => tt > s - 0.05 && tt < s + D[i] + 0.05) || DV.some((s, i) => tt > s - 0.05 && tt < s + DD[i] + 0.05) || (tt > AD - 0.05 && tt < AD + 6.05);
+  const adK = t >= AD && t < AD + 6 ? ez(t, AD, AD + 0.3) * (1 - ez(t, AD + 5.7, AD + 6)) : 0;
   const dimaTalk = DV.some((s, i) => t >= s && t < s + DD[i]);
   const vol = (base: number, at = 0) => (fr: number) => (talking(fr / 30 + at) ? base * 0.5 : base);
   const FOOT_TOP: [number, number, number][] = [[-0.75, 0.62, -1.7], [0.75, 0.62, -1.7], [0.75, 3, -1.7], [-0.75, 3, -1.7]];
@@ -148,6 +155,9 @@ export const Sleep = () => {
       {sg === 4 && <MonsterLayer s={state} at={[-0.15, -0.74, -1.98]} pose="peek" tilt={90} pupil={-0.3} grin={1} hands="none" grip clip={FOOT_TOP} />}
       {/* после 3-го моргания монстра в комнате нет — он уже у мамы; остаётся только мокрый след в коридор */}
       {(sg === 5 || sg === 7) && <Trail s={state} />}
+      {/* реклама: живая сцена плавно притемняется, мягкий синий ореол под баннер */}
+      {adK > 0 && <AbsoluteFill style={{ background: `rgba(0,0,0,${0.45 * adK})` }} />}
+      {adK > 0 && <AbsoluteFill style={{ background: `radial-gradient(60% 18% at 50% 50%, rgba(60,120,255,${0.45 * adK}), rgba(0,0,0,0) 100%)` }} />}
       {top && <DimaBed stage={sg === 3 ? 1 : sg === 6 ? 2 : 3} k={Math.min(1, lt / (S[sg] - S[sg - 1]))} t={t} bpm={bpm(t)} flinch={sg === 8 && t > V[7] + D[7] * 0.17 && t < V[7] + D[7] * 0.55 ? 1 : 0} talk={dimaTalk} />}
       {/* финальный выбор — 3D-табличка из «Электрички» */}
       <Sequence from={Math.round(S[8] * 30)} layout="none">
@@ -165,6 +175,7 @@ export const Sleep = () => {
       {SFX.map(([n, at, vv], i) => (
         <Sequence key={i} from={Math.round(at * 30)} layout="none"><Audio src={staticFile(`audio/sleep/sfx_${n}.mp3`)} volume={vol(vv ?? 0.12, at)} /></Sequence>
       ))}
+      <Sequence from={Math.round(AD * 30)} durationInFrames={180} layout="none"><Audio src={staticFile("ads/sout_audio.mp3")} volume={1} /></Sequence>
       {DV.map((s, i) => (
         <Sequence key={`d${i}`} from={Math.round(s * 30)} layout="none"><Audio src={staticFile(`audio/sleep/d${i}.mp3`)} volume={1} /></Sequence>
       ))}
