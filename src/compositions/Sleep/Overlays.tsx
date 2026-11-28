@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
-import { Face2 } from "../../train/Dima2";
+import { DimaFace } from "../../train/GostOld";
 import { type BedState, project } from "./Bedroom3D";
 
 const RIM = "#7fb3d5";
@@ -159,52 +159,59 @@ export const MonsterLayer = ({ s, at, pose, tilt, pupil, grin, hands, clip, bars
   );
 };
 
-/** Старый Дима из «Электрички» на кровати: бегают глаза, сужаются зрачки, стучит сердце. */
+/** Маленький Дима из «Электрички» (DimaFace из GostOld + тело Sleeper в куртке) — лежит на подушке: бегают глаза, сужаются зрачки, стучит сердце. */
 export const DimaBed = ({ stage, k, t, bpm, flinch = 0 }: { stage: 1 | 2 | 3; k: number; t: number; bpm: number; flinch?: number }) => {
+  const LN = "#2b1d16";
+  const JK = "#3b4d63";
+  const JK_SH = "#2a384a";
   const beat = ((t * bpm) / 60) % 1;
   const pulse = beat < 0.1 ? 1 - beat / 0.1 : 0;
   const zoom = (stage === 1 ? 1 + 0.05 * k : stage === 2 ? 1.08 + 0.1 * k : 1.1) + pulse * 0.012;
   const shake = stage === 2 ? [Math.sin(t * 43) * 2.5, Math.cos(t * 37) * 2.5] : [0, flinch * Math.sin(t * 60) * 6];
   const sacc = [-0.7, 0.5, -0.3, 0.8, -0.6, 0.2][Math.floor(t * (stage === 2 ? 4 : 2.5)) % 6];
-  const look: [number, number] = stage === 1 ? [sacc * 0.8, -0.5] : stage === 2 ? [sacc, -0.2] : [0.1, 0.25];
+  const look: [number, number] = stage === 1 ? [sacc * 0.8, -0.5] : stage === 2 ? [sacc, -0.2] : [0.1, 0.3];
   const fear = stage === 1 ? 0.3 + 0.35 * k : stage === 2 ? 0.85 + 0.15 * k : 1;
+  const breath = Math.sin(t * (bpm / 40)) * 6;
   return (
     <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
       <defs>
-        <radialGradient id="dbBlue" cx="0.4" cy="0.3" r="0.6">
-          <stop offset="0%" stopColor="#7fa6ff" stopOpacity={0.3} />
+        <radialGradient id="dbBlue" cx="0.42" cy="0.32" r="0.55">
+          <stop offset="0%" stopColor="#7fa6ff" stopOpacity={0.28} />
           <stop offset="100%" stopColor="#7fa6ff" stopOpacity={0} />
         </radialGradient>
-        <radialGradient id="dbVig" cx="0.5" cy="0.47" r="0.7">
+        <radialGradient id="dbVig" cx="0.5" cy="0.45" r="0.7">
           <stop offset="55%" stopColor="#000" stopOpacity={0} />
           <stop offset="100%" stopColor="#000" stopOpacity={0.85} />
         </radialGradient>
       </defs>
       <rect width={1080} height={1920} fill="#05070b" />
-      <g transform={`translate(${540 + shake[0]} ${960 + shake[1]}) scale(${zoom}) translate(-540 -960)`}>
-        {/* тёмная подушка */}
-        <rect x={90} y={420} width={900} height={1000} rx={170} fill="#1f2530" />
-        <path d="M150 480 Q540 420 930 480" stroke="#2c3442" strokeWidth={18} fill="none" />
-        {stage === 3 && [[250, 1180], [830, 1190]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx={60 + k * 50} ry={30 + k * 22} fill="#0d1118" opacity={0.7 * k} />)}
-        <Face2 t={t} fear={fear} eyes={stage === 2 ? 1.28 : stage === 3 ? 0.85 : 1.15} look={look} mouth={stage === 2 ? "clench" : "closed"} sweat={stage === 1 ? 0.55 : stage === 2 ? 1 : 0.3} tear={stage === 3 ? Math.min(1, k * 1.6) : 0} tremble={stage === 2 ? 1 : stage === 3 ? 0.6 : 0} bed />
-        {/* левая слеза (правую рисует Face2) */}
-        {stage === 3 && k > 0.25 && (
-          <g>
-            <path d={`M440 920 C438 ${960} 434 ${920 + (k - 0.25) * 340 - 20} 432 ${920 + (k - 0.25) * 340}`} stroke="#cfe6f7" strokeWidth={8} fill="none" opacity={0.6} strokeLinecap="round" />
-            <ellipse cx={432} cy={924 + (k - 0.25) * 340} rx={9} ry={13} fill="#bcd8ee" opacity={0.85} stroke="#7fa6c9" strokeWidth={2} />
-          </g>
-        )}
-        {/* водянистый блеск соплей под ноздрями */}
-        {stage === 3 && (
-          <g opacity={Math.min(1, k * 2)}>
-            {[512, 568].map((x) => <path key={x} d={`M${x - 10} 1022 C${x - 12} ${1040 + k * 10} ${x + 12} ${1040 + k * 10} ${x + 10} 1022 Z`} fill="rgba(225,235,245,0.45)" stroke="rgba(255,255,255,0.6)" strokeWidth={1.5} />)}
-            {[508, 564].map((x) => <circle key={x} cx={x} cy={1030} r={3} fill="#fff" opacity={0.85} />)}
-          </g>
-        )}
-        {/* одеяло до плеч */}
-        <path d="M60 1460 Q540 1380 1020 1460 L1040 1920 L40 1920 Z" fill="#1a2639" stroke="#0e1420" strokeWidth={6} />
-        {[0, 1, 2].map((i) => <path key={i} d={`M${160 + i * 260} ${1520 + i * 20} q90 40 180 0`} stroke="#121b2a" strokeWidth={10} fill="none" />)}
-        <ellipse cx={460} cy={700} rx={320} ry={240} fill="url(#dbBlue)" />
+      <g transform={`translate(${540 + shake[0]} ${900 + shake[1]}) scale(${zoom}) translate(-540 -900)`}>
+        {/* подушка */}
+        <rect x={150} y={470} width={780} height={760} rx={150} fill="#1f2530" />
+        <path d="M210 520 Q540 470 870 520" stroke="#2c3442" strokeWidth={16} fill="none" />
+        {stage === 3 && [[300, 1040], [780, 1050]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx={50 + k * 40} ry={26 + k * 18} fill="#0d1118" opacity={0.7 * k} />)}
+        {/* тело из «Электрички»: куртка, дыхание учащается вместе с пульсом */}
+        <g transform={`translate(0 ${breath * 0.3})`}>
+          <path d={`M110 1920 C120 1560 190 1280 370 ${1170 + breath} L710 ${1170 + breath} C890 1280 960 1560 970 1920 Z`} fill={JK} stroke={LN} strokeWidth={9} />
+          <path d="M710 1180 C880 1280 960 1560 970 1920 H840 C850 1680 820 1400 710 1180 Z" fill={JK_SH} />
+          <path d="M540 1220 V1920" stroke={LN} strokeWidth={6} />
+          <path d={`M380 ${1190 + breath} C420 ${1150 + breath} 470 ${1140 + breath} 540 ${1146 + breath} C610 ${1140 + breath} 660 ${1150 + breath} 700 ${1190 + breath} L690 ${1230 + breath} C640 ${1202 + breath} 600 ${1196 + breath} 540 ${1198 + breath} C480 ${1196 + breath} 440 ${1202 + breath} 390 ${1230 + breath} Z`} fill={JK_SH} stroke={LN} strokeWidth={6} />
+        </g>
+        {/* голова на подушке — тот же масштаб, что в «Электричке» */}
+        <g transform={`translate(0 ${breath * 0.25}) translate(540 880) scale(0.62) translate(-540 -900)`}>
+          <DimaFace t={t} fear={fear} eyes={stage === 2 ? 1.28 : stage === 3 ? 0.85 : 1.15} look={look} mouth={stage === 2 ? "clench" : "closed"} sweat={stage === 1 ? 0.5 : stage === 2 ? 1 : 0.3} tears={stage === 3 ? Math.min(1, k * 1.5) : 0} tremble={stage === 2 ? 1 : stage === 3 ? 0.6 : 0} />
+          {/* водянистый блеск соплей под ноздрями */}
+          {stage === 3 && (
+            <g opacity={Math.min(1, k * 2)}>
+              {[515, 565].map((x) => <path key={x} d={`M${x - 12} 1050 C${x - 14} ${1076 + k * 14} ${x + 14} ${1076 + k * 14} ${x + 12} 1050 Z`} fill="rgba(225,235,245,0.5)" stroke="rgba(255,255,255,0.65)" strokeWidth={2} />)}
+              {[510, 560].map((x) => <circle key={x} cx={x} cy={1060} r={4} fill="#fff" opacity={0.85} />)}
+            </g>
+          )}
+        </g>
+        {/* одеяло */}
+        <path d="M60 1400 Q540 1330 1020 1400 L1040 1920 L40 1920 Z" fill="#1a2639" stroke="#0e1420" strokeWidth={6} />
+        {[0, 1, 2].map((i) => <path key={i} d={`M${160 + i * 260} ${1460 + i * 20} q90 40 180 0`} stroke="#121b2a" strokeWidth={10} fill="none" />)}
+        <ellipse cx={480} cy={760} rx={300} ry={230} fill="url(#dbBlue)" />
       </g>
       {/* край тумбочки с полным циферблатом 03:17 */}
       <g transform="rotate(-6 200 330)">
@@ -212,7 +219,6 @@ export const DimaBed = ({ stage, k, t, bpm, flinch = 0 }: { stage: 1 | 2 | 3; k:
         <rect x={60} y={270} width={250} height={100} rx={12} fill="#050505" stroke="#222" strokeWidth={4} />
         <text x={185} y={346} textAnchor="middle" fontFamily="monospace" fontWeight={900} fontSize={70} fill="#ff2020" style={{ filter: "drop-shadow(0 0 10px #ff0000)" }}>03:17</text>
       </g>
-      {/* пульс: красная кромка на ударе */}
       <rect width={1080} height={1920} fill="url(#dbVig)" />
       <rect width={1080} height={1920} fill="none" stroke="#ff1a1a" strokeWidth={60} opacity={pulse * 0.25} />
     </svg>

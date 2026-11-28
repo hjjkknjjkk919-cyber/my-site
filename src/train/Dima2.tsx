@@ -23,12 +23,10 @@ export type Face2Props = {
   /** 0..1: 0–0.4 набухает, 0.4–1 катится */
   tear?: number;
   tremble?: number;
-  /** На кровати: без капюшона и куртки — волосы целиком и футболка (для «Сонного паралича» и др.). */
-  bed?: boolean;
 };
 
 /** Лицо крупно. Центр лица (540, 900). */
-export const Face2 = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "closed", sweat = 0, tear = 0, tremble = 0, bed = false }: Face2Props) => {
+export const Face2 = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "closed", sweat = 0, tear = 0, tremble = 0 }: Face2Props) => {
   const shake = tremble * (Math.floor(t * 15) % 2 ? 2 : -2);
   const chin = tremble * (Math.floor(t * 15) % 2 ? 2 : -2);
   const eo = clamp(eyes, 0.05, 1.3);
@@ -91,18 +89,6 @@ export const Face2 = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "closed"
   const tY = 920 + tearRoll * 260;
   return (
     <g transform={`translate(${shake} 0)`}>
-      {bed ? (
-        <>
-          {/* футболка и шея, волосы целиком (без капюшона) */}
-          <path d="M120 1920 C110 1560 200 1390 360 1320 L720 1320 C880 1390 970 1560 960 1920 Z" fill="#4a4e54" stroke={LINE} strokeWidth="7" />
-          <path d="M720 1330 C880 1400 950 1580 950 1920 L830 1920 C840 1650 810 1460 720 1330 Z" fill="#3a3d42" />
-          <path d="M440 1320 C470 1350 610 1350 640 1320" fill="none" stroke={LINE} strokeWidth="6" />
-          <path d="M420 1170 L415 1300 C470 1335 610 1335 665 1300 L660 1170 Z" fill={SKIN_SH} stroke={LINE} strokeWidth="6" />
-          <path d="M268 860 C250 640 360 540 540 536 C720 540 830 640 812 860 C800 760 760 690 690 660 L540 640 L390 660 C320 690 280 760 268 860 Z" fill={HAIR} stroke={LINE} strokeWidth="7" />
-          <path d="M360 560 C440 540 640 540 720 560" stroke="#c9a27a" strokeWidth="5" fill="none" opacity="0.5" />
-        </>
-      ) : (
-        <>
       {/* куртка и шея */}
       <path d="M90 1920 C80 1550 170 1360 330 1290 L750 1290 C910 1360 1000 1550 990 1920 Z" fill={JK} stroke={LINE} strokeWidth="7" />
       <path d="M760 1300 C930 1380 990 1560 990 1920 L850 1920 C860 1650 840 1450 760 1300 Z" fill={JK_SH} />
@@ -121,8 +107,6 @@ export const Face2 = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "closed"
         return <path key={i} d={`M${x} ${y} l${-Math.cos(a) * 20 + (i % 2 ? 5 : -5)} ${-Math.sin(a) * 18}`} stroke="#eef2f5" strokeWidth="8" strokeLinecap="round" />;
       })}
       <path d="M250 1170 C210 900 260 610 540 585 C820 610 870 900 830 1170" fill="none" stroke={LINING} strokeWidth="4" opacity="0.6" />
-        </>
-      )}
       {/* уши */}
       <ellipse cx="262" cy="900" rx="30" ry="52" fill={SKIN} stroke={LINE} strokeWidth="6" />
       <ellipse cx="818" cy="900" rx="30" ry="52" fill={SKIN} stroke={LINE} strokeWidth="6" />

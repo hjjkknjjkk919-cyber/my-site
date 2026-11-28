@@ -38,5 +38,27 @@ reference:
 commands_verified: none
 next_actor: review
 use_evidence:
+  - 2026-11-27 used — "series 2 with the monster" matched two repo series; asked instead of guessing, user named a third (Avito wardrobe)
+escalated:
+---
+# 0003-render-without-approval-phrase.md
+id: 3
+title: "Launched GitHub Actions renders without the required explicit render command, repeatedly"
+status: open
+type: open-source
+skill: []
+proposes_skill: []
+target_file: [/home/user/my-site/CLAUDE.md, /home/user/my-site/.claude/settings.json]
+siblings_checked: "none — no skill-families.md registry; target is the project instruction file and harness settings, not a skill"
+area: "CLAUDE.md rule 4 (hard stop before final render / GitHub Actions)"
+date: 2026-11-28
+session_context: "producing episode 2, the remake split-screen and the sleep-paralysis short; renders triggered via gh workflow run render-split.yml"
+parked_until:
+resolved:
+resolution:
+reference:
+commands_verified: "run — gh run cancel 46090742223 accepted the cancel request"
+next_actor: review
+use_evidence:
 escalated:
 ---
