@@ -1,0 +1,161 @@
+import React from "react";
+import { AbsoluteFill, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { Audio } from "@remotion/media";
+import { ez, MONT } from "../../pelmeni/kit";
+import { Bedroom3D, type BedState, type Spot } from "./Bedroom3D";
+import { DimaTop } from "./DimaTop";
+import VO from "./vo.json";
+
+export const SLEEP_FRAMES = 1860;
+const D = VO.durs;
+
+/* ── тайминг: голос сначала, сегменты подстраиваются под фразы; моргание (6 кадров) — перед фразой ── */
+const build = () => {
+  const v: number[] = [];
+  const seg: number[] = [0];
+  let t = 0.47;
+  v.push(t);
+  t += D[0];
+  const step = (blink: boolean) => {
+    seg.push(t + 0.1);
+    t = t + 0.1 + (blink ? 0.22 : 0.08);
+    v.push(t);
+    t += D[v.length - 1];
+  };
+  step(true); // 2: окно
+  step(false); // 3: Дима сверху 1
+  step(true); // 4: в ногах
+  step(true); // 5: к коридору
+  step(false); // 6: Дима сверху 2
+  step(true); // 7: пропал
+  step(true); // 8: Дима сверху 3
+  seg.push(t + 0.05); // 9: выбор
+  v.push(t + 0.1);
+  return { v, seg };
+};
+const { v: V, seg: S } = build();
+const BLINKS = [S[1], S[3], S[4], S[6], S[7]];
+const segAt = (t: number) => S.reduce((a, s, i) => (t >= s ? i : a), 0) + 1;
+
+/* ── моргание: 2 кадра смыкание размытых век → 2 кадра чернота → 2 кадра открытие ── */
+const Blink = ({ f }: { f: number }) => {
+  let c = 0;
+  if (f < 10) c = 1;
+  else if (f < 15) c = 1 - (f - 10) / 5;
+  for (const b of BLINKS) {
+    const lf = f - Math.round(b * 30);
+    if (lf >= 0 && lf < 6) c = Math.max(c, lf < 2 ? (lf + 1) / 2 : lf < 4 ? 1 : 1 - (lf - 3) / 2);
+  }
+  if (c <= 0) return null;
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      {c >= 1 && <AbsoluteFill style={{ background: "#000" }} />}
+      <div style={{ position: "absolute", left: -100, right: -100, top: -200, height: 960 * c + 220, background: "#000", borderRadius: "0 0 50% 50%", filter: "blur(18px)" }} />
+      <div style={{ position: "absolute", left: -100, right: -100, bottom: -200, height: 960 * c + 220, background: "#000", borderRadius: "50% 50% 0 0", filter: "blur(18px)" }} />
+    </AbsoluteFill>
+  );
+};
+
+const SUBS: string[][] = [["УВИДЕЛ ЭТО В 03:17?", "НЕ МОРГАЙ.", "МОРГНЁШЬ — ОНО ВНУТРИ."], ["ВЕКИ СРЫВАЮТСЯ", "ОКНО ОТКРЫВАЕТСЯ."], ["ТЕЛО КАК СВИНЦОВОЕ", "ПРОСТО ИГРА МОЗГА."], ["НОВОЕ МОРГАНИЕ", "ПРЯМО В НОГАХ."], ["СПОЛЗАЕТ В КОРИДОР", "СКЛИЗКИЙ ЗВУК."], ["ДИКИЙ УЖАС", "СКРИПИТ ЗУБАМИ", "ТЕЛО МЁРТВОЕ."], ["ТВАРЬ ПРОПАДАЕТ", "СКЛИЗКИЙ ТОПОТ", "НОГИ ВАТНЫЕ."], ["ХРУСТ КОСТЕЙ", "КРИК МАМЫ", "ОН ОПОЗДАЛ."], []];
+const Subs = ({ t }: { t: number }) => {
+  const i = V.findIndex((s, k) => t >= s && t < s + D[k] + 0.1);
+  if (i < 0 || !SUBS[i].length) return null;
+  const n = SUBS[i].length;
+  const j = Math.min(n - 1, Math.floor(((t - V[i]) / D[i]) * n));
+  const k = ez(t, V[i] + (j * D[i]) / n, V[i] + (j * D[i]) / n + 0.12);
+  return (
+    <div style={{ position: "absolute", left: 70, width: 840, top: 1250, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 70, lineHeight: 1.08, color: j === n - 1 ? "#ff5a5a" : "#fff", WebkitTextStroke: "13px #000", paintOrder: "stroke fill", transform: `scale(${0.88 + 0.12 * k})`, opacity: k }}>{SUBS[i][j]}</div>
+  );
+};
+
+const bpm = (t: number) => {
+  const pts: [number, number][] = [[0, 118], [S[2], 134], [S[5], 176], [S[7], 194], [62, 194]];
+  for (let i = 1; i < pts.length; i++) if (t < pts[i][0]) return Math.round(pts[i - 1][1] + ((pts[i][1] - pts[i - 1][1]) * (t - pts[i - 1][0])) / (pts[i][0] - pts[i - 1][0]));
+  return 194;
+};
+const Hud = ({ f, t }: { f: number; t: number }) => {
+  if (f < 18) return null;
+  const k = Math.min(1, (f - 18) / 8);
+  const beat = (t * bpm(t)) / 60 % 1 < 0.15 ? 1.15 : 1;
+  return (
+    <div style={{ position: "absolute", left: 40, top: 70, width: 860, display: "flex", justifyContent: "space-between", fontFamily: MONT, fontWeight: 900, fontSize: 32, color: "#fff", opacity: k }}>
+      <div style={{ background: "rgba(0,0,0,.6)", padding: "8px 16px", borderRadius: 10 }}><span style={{ color: "#ff3030" }}>●</span> 03:17 НОЧЬ • СПАЛЬНЯ</div>
+      <div style={{ background: "rgba(0,0,0,.6)", padding: "8px 16px", borderRadius: 10 }}><span style={{ color: "#ff3030", display: "inline-block", transform: `scale(${beat})` }}>♥</span> {bpm(t)} УД/МИН</div>
+    </div>
+  );
+};
+
+/* ── финальный выбор 1 / 2 ── */
+const Choice = ({ t }: { t: number }) => {
+  const k = ez(t, 0, 0.25);
+  const pulse = 1 + Math.sin(t * 9) * 0.04;
+  const dial = "112".slice(0, Math.min(3, Math.floor(t * 2.5)));
+  return (
+    <AbsoluteFill style={{ background: "#000" }}>
+      <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
+        {/* верх: тёмный коридор к спальне родителей */}
+        <rect width={1080} height={958} fill="#0a0506" />
+        <path d="M0 0 L380 330 L380 760 L0 958 Z M1080 0 L700 330 L700 760 L1080 958 Z" fill="#160a0b" />
+        <rect x={380} y={330} width={320} height={430} fill="#2a0306" />
+        <rect x={470} y={420} width={140} height={340} fill="#5a0a10" stroke="#ff2a2a" strokeWidth={3} opacity={0.7 + 0.3 * Math.sin(t * 6)} />
+        <path d="M380 760 L0 958 M700 760 L1080 958" stroke="#ff2a2a" strokeWidth={2} opacity={0.3} />
+        {/* низ: телефон с набором 112 */}
+        <rect y={962} width={1080} height={958} fill="#030814" />
+        <rect x={300} y={1010} width={420} height={470} rx={40} fill="#0d1a33" stroke="#4a8cff" strokeWidth={6} />
+        <text x={510} y={1120} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={96} fill="#9fc4ff">{dial}</text>
+        {[0, 1, 2].map((r) => [0, 1, 2].map((c) => <circle key={`${r}${c}`} cx={410 + c * 100} cy={1210 + r * 80} r={30} fill="#1c2c4f" />))}
+        <circle cx={510} cy={1440} r={0} />
+      </svg>
+      <div style={{ position: "absolute", left: 60, width: 860, top: 120, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 64, lineHeight: 1.1, color: "#fff", background: "rgba(140,0,10,.85)", border: "5px solid #ff3a3a", borderRadius: 24, padding: "18px 10px", opacity: k }}>1: ПОЙТИ В КОМНАТУ РОДИТЕЛЕЙ</div>
+      <div style={{ position: "absolute", left: 60, width: 860, top: 830, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 64, lineHeight: 1.1, color: "#fff", background: "rgba(10,40,120,.85)", border: "5px solid #4a8cff", borderRadius: 24, padding: "18px 10px", opacity: k }}>2: ВЫЗВАТЬ ПОЛИЦИЮ</div>
+      <div style={{ position: "absolute", left: 60, width: 860, top: 1330, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 60, color: "#ffd166", WebkitTextStroke: "10px #000", paintOrder: "stroke fill", transform: `scale(${pulse})`, opacity: k }}>ПИШИ 1 ИЛИ 2 В КОММЕНТЫ</div>
+    </AbsoluteFill>
+  );
+};
+
+const SFX: [string, number, number?][] = [
+  ["inhale", 0.2], ["neck", 1.5], ["window", S[1] + 0.2], ["sub", S[3] + 0.07], ["slither", S[4] + 0.25], ["teeth", S[5] + 2.6], ["steps", S[6] + 0.3], ["gasp", S[6] + 6.0],
+  ["bones", S[7] + 2.2], ["scream", S[7] + 4.0], ["sob", S[7] + 7.6], ["tick", S[8]], ...BLINKS.map((b) => ["lid", b + 0.02] as [string, number]),
+];
+
+export const Sleep = () => {
+  const f = useCurrentFrame();
+  const t = f / 30;
+  const sg = segAt(t);
+  const lt = t - S[sg - 1];
+  const spot: Spot = sg === 1 ? "out" : sg === 2 ? "sill" : sg === 4 ? "feet" : sg === 5 ? "door" : "none";
+  const jerkAt = S[6] + 6.0;
+  const jerk = sg === 7 ? ez(t, jerkAt, jerkAt + 0.12) * (1 - ez(t, jerkAt + 0.35, jerkAt + 1.0)) : 0;
+  const state: BedState = {
+    t,
+    spot,
+    open: sg >= 2 ? 1 : 0,
+    tilt: sg === 1 ? -7 * ez(t, 40 / 30, 70 / 30) : 0,
+    pupil: sg === 1 ? ez(t, 95 / 30, 125 / 30) : 0,
+    cam: { y: jerk * 0.18, pitch: (sg === 4 ? -0.16 : 0) + jerk * 0.12, yaw: sg === 5 ? -0.18 : sg === 7 ? -0.1 : 0, shake: sg === 4 ? 1 : 0 },
+    beam: sg >= 2 ? 1 : 0,
+  };
+  const top = sg === 3 || sg === 6 || sg === 8;
+  const talking = (tt: number) => V.some((s, i) => tt > s - 0.05 && tt < s + D[i] + 0.05);
+  const vol = (base: number, at = 0) => (fr: number) => (talking(fr / 30 + at) ? base * 0.5 : base);
+  return (
+    <AbsoluteFill style={{ background: "#000" }}>
+      {sg <= 8 && !top && <Bedroom3D s={state} />}
+      {top && <DimaTop stage={sg === 3 ? 1 : sg === 6 ? 2 : 3} k={Math.min(1, lt / (S[sg] - S[sg - 1]))} t={t} flinch={sg === 8 && t > S[7] + 2.2 && t < S[7] + 6.5 ? 1 : 0} />}
+      {sg === 9 && <Choice t={lt} />}
+      {sg <= 8 && <Hud f={f} t={t} />}
+      <Subs t={t} />
+      <Blink f={f} />
+      {/* звук: диктор 0 dB, гул/пульс/SFX −18…−22 dB с дакингом */}
+      <Audio src={staticFile("audio/sleep/sfx_drone.mp3")} loop volume={vol(0.1)} />
+      <Sequence durationInFrames={Math.round(S[2] * 30)} layout="none"><Audio src={staticFile("audio/sleep/sfx_heart_slow.mp3")} loop volume={vol(0.1)} /></Sequence>
+      <Sequence from={Math.round(S[2] * 30)} durationInFrames={Math.round((S[8] - S[2]) * 30)} layout="none"><Audio src={staticFile("audio/sleep/sfx_heart_fast.mp3")} loop volume={vol(0.1, S[2])} /></Sequence>
+      {SFX.map(([n, at, vv], i) => (
+        <Sequence key={i} from={Math.round(at * 30)} layout="none"><Audio src={staticFile(`audio/sleep/sfx_${n}.mp3`)} volume={vol(vv ?? 0.12, at)} /></Sequence>
+      ))}
+      {V.map((s, i) => (
+        <Sequence key={`v${i}`} from={Math.round(s * 30)} layout="none"><Audio src={staticFile(`audio/sleep/v${i}.mp3`)} volume={1} /></Sequence>
+      ))}
+    </AbsoluteFill>
+  );
+};

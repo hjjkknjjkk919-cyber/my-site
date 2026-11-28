@@ -11,6 +11,7 @@ import { Pelmeni43, PEL_FRAMES } from "./pelmeni/Pelmeni43";
 import { PUSH_FRAMES, Pushistik1 } from "./compositions/Pushistik/Pushistik1";
 import { Avatar } from "./compositions/Avatar/Avatar";
 import { CLINIC_FRAMES, ClinicAnime } from "./compositions/ClinicAnime/ClinicAnime";
+import { SLEEP_FRAMES, Sleep } from "./compositions/Sleep/Sleep";
 import { HYPER_SCENES } from "./compositions/Hyper/scenes";
 import { SCENES as HYPER_TL } from "./compositions/Hyper/engine";
 import { REMAKE_FRAMES, Remake90s } from "./compositions/Remake90s/Remake90s";
@@ -38,6 +39,7 @@ export const Root = () => (
     <Composition id="Avatar" component={Avatar} width={1080} height={1080} fps={30} durationInFrames={1} />
     <Composition id="ClinicAnime" component={ClinicAnime} width={1080} height={1920} fps={30} durationInFrames={CLINIC_FRAMES} />
     <Composition id="Pushistik1" component={Pushistik1} width={1080} height={1920} fps={30} durationInFrames={PUSH_FRAMES} />
+    <Composition id="SleepParalysis" component={Sleep} width={1080} height={1920} fps={30} durationInFrames={SLEEP_FRAMES} />
     {HYPER_SCENES.map((C, i) => <Composition key={i} id={`Hyper${String(i + 1).padStart(2, "0")}`} component={C} width={1920} height={1080} fps={30} durationInFrames={HYPER_TL[i].frames} />)}
     <Composition id="Remake90s" component={Remake90s} width={1080} height={1920} fps={30} durationInFrames={REMAKE_FRAMES} />
     <Composition id="NuansEp2" component={NuansEp2} width={1080} height={1920} fps={30} durationInFrames={NUANS2_FRAMES} />
