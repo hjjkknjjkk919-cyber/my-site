@@ -186,6 +186,10 @@ export const DimaBed = ({ stage, k, t, bpm, flinch = 0 }: { stage: 1 | 2 | 3; k:
   const look: [number, number] = stage === 1 ? [sacc * 0.8, -0.5] : stage === 2 ? [sacc, -0.2] : [0.1, 0.3];
   const fear = stage === 1 ? 0.3 + 0.35 * k : stage === 2 ? 0.85 + 0.15 * k : 1;
   const breath = Math.sin(t * (bpm / 40)) * 6;
+  // Дима сам моргает: быстро смыкает веки (0.17 с), в ужасе (этап 2) реже
+  const per = stage === 2 ? 3.4 : 2.3;
+  const bu = (t + 0.7) % per;
+  const lid = bu < 0.17 ? Math.sin((bu / 0.17) * Math.PI) : 0;
   return (
     <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
       <defs>
@@ -213,7 +217,7 @@ export const DimaBed = ({ stage, k, t, bpm, flinch = 0 }: { stage: 1 | 2 | 3; k:
         </g>
         {/* голова на подушке — тот же масштаб, что в «Электричке» */}
         <g transform={`translate(0 ${breath * 0.25}) translate(540 880) scale(0.62) translate(-540 -900)`}>
-          <DimaFace t={t} fear={fear} eyes={stage === 2 ? 1.28 : stage === 3 ? 0.85 : 1.15} look={look} mouth={stage === 2 ? "clench" : "closed"} sweat={stage === 1 ? 0.5 : stage === 2 ? 1 : 0.3} tears={stage === 3 ? Math.min(1, k * 1.5) : 0} tremble={stage === 2 ? 1 : stage === 3 ? 0.6 : 0} />
+          <DimaFace t={t} fear={fear} eyes={(stage === 2 ? 1.28 : stage === 3 ? 0.85 : 1.15) * (1 - 0.96 * lid)} look={look} mouth={stage === 2 ? "clench" : "closed"} sweat={stage === 1 ? 0.5 : stage === 2 ? 1 : 0.3} tears={stage === 3 ? Math.min(1, k * 1.5) : 0} tremble={stage === 2 ? 1 : stage === 3 ? 0.6 : 0} />
           {/* водянистый блеск соплей под ноздрями */}
           {stage === 3 && (
             <g opacity={Math.min(1, k * 2)}>

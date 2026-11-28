@@ -37,21 +37,26 @@ const { v: V, seg: S } = build();
 const BLINKS = [S[1], S[3], S[4], S[6], S[7]];
 const segAt = (t: number) => S.reduce((a, s, i) => (t >= s ? i : a), 0) + 1;
 
-/* ── моргание: 2 кадра смыкание размытых век → 2 кадра чернота → 2 кадра открытие ── */
-const Blink = ({ f }: { f: number }) => {
-  let c = 0;
-  if (f < 10) c = 1;
-  else if (f < 15) c = 1 - (f - 10) / 5;
+/* ── моргание как в «Электричке» (PovPhone): мягкие размытые веки от первого лица — сверху 80%, снизу 20%, склейка в полной черноте, дрожь век при открытии ── */
+const lidsAt = (t: number) => {
+  let v = t < 0.15 ? 1 : t < 0.45 ? 1 - (t - 0.15) / 0.3 * 0.7 : t < 0.52 ? 0.3 + (t - 0.45) / 0.07 * 0.2 : t < 0.75 ? 0.5 * (1 - (t - 0.52) / 0.23) : 0;
   for (const b of BLINKS) {
-    const lf = f - Math.round(b * 30);
-    if (lf >= 0 && lf < 6) c = Math.max(c, lf < 2 ? (lf + 1) / 2 : lf < 4 ? 1 : 1 - (lf - 3) / 2);
+    const u = t - (b - 0.3);
+    if (u < 0 || u > 1.15) continue;
+    const e = (x: number) => x * x * (3 - 2 * x);
+    v = Math.max(v, u < 0.3 ? e(u / 0.3) : u < 0.45 ? 1 : u < 0.8 ? 1 - e((u - 0.45) / 0.35) * 0.75 : u < 0.9 ? 0.25 + ((u - 0.8) / 0.1) * 0.35 : 0.6 * (1 - e((u - 0.9) / 0.25)));
   }
-  if (c <= 0) return null;
+  return v;
+};
+const Blink = ({ f }: { f: number }) => {
+  const lids = lidsAt(f / 30);
+  if (lids <= 0.01) return null;
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
-      {c >= 1 && <AbsoluteFill style={{ background: "#000" }} />}
-      <div style={{ position: "absolute", left: -100, right: -100, top: -200, height: 960 * c + 220, background: "#000", borderRadius: "0 0 50% 50%", filter: "blur(18px)" }} />
-      <div style={{ position: "absolute", left: -100, right: -100, bottom: -200, height: 960 * c + 220, background: "#000", borderRadius: "50% 50% 0 0", filter: "blur(18px)" }} />
+      <AbsoluteFill style={{ background: `radial-gradient(70% 55% at 50% 50%, rgba(0,0,0,0) 30%, rgba(0,0,0,${0.85 * lids}) 100%)` }} />
+      <div style={{ position: "absolute", left: "-15%", width: "130%", top: -160, height: `calc(${lids * 80}% + 160px)`, background: "#000", borderRadius: "0 0 50% 50% / 0 0 120px 120px", filter: "blur(32px)" }} />
+      <div style={{ position: "absolute", left: "-15%", width: "130%", bottom: -160, height: `calc(${lids * 20}% + 160px)`, background: "#000", borderRadius: "50% 50% 0 0 / 60px 60px 0 0", filter: "blur(32px)" }} />
+      {lids > 0.96 && <AbsoluteFill style={{ background: "#000", opacity: (lids - 0.96) / 0.04 }} />}
     </AbsoluteFill>
   );
 };
@@ -115,7 +120,7 @@ const Choice = ({ t }: { t: number }) => {
 
 const SFX: [string, number, number?][] = [
   ["inhale", 0.2], ["neck", 1.5], ["window", S[1] + 0.2], ["sub", S[3] + 0.07], ["slither", S[4] + 0.25], ["teeth", S[5] + 2.6], ["steps", S[6] + 0.3], ["gasp", S[6] + 6.0],
-  ["bones", S[7] + 2.2], ["scream", S[7] + 4.0], ["sob", S[7] + 7.6], ["tick", S[8]], ...BLINKS.map((b) => ["lid", b + 0.02] as [string, number]),
+  ["bones", S[7] + 2.2], ["scream", S[7] + 4.0], ["sob", S[7] + 7.6], ["tick", S[8]], ...BLINKS.map((b) => ["lid", b - 0.28] as [string, number]),
 ];
 
 export const Sleep = () => {
