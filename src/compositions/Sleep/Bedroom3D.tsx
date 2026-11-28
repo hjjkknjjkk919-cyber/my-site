@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { rnd } from "../../train/Pov3D";
 
 export type Spot = "out" | "sill" | "feet" | "door" | "none";
-export type BedState = { t: number; spot: Spot; open: number; tilt: number; pupil: number; cam: { y: number; pitch: number; yaw: number; shake: number }; beam: number };
+export type BedState = { t: number; spot: Spot; open: number; tilt: number; pupil: number; cam: { y: number; pitch: number; yaw: number; shake: number }; beam: number; bpm?: number };
 
 /* ── процедурные текстуры (кэшируются через useMemo) ── */
 const canvasTex = (W: number, H: number, draw: (g: CanvasRenderingContext2D) => void, rx = 1, ry = 1) => {
@@ -187,9 +187,12 @@ const blanketGeo = () => {
 
 /** Поза камеры у изголовья (fov 60) — общая для 3D-сцены и 2D-слоя монстра. */
 export const camPose = (s: BedState) => {
-  const br = Math.sin(s.t * (s.spot === "out" ? 2.2 : 3.0)) * 0.015;
+  const breath = Math.sin(s.t * 4.2); // breathCycle из ТЗ
+  const beat = ((s.t * (s.bpm ?? 118)) / 60) % 1;
+  const pulse = beat < 0.1 ? 1 - beat / 0.1 : 0;
+  const br = breath * 0.012;
   const sh = s.cam.shake ? (Math.sin(s.t * 47) * 0.004 + Math.cos(s.t * 61) * 0.003) * s.cam.shake : 0;
-  return { pos: [0.1 + sh, 1.02 + br + s.cam.y, 1.35] as [number, number, number], rot: [-0.13 + s.cam.pitch + sh, s.cam.yaw, 0] as [number, number, number], fov: 60 };
+  return { pos: [0.1 + sh, 1.02 + br + s.cam.y, 1.35] as [number, number, number], rot: [-0.13 + s.cam.pitch + sh, s.cam.yaw, 0] as [number, number, number], fov: 59.25 + 1.25 * breath - 0.6 * pulse };
 };
 const projCam = new THREE.PerspectiveCamera(60, 1080 / 1920, 0.03, 60);
 /** Мировая точка → пиксели кадра 1080×1920 и масштаб «пикселей на метр» на этой глубине. */

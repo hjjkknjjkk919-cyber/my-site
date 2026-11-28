@@ -21,12 +21,19 @@ LINES = [
     "Если проснулся в три семнадцать ночи... и увидел это за окном — не моргай. Моргнёшь — оно окажется в комнате.",
     "Веки сами срываются вниз — и ты слышишь, как открывается окно.",
     "Тело как свинцовое. Дима убеждает себя, что это просто сонный паралич и игра мозга.",
-    "Новое моргание — и оно выглядывает прямо у него в ногах, не сводя с него глаз.",
+    "Новое моргание — и оно выглядывает прямо из-за изножья кровати, не сводя с него глаз.",
     "Ещё моргание. Оно сползает в сторону коридора с мерзким склизким звуком.",
     "Диму накрывает дикий ужас: он понимает, куда оно ползёт, скрипит зубами, пытается закричать — но тело мёртвое.",
     "Моргание — тварь пропадает в темноте, оставляя мерзкий склизкий топот у двери родителей. Паралич резко отпускает, но ноги ватные — он всё равно не может встать.",
     "Ещё один взмах век. Из спальни родителей доносится хруст костей и крик мамы, который резко переходит в хрип. По лицу Димы текут слёзы и сопли — он опоздал.",
-    "Пойдёшь в комнату родителей или вызовешь полицию? Пиши в комменты.",
+    "Пойдёшь в комнату родителей или вызовешь полицию? Пиши в комменты!",
+]
+# Дима — Омин (eleven_v3, теги эмоций), мат открыто, без цензуры
+DIMA_VOICE = "ZleKRMCJL4E5Uc5viWNH"
+DIMA = [
+    "[whispers] [scared] Бля... это сон. Просто сон, сука...",
+    "[terrified] [through clenched teeth] Нет-нет-нет... блядь, только не туда!",
+    "[crying] Мама... сука... мама...",
 ]
 SFX = [
     ("inhale", "sharp panicked gasping inhale of a man waking up", 1.2),
@@ -65,9 +72,20 @@ def line(i):
     if fin.exists() and str(i) not in ONLY:
         return
     raw = OUT / f"v{i}_raw.mp3"
-    post(f"{API}/text-to-speech/{VOICE}?output_format=mp3_44100_128", {"text": LINES[i], "model_id": "eleven_multilingual_v2", "voice_settings": {"stability": 0.75, "similarity_boost": 0.8, "style": 0.2, "speed": 0.93}}, raw)
+    post(f"{API}/text-to-speech/{VOICE}?output_format=mp3_44100_128", {"text": LINES[i], "model_id": "eleven_multilingual_v2", "voice_settings": {"stability": 0.75, "similarity_boost": 0.8, "style": 0.2, "speed": 0.88}}, raw)
     af = ("silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,"
           f"silenceremove=stop_periods=-1:stop_duration=0.35:stop_threshold=-42dB,{BASS},loudnorm=I=-15:TP=-1.5")
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-af", af, "-ar", "44100", "-b:a", "192k", str(fin)], check=True)
+    raw.unlink()
+
+
+def dima(i):
+    fin = OUT / f"d{i}.mp3"
+    if fin.exists() and f"d{i}" not in ONLY:
+        return
+    raw = OUT / f"d{i}_raw.mp3"
+    post(f"{API}/text-to-speech/{DIMA_VOICE}?output_format=mp3_44100_128", {"text": DIMA[i], "model_id": "eleven_v3", "voice_settings": {"stability": 0.5, "similarity_boost": 0.8}}, raw)
+    af = "silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,loudnorm=I=-16:TP=-1.5"
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-af", af, "-ar", "44100", "-b:a", "192k", str(fin)], check=True)
     raw.unlink()
 
@@ -87,7 +105,8 @@ if __name__ == "__main__":
     with ThreadPoolExecutor(3) as ex:
         list(ex.map(line, range(len(LINES))))
         list(ex.map(sfx, SFX))
+        list(ex.map(dima, range(len(DIMA))))
     d = [round(dur(OUT / f"v{i}.mp3"), 3) for i in range(len(LINES))]
     (ROOT / "src/compositions/Sleep").mkdir(parents=True, exist_ok=True)
-    (ROOT / "src/compositions/Sleep/vo.json").write_text(json.dumps({"durs": d, "text": LINES}, ensure_ascii=False))
+    (ROOT / "src/compositions/Sleep/vo.json").write_text(json.dumps({"durs": d, "text": LINES, "dima": [round(dur(OUT / f"d{i}.mp3"), 3) for i in range(len(DIMA))]}, ensure_ascii=False))
     print("durs", d, "total", round(sum(d), 2))

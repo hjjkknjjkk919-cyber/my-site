@@ -6,34 +6,41 @@ import { Bedroom3D, type BedState, type Spot } from "./Bedroom3D";
 import { DimaBed, MonsterLayer, Vhs } from "./Overlays";
 import VO from "./vo.json";
 
-export const SLEEP_FRAMES = 1860;
 const D = VO.durs;
+const DD: number[] = (VO as { dima?: number[] }).dima ?? [0, 0, 0];
+const DSUBS = ["БЛЯ... ЭТО СОН. ПРОСТО СОН, СУКА...", "НЕТ-НЕТ-НЕТ... БЛЯДЬ, ТОЛЬКО НЕ ТУДА!", "МАМА... СУКА... МАМА..."];
 
-/* ── тайминг: голос сначала, сегменты подстраиваются под фразы; моргание (6 кадров) — перед фразой ── */
+/* ── тайминг: голос сначала, сегменты подстраиваются под фразы; реплики Димы — после фразы диктора в его планах ── */
 const build = () => {
   const v: number[] = [];
   const seg: number[] = [0];
+  const dv: number[] = [];
   let t = 0.47;
   v.push(t);
   t += D[0];
-  const step = (blink: boolean) => {
+  const step = (blink: boolean, dima = -1) => {
     seg.push(t + 0.1);
     t = t + 0.1 + (blink ? 0.22 : 0.08);
     v.push(t);
     t += D[v.length - 1];
+    if (dima >= 0) {
+      dv[dima] = t + 0.2;
+      t += 0.2 + DD[dima] + 0.1;
+    }
   };
-  step(true); // 2: окно
-  step(false); // 3: Дима сверху 1
-  step(true); // 4: в ногах
+  step(true); // 2: окно открыто, монстр за изножьем
+  step(false, 0); // 3: Дима сверху 1
+  step(true); // 4: поднимается над изножьем
   step(true); // 5: к коридору
-  step(false); // 6: Дима сверху 2
+  step(false, 1); // 6: Дима сверху 2
   step(true); // 7: пропал
-  step(true); // 8: Дима сверху 3
+  step(true, 2); // 8: Дима сверху 3
   seg.push(t + 0.05); // 9: выбор
   v.push(t + 0.1);
-  return { v, seg };
+  return { v, seg, dv };
 };
-const { v: V, seg: S } = build();
+const { v: V, seg: S, dv: DV } = build();
+export const SLEEP_FRAMES = Math.round((V[8] + D[8] + 1.3) * 30);
 const BLINKS = [S[1], S[3], S[4], S[6], S[7]];
 const segAt = (t: number) => S.reduce((a, s, i) => (t >= s ? i : a), 0) + 1;
 
@@ -61,7 +68,7 @@ const Blink = ({ f }: { f: number }) => {
   );
 };
 
-const SUBS: string[][] = [["УВИДЕЛ ЭТО В 03:17?", "НЕ МОРГАЙ.", "МОРГНЁШЬ — ОНО ВНУТРИ."], ["ВЕКИ СРЫВАЮТСЯ", "ОКНО ОТКРЫВАЕТСЯ."], ["ТЕЛО КАК СВИНЦОВОЕ", "ПРОСТО ИГРА МОЗГА."], ["НОВОЕ МОРГАНИЕ", "ПРЯМО В НОГАХ."], ["СПОЛЗАЕТ В КОРИДОР", "СКЛИЗКИЙ ЗВУК."], ["ДИКИЙ УЖАС", "СКРИПИТ ЗУБАМИ", "ТЕЛО МЁРТВОЕ."], ["ТВАРЬ ПРОПАДАЕТ", "СКЛИЗКИЙ ТОПОТ", "НОГИ ВАТНЫЕ."], ["ХРУСТ КОСТЕЙ", "КРИК МАМЫ", "ОН ОПОЗДАЛ."], []];
+const SUBS: string[][] = [["УВИДЕЛ ЭТО В 03:17?", "НЕ МОРГАЙ.", "МОРГНЁШЬ — ОНО ВНУТРИ."], ["ВЕКИ СРЫВАЮТСЯ", "ОКНО ОТКРЫВАЕТСЯ."], ["ТЕЛО КАК СВИНЦОВОЕ", "ПРОСТО ИГРА МОЗГА."], ["НОВОЕ МОРГАНИЕ", "ИЗ-ЗА ИЗНОЖЬЯ."], ["СПОЛЗАЕТ В КОРИДОР", "СКЛИЗКИЙ ЗВУК."], ["ДИКИЙ УЖАС", "ГЛАЗА НАВЫКАТЕ", "ТЕЛО МЁРТВОЕ."], ["ТВАРЬ ПРОПАДАЕТ", "СКЛИЗКИЙ ТОПОТ", "НОГИ ВАТНЫЕ."], ["ХРУСТ КОСТЕЙ", "КРИК МАМЫ", "ОН ОПОЗДАЛ."], []];
 const Subs = ({ t }: { t: number }) => {
   const i = V.findIndex((s, k) => t >= s && t < s + D[k] + 0.1);
   if (i < 0 || !SUBS[i].length) return null;
@@ -73,8 +80,17 @@ const Subs = ({ t }: { t: number }) => {
   );
 };
 
+const DSub = ({ t }: { t: number }) => {
+  const i = DV.findIndex((s, k) => t >= s && t < s + DD[k] + 0.15);
+  if (i < 0) return null;
+  const k = ez(t, DV[i], DV[i] + 0.12);
+  return (
+    <div style={{ position: "absolute", left: 70, width: 840, top: 1250, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 66, lineHeight: 1.08, color: "#ffd166", WebkitTextStroke: "13px #000", paintOrder: "stroke fill", fontStyle: "italic", transform: `scale(${0.88 + 0.12 * k})`, opacity: k }}>{DSUBS[i]}</div>
+  );
+};
+
 const bpm = (t: number) => {
-  const pts: [number, number][] = [[0, 118], [S[2], 134], [S[5], 176], [S[7], 194], [62, 194]];
+  const pts: [number, number][] = [[0, 118], [S[2], 134], [S[5], 176], [S[7], 194], [999, 194]];
   for (let i = 1; i < pts.length; i++) if (t < pts[i][0]) return Math.round(pts[i - 1][1] + ((pts[i][1] - pts[i - 1][1]) * (t - pts[i - 1][0])) / (pts[i][0] - pts[i - 1][0]));
   return 194;
 };
@@ -119,8 +135,8 @@ const Choice = ({ t }: { t: number }) => {
 };
 
 const SFX: [string, number, number?][] = [
-  ["inhale", 0.2], ["neck", 1.5], ["window", S[1] + 0.2], ["sub", S[3] + 0.07], ["slither", S[4] + 0.25], ["teeth", S[5] + 2.6], ["steps", S[6] + 0.3], ["gasp", S[6] + 6.0],
-  ["bones", S[7] + 2.2], ["scream", S[7] + 4.0], ["sob", S[7] + 7.6], ["tick", S[8]], ...BLINKS.map((b) => ["lid", b - 0.28] as [string, number]),
+  ["inhale", 0.2], ["neck", 1.5], ["window", S[1] + 0.2], ["sub", S[3] + 0.07], ["slither", S[4] + 0.25], ["teeth", V[5] + D[5] * 0.33], ["steps", S[6] + 0.3], ["gasp", V[6] + D[6] * 0.58],
+  ["bones", V[7] + D[7] * 0.17], ["scream", V[7] + D[7] * 0.33], ["sob", V[7] + D[7] * 0.64], ["tick", S[8]], ...BLINKS.map((b) => ["lid", b - 0.28] as [string, number]),
 ];
 
 export const Sleep = () => {
@@ -128,20 +144,22 @@ export const Sleep = () => {
   const t = f / 30;
   const sg = segAt(t);
   const lt = t - S[sg - 1];
-  const spot: Spot = sg === 1 ? "out" : sg === 2 ? "sill" : sg === 4 ? "feet" : sg === 5 ? "door" : "none";
-  const jerkAt = S[6] + 6.0;
+  const spot: Spot = sg === 1 ? "out" : sg === 2 || sg === 4 ? "feet" : sg === 5 ? "door" : "none";
+  const jerkAt = V[6] + D[6] * 0.58;
   const jerk = sg === 7 ? ez(t, jerkAt, jerkAt + 0.12) * (1 - ez(t, jerkAt + 0.35, jerkAt + 1.0)) : 0;
   const state: BedState = {
     t,
     spot,
     open: sg >= 2 ? 1 : 0,
-    tilt: sg === 1 ? -7 * ez(t, 40 / 30, 70 / 30) : 0,
+    tilt: sg === 1 ? -90 * ez(t, 40 / 30, 70 / 30) : 0,
     pupil: sg === 1 ? ez(t, 95 / 30, 125 / 30) : 0,
-    cam: { y: jerk * 0.18, pitch: (sg === 4 ? -0.16 : 0) + jerk * 0.12, yaw: sg === 5 ? -0.18 : sg === 7 ? -0.1 : 0, shake: sg === 4 ? 1 : 0 },
+    cam: { y: jerk * 0.18, pitch: (sg === 2 || sg === 4 ? -0.16 : 0) + jerk * 0.12, yaw: sg === 5 ? -0.18 : sg === 7 ? -0.1 : 0, shake: sg === 4 ? 1 : 0 },
     beam: sg >= 2 ? 1 : 0,
+    bpm: bpm(t),
   };
   const top = sg === 3 || sg === 6 || sg === 8;
-  const talking = (tt: number) => V.some((s, i) => tt > s - 0.05 && tt < s + D[i] + 0.05);
+  const talking = (tt: number) => V.some((s, i) => tt > s - 0.05 && tt < s + D[i] + 0.05) || DV.some((s, i) => tt > s - 0.05 && tt < s + DD[i] + 0.05);
+  const dimaTalk = DV.some((s, i) => t >= s && t < s + DD[i]);
   const vol = (base: number, at = 0) => (fr: number) => (talking(fr / 30 + at) ? base * 0.5 : base);
   const FOOT_TOP: [number, number, number][] = [[-0.75, 0.62, -1.7], [0.75, 0.62, -1.7], [0.75, 3, -1.7], [-0.75, 3, -1.7]];
   const WIN: [number, number, number][] = [[-0.8, 0.73, -3.18], [0.8, 0.73, -3.18], [0.8, 2.08, -3.18], [-0.8, 2.08, -3.18]];
@@ -149,14 +167,15 @@ export const Sleep = () => {
     <AbsoluteFill style={{ background: "#000" }}>
       {sg <= 8 && !top && <Bedroom3D s={state} />}
       {sg === 1 && <MonsterLayer s={state} at={[0.15, -0.38, -3.7]} pose="stand" tilt={state.tilt} pupil={state.pupil} grin={0.3} hands="glass" clip={WIN} bars />}
-      {sg === 2 && <MonsterLayer s={state} at={[0.95, 0, -2.45]} pose="lean" tilt={-10} pupil={-0.6} grin={0.6 + 0.4 * Math.min(1, lt / 2.5)} hands="down" />}
-      {sg === 4 && <MonsterLayer s={state} at={[0.08, -0.5, -1.98]} pose="peek" tilt={90} pupil={-0.3} grin={1} hands="edge" clip={FOOT_TOP} />}
-      {sg === 5 && <MonsterLayer s={state} at={[1.45, 0, -2.75]} pose="crouch" tilt={-25} pupil={0.8} grin={0.8} hands="down" />}
-      {top && <DimaBed stage={sg === 3 ? 1 : sg === 6 ? 2 : 3} k={Math.min(1, lt / (S[sg] - S[sg - 1]))} t={t} bpm={bpm(t)} flinch={sg === 8 && t > S[7] + 2.2 && t < S[7] + 6.5 ? 1 : 0} />}
+      {sg === 2 && <MonsterLayer s={state} at={[-0.15, -0.98, -1.98]} pose="peek" tilt={90} pupil={-0.4} grin={0.5 + 0.5 * Math.min(1, lt / 2.5)} hands="none" grip clip={FOOT_TOP} />}
+      {sg === 4 && <MonsterLayer s={state} at={[-0.15, -0.74, -1.98]} pose="peek" tilt={90} pupil={-0.3} grin={1} hands="none" grip clip={FOOT_TOP} />}
+      {sg === 5 && <MonsterLayer s={state} at={[1.45, 0, -2.75]} pose="crouch" tilt={90} pupil={0.8} grin={0.9} hands="down" />}
+      {top && <DimaBed stage={sg === 3 ? 1 : sg === 6 ? 2 : 3} k={Math.min(1, lt / (S[sg] - S[sg - 1]))} t={t} bpm={bpm(t)} flinch={sg === 8 && t > V[7] + D[7] * 0.17 && t < V[7] + D[7] * 0.55 ? 1 : 0} talk={dimaTalk} />}
       {sg === 9 && <Choice t={lt} />}
       <Vhs f={f} />
       {sg <= 8 && <Hud f={f} t={t} />}
       <Subs t={t} />
+      <DSub t={t} />
       <Blink f={f} />
       {/* звук: диктор 0 dB, гул/пульс/SFX −18…−22 dB с дакингом */}
       <Audio src={staticFile("audio/sleep/sfx_drone.mp3")} loop volume={vol(0.1)} />
@@ -164,6 +183,9 @@ export const Sleep = () => {
       <Sequence from={Math.round(S[2] * 30)} durationInFrames={Math.round((S[8] - S[2]) * 30)} layout="none"><Audio src={staticFile("audio/sleep/sfx_heart_fast.mp3")} loop volume={vol(0.1, S[2])} /></Sequence>
       {SFX.map(([n, at, vv], i) => (
         <Sequence key={i} from={Math.round(at * 30)} layout="none"><Audio src={staticFile(`audio/sleep/sfx_${n}.mp3`)} volume={vol(vv ?? 0.12, at)} /></Sequence>
+      ))}
+      {DV.map((s, i) => (
+        <Sequence key={`d${i}`} from={Math.round(s * 30)} layout="none"><Audio src={staticFile(`audio/sleep/d${i}.mp3`)} volume={1} /></Sequence>
       ))}
       {V.map((s, i) => (
         <Sequence key={`v${i}`} from={Math.round(s * 30)} layout="none"><Audio src={staticFile(`audio/sleep/v${i}.mp3`)} volume={1} /></Sequence>

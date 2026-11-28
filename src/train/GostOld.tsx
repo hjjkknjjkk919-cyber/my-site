@@ -24,21 +24,23 @@ export type DimaProps = {
   fear?: number; // 0..1
   eyes?: number; // открытость 0..1.3
   look?: [number, number];
-  mouth?: "closed" | "clench" | "open" | "o";
+  mouth?: "closed" | "clench" | "open" | "o" | "grit";
+  bulge?: number; // выкаченные глаза (масштаб глаза вокруг центра), по умолчанию 1
+  veins?: number; // красные капилляры и покраснение белков 0..1
   sweat?: number;
   tears?: number;
   tremble?: number;
 };
 
 /** Лицо Димы анфас; центр лица (540, 900), ширина ~620. */
-export const DimaFace = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "closed", sweat = 0, tears = 0, tremble = 0 }: DimaProps) => {
+export const DimaFace = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "closed", sweat = 0, tears = 0, tremble = 0, bulge = 1, veins = 0 }: DimaProps) => {
   const tr = tremble * (Math.sin(t * 63) * 3 + Math.sin(t * 101) * 2);
   const eo = clamp(eyes, 0.05, 1.3);
   const lx = look[0] * 28;
   const ly = look[1] * 16;
   const pupil = 26 - fear * 12;
   const browY = -fear * 30;
-  const jaw = mouth === "clench" ? Math.abs(Math.sin(t * 8)) * 5 : 0;
+  const jaw = mouth === "clench" || mouth === "grit" ? Math.abs(Math.sin(t * 8)) * 5 : 0;
   const tearPh = clamp((tears - 0.5) * 2);
   const drops = Array.from({ length: 3 }, (_, i) => {
     const ph = (t * (0.15 + i * 0.05) + random(`ds${i}`)) % 1;
@@ -56,7 +58,7 @@ export const DimaFace = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "clos
   const loY = botY - shut * 0.2 * hgt;
   const ctl = (mid: number) => (mid - 0.25 * 860) / 0.75; // контрольная точка кривой, проходящей через mid
   const eye = (cx: number, side: -1 | 1) => (
-    <g key={cx}>
+    <g key={cx} transform={bulge !== 1 ? `translate(${cx} 860) scale(${bulge}) translate(${-cx} -860)` : undefined}>
       <defs>
         <clipPath id={`gE${cx}`}>
           <path d={eyePath(cx)} />
@@ -71,6 +73,12 @@ export const DimaFace = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "clos
       <path d={`M${cx - 92} ${880 + 40 * E} C${cx - 40} ${905 + 56 * E} ${cx + 40} ${905 + 56 * E} ${cx + 92} ${880 + 40 * E}`} stroke="#b98c78" strokeWidth="10" fill="none" opacity={0.3 + fear * 0.4} />
       <path d={eyePath(cx)} fill="#fbf7f3" />
       <g clipPath={`url(#gE${cx})`}>
+        {veins > 0 && (
+          <g opacity={veins}>
+            <path d={eyePath(cx)} fill="#ff3b3b" opacity={0.2} />
+            <path d={`M${cx - 98} 850 l26 7 l14 -6 l12 8 M${cx - 96} 872 l22 -3 l16 8 M${cx + 98} 848 l-24 8 l-16 -4 l-10 9 M${cx + 96} 874 l-26 -4 l-12 9 M${cx - 92} 834 l18 12 l10 -4 M${cx + 92} 888 l-20 -9 l-8 5`} stroke="#c42222" strokeWidth="2.4" fill="none" />
+          </g>
+        )}
         <path d={`M${cx - 96} 860 l30 -4 l14 8 M${cx + 96} 862 l-28 2 l-12 -9`} stroke="#d06a6a" strokeWidth="2.5" fill="none" opacity={fear * 0.8} />
         <circle cx={cx + lx} cy={858 + ly} r="46" fill={`url(#gI${cx})`} stroke={LINE} strokeWidth="4" />
         <circle cx={cx + lx} cy={858 + ly} r={pupil} fill="#141010" />
@@ -142,6 +150,16 @@ export const DimaFace = ({ t, fear = 0.3, eyes = 1, look = [0, 0], mouth = "clos
           <path d="M462 1112 C505 1102 575 1102 618 1112 L615 1132 C575 1128 505 1128 465 1132 Z" fill="#fbf6ee" />
           <path d="M465 1132 C505 1128 575 1128 615 1132 L612 1148 C575 1152 505 1152 468 1148 Z" fill="#efe6da" />
           {[485, 510, 535, 560, 585].map((x) => <path key={x} d={`M${x} 1104 V1152`} stroke="#c8baa8" strokeWidth="2" />)}
+          <path d={`M${300 - jaw} 1080 C${312 - jaw} 1110 ${320 - jaw} 1130 ${330 - jaw} 1150 M${780 + jaw} 1080 C${768 + jaw} 1110 ${760 + jaw} 1130 ${750 + jaw} 1150`} stroke={SKIN_SH} strokeWidth="7" fill="none" strokeLinecap="round" />
+        </g>
+      )}
+      {mouth === "grit" && (
+        <g transform={`translate(${Math.sin(t * 70) * 1.6} 0)`}>
+          {/* стиснутые зубы, уголки рта опущены вниз — никакой улыбки */}
+          <path d="M448 1146 C488 1100 592 1100 632 1146 C600 1164 480 1164 448 1146 Z" fill="#4a1e1e" stroke={LINE} strokeWidth="6" />
+          <path d="M462 1138 C500 1110 580 1110 618 1138 L612 1144 C575 1134 505 1134 468 1144 Z" fill="#fbf6ee" />
+          <path d="M468 1144 C505 1136 575 1136 612 1144 L605 1152 C575 1156 505 1156 475 1152 Z" fill="#efe6da" />
+          {[490, 515, 540, 565, 590].map((x) => <path key={x} d={`M${x} 1116 V1154`} stroke="#c8baa8" strokeWidth="2" />)}
           <path d={`M${300 - jaw} 1080 C${312 - jaw} 1110 ${320 - jaw} 1130 ${330 - jaw} 1150 M${780 + jaw} 1080 C${768 + jaw} 1110 ${760 + jaw} 1130 ${750 + jaw} 1150`} stroke={SKIN_SH} strokeWidth="7" fill="none" strokeLinecap="round" />
         </g>
       )}
