@@ -20,7 +20,8 @@ OUT.mkdir(parents=True, exist_ok=True)
 API = "https://api.elevenlabs.io/v1"
 HDR = {"xi-api-key": "proxy-injected", "Content-Type": "application/json"}
 VOICE = {"maks": "kwajW3Xh5svCeKU5ky2S", "galya": "Fy6bUBXCIVErEtK9FN5d", "tolyan": "0BcDz9UPwL3MpsnTeUlO", "zina": "N8lIVPsFkvOoqev5Csxo",
-         "monster": "PRfCKe8kdrG3nuXOAnoH", "mchs": "3EuKHIEZbSzrHGNmdYsx", "petrovich": "y0RLnxlYEbYtNjhcMVmG"}
+         "monster": "PRfCKe8kdrG3nuXOAnoH", "mchs": "3EuKHIEZbSzrHGNmdYsx", "petrovich": "y0RLnxlYEbYtNjhcMVmG",
+         "lyokha": "ws3YyKFd5whKb21yaXES", "roma": "DS6EUI0539yrd2EB0eig", "sveta": "obFhmRTxMCcBnoAHlct8", "mikhalych": "ouyTiWqmHA5WI5bbX7zj"}
 CHORUS = ["maks", "galya", "tolyan", "zina", "petrovich"]
 GAP = 0.12
 
