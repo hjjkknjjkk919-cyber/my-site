@@ -10,22 +10,36 @@ const CLOAK = "#1a1e24";
 const HAIR = "#1e2126";
 
 /** Кисть монстра: бледная ладонь и длинные тонкие пальцы со скруглёнными кончиками — БЕЗ когтей. */
-const Hand = ({ x, y, rot = 0, spread = 1 }: { x: number; y: number; rot?: number; spread?: number }) => (
-  <g transform={`translate(${x} ${y}) rotate(${rot}) scale(1.6)`}>
-    {[-1.5, -0.5, 0.5, 1.5].map((k, i) => (
-      <g key={i} transform={`rotate(${k * 9 * spread})`}>
-        <line x1={k * 7} y1={0} x2={k * 7} y2={96 - Math.abs(k) * 12} stroke="#0a0b0e" strokeWidth={11} strokeLinecap="round" />
-        <line x1={k * 7} y1={0} x2={k * 7} y2={96 - Math.abs(k) * 12} stroke={SKIN} strokeWidth={6.5} strokeLinecap="round" />
-      </g>
-    ))}
-    <g transform={`rotate(${-48 * spread})`}>
-      <line x1={-14} y1={-4} x2={-14} y2={40} stroke="#0a0b0e" strokeWidth={13} strokeLinecap="round" />
-      <line x1={-14} y1={-4} x2={-14} y2={40} stroke={SKIN} strokeWidth={8} strokeLinecap="round" />
+/** Кисть монстра: 4 длинных пальца веером, каждый из своей костяшки (расходятся, не пересекаются), большой палец сбоку ладони. Без когтей. */
+const fingerPath = (bx: number, by: number, deg: number, deg2: number, len: number) => {
+  const a = (deg * Math.PI) / 180;
+  const b = (deg2 * Math.PI) / 180;
+  const jx = bx + Math.sin(a) * len * 0.55;
+  const jy = by + Math.cos(a) * len * 0.55;
+  return `M${bx} ${by} L${jx} ${jy} L${jx + Math.sin(b) * len * 0.45} ${jy + Math.cos(b) * len * 0.45}`;
+};
+const Hand = ({ x, y, rot = 0, spread = 1 }: { x: number; y: number; rot?: number; spread?: number }) => {
+  const fingers = [-1.5, -0.5, 0.5, 1.5].map((k, i) => {
+    const deg = k * 8 * spread;
+    return fingerPath(k * 13, 4, deg, deg * 1.35, [74, 90, 86, 70][i]);
+  });
+  const t1 = -(38 + 12 * spread);
+  const thumb = fingerPath(-21, -6, t1, t1 + 22, 46);
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot}) scale(1.6)`}>
+      <path d={thumb} stroke="#0a0b0e" strokeWidth={12.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d={thumb} stroke={SKIN} strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {fingers.map((d, i) => (
+        <g key={i}>
+          <path d={d} stroke="#0a0b0e" strokeWidth={10} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <path d={d} stroke={SKIN} strokeWidth={6.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </g>
+      ))}
+      <path d="M-26 -18 C-26 -28 26 -28 26 -18 L27 6 C27 14 -27 14 -27 6 Z" fill={SKIN} stroke="#0a0b0e" strokeWidth={3} />
+      <path d="M-20 -16 q10 -8 22 -4" stroke={RIM} strokeWidth={3} fill="none" />
     </g>
-    <ellipse cx={0} cy={-6} rx={22} ry={18} fill={SKIN} stroke="#0a0b0e" strokeWidth={3} />
-    <path d="M-20 -14 q10 -8 22 -4" stroke={RIM} strokeWidth={3} fill="none" />
-  </g>
-);
+  );
+};
 
 /** Голова-гибрид: вытянутое бледное лицо, зачёсанные волосы с пробором, глаза в тёмных кругах с точками-зрачками, ухмылка от щеки до щеки. Центр — (0,-990). */
 const Head = ({ pupil, grin }: { pupil: number; grin: number }) => {
