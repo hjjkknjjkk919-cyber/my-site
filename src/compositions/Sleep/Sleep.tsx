@@ -5,6 +5,11 @@ import { ez, MONT } from "../../pelmeni/kit";
 import { Bedroom3D, type BedState, type Spot } from "./Bedroom3D";
 import { DimaBed, MonsterLayer, Trail, Vhs } from "./Overlays";
 import VO from "./vo.json";
+import { Choice3D } from "../../train/Pov3D";
+import { loadFont as loadStencil } from "@remotion/google-fonts/RussoOne";
+
+const { fontFamily: STENCIL } = loadStencil("normal", { weights: ["400"], subsets: ["latin", "cyrillic"] });
+const CHOICE = { header: "ЧТО ДЕЛАТЬ ДИМЕ?", row1: "1 — ПОЙТИ К РОДИТЕЛЯМ", row2: "2 — ВЫЗВАТЬ ПОЛИЦИЮ", footer: "ПИШИ 1 ИЛИ 2 В КОММЕНТАРИЯХ", note: "ПРОДОЛЖЕНИЕ СНИМЕМ ПО ВЫБОРУ БОЛЬШИНСТВА" };
 
 const D = VO.durs;
 const DD: number[] = (VO as { dima?: number[] }).dima ?? [0, 0, 0];
@@ -106,34 +111,6 @@ const Hud = ({ f, t }: { f: number; t: number }) => {
   );
 };
 
-/* ── финальный выбор 1 / 2 ── */
-const Choice = ({ t }: { t: number }) => {
-  const k = ez(t, 0, 0.25);
-  const pulse = 1 + Math.sin(t * 9) * 0.04;
-  const dial = "112".slice(0, Math.min(3, Math.floor(t * 2.5)));
-  return (
-    <AbsoluteFill style={{ background: "#000" }}>
-      <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
-        {/* верх: тёмный коридор к спальне родителей */}
-        <rect width={1080} height={958} fill="#0a0506" />
-        <path d="M0 0 L380 330 L380 760 L0 958 Z M1080 0 L700 330 L700 760 L1080 958 Z" fill="#160a0b" />
-        <rect x={380} y={330} width={320} height={430} fill="#2a0306" />
-        <rect x={470} y={420} width={140} height={340} fill="#5a0a10" stroke="#ff2a2a" strokeWidth={3} opacity={0.7 + 0.3 * Math.sin(t * 6)} />
-        <path d="M380 760 L0 958 M700 760 L1080 958" stroke="#ff2a2a" strokeWidth={2} opacity={0.3} />
-        {/* низ: телефон с набором 112 */}
-        <rect y={962} width={1080} height={958} fill="#030814" />
-        <rect x={300} y={1010} width={420} height={470} rx={40} fill="#0d1a33" stroke="#4a8cff" strokeWidth={6} />
-        <text x={510} y={1120} textAnchor="middle" fontFamily={MONT} fontWeight={900} fontSize={96} fill="#9fc4ff">{dial}</text>
-        {[0, 1, 2].map((r) => [0, 1, 2].map((c) => <circle key={`${r}${c}`} cx={410 + c * 100} cy={1210 + r * 80} r={30} fill="#1c2c4f" />))}
-        <circle cx={510} cy={1440} r={0} />
-      </svg>
-      <div style={{ position: "absolute", left: 60, width: 860, top: 120, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 64, lineHeight: 1.1, color: "#fff", background: "rgba(140,0,10,.85)", border: "5px solid #ff3a3a", borderRadius: 24, padding: "18px 10px", opacity: k }}>1: ПОЙТИ В КОМНАТУ РОДИТЕЛЕЙ</div>
-      <div style={{ position: "absolute", left: 60, width: 860, top: 830, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 64, lineHeight: 1.1, color: "#fff", background: "rgba(10,40,120,.85)", border: "5px solid #4a8cff", borderRadius: 24, padding: "18px 10px", opacity: k }}>2: ВЫЗВАТЬ ПОЛИЦИЮ</div>
-      <div style={{ position: "absolute", left: 60, width: 860, top: 1330, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 60, color: "#ffd166", WebkitTextStroke: "10px #000", paintOrder: "stroke fill", transform: `scale(${pulse})`, opacity: k }}>ПИШИ 1 ИЛИ 2 В КОММЕНТЫ</div>
-    </AbsoluteFill>
-  );
-};
-
 const SFX: [string, number, number?][] = [
   ["inhale", 0.2], ["neck", 1.5], ["window", S[1] + 0.2], ["sub", S[3] + 0.07], ["slither", S[4] + 0.25], ["teeth", V[5] + D[5] * 0.33], ["steps", S[6] + 0.3], ["gasp", V[6] + D[6] * 0.52],
   ["bones", V[7] + D[7] * 0.17], ["scream", V[7] + D[7] * 0.33], ["sob", V[7] + D[7] * 0.64], ["tick", S[8]], ...BLINKS.map((b) => ["lid", b - 0.28] as [string, number]),
@@ -172,7 +149,10 @@ export const Sleep = () => {
       {/* после 3-го моргания монстра в комнате нет — он уже у мамы; остаётся только мокрый след в коридор */}
       {(sg === 5 || sg === 7) && <Trail s={state} />}
       {top && <DimaBed stage={sg === 3 ? 1 : sg === 6 ? 2 : 3} k={Math.min(1, lt / (S[sg] - S[sg - 1]))} t={t} bpm={bpm(t)} flinch={sg === 8 && t > V[7] + D[7] * 0.17 && t < V[7] + D[7] * 0.55 ? 1 : 0} talk={dimaTalk} />}
-      {sg === 9 && <Choice t={lt} />}
+      {/* финальный выбор — 3D-табличка из «Электрички» */}
+      <Sequence from={Math.round(S[8] * 30)} layout="none">
+        <AbsoluteFill><Choice3D font={STENCIL} texts={CHOICE} /></AbsoluteFill>
+      </Sequence>
       <Vhs f={f} />
       {sg <= 8 && <Hud f={f} t={t} />}
       <Subs t={t} />
