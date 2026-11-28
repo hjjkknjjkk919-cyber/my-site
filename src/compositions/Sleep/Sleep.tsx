@@ -3,7 +3,7 @@ import { AbsoluteFill, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { Audio } from "@remotion/media";
 import { ez, MONT } from "../../pelmeni/kit";
 import { Bedroom3D, type BedState, type Spot } from "./Bedroom3D";
-import { DimaTop } from "./DimaTop";
+import { DimaBed, MonsterLayer, Vhs } from "./Overlays";
 import VO from "./vo.json";
 
 export const SLEEP_FRAMES = 1860;
@@ -138,11 +138,18 @@ export const Sleep = () => {
   const top = sg === 3 || sg === 6 || sg === 8;
   const talking = (tt: number) => V.some((s, i) => tt > s - 0.05 && tt < s + D[i] + 0.05);
   const vol = (base: number, at = 0) => (fr: number) => (talking(fr / 30 + at) ? base * 0.5 : base);
+  const FOOT_TOP: [number, number, number][] = [[-0.75, 0.62, -1.7], [0.75, 0.62, -1.7], [0.75, 3, -1.7], [-0.75, 3, -1.7]];
+  const WIN: [number, number, number][] = [[-0.8, 0.73, -3.18], [0.8, 0.73, -3.18], [0.8, 2.08, -3.18], [-0.8, 2.08, -3.18]];
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       {sg <= 8 && !top && <Bedroom3D s={state} />}
-      {top && <DimaTop stage={sg === 3 ? 1 : sg === 6 ? 2 : 3} k={Math.min(1, lt / (S[sg] - S[sg - 1]))} t={t} flinch={sg === 8 && t > S[7] + 2.2 && t < S[7] + 6.5 ? 1 : 0} />}
+      {sg === 1 && <MonsterLayer s={state} at={[0.15, -0.38, -3.7]} pose="stand" tilt={state.tilt} pupil={state.pupil} grin={0.3} hands="glass" clip={WIN} bars />}
+      {sg === 2 && <MonsterLayer s={state} at={[0.95, 0, -2.45]} pose="lean" tilt={-10} pupil={-0.6} grin={0.6 + 0.4 * Math.min(1, lt / 2.5)} hands="down" />}
+      {sg === 4 && <MonsterLayer s={state} at={[0.08, -0.5, -1.98]} pose="peek" tilt={90} pupil={-0.3} grin={1} hands="edge" clip={FOOT_TOP} />}
+      {sg === 5 && <MonsterLayer s={state} at={[1.45, 0, -2.75]} pose="crouch" tilt={-25} pupil={0.8} grin={0.8} hands="down" />}
+      {top && <DimaBed stage={sg === 3 ? 1 : sg === 6 ? 2 : 3} k={Math.min(1, lt / (S[sg] - S[sg - 1]))} t={t} bpm={bpm(t)} flinch={sg === 8 && t > S[7] + 2.2 && t < S[7] + 6.5 ? 1 : 0} />}
       {sg === 9 && <Choice t={lt} />}
+      <Vhs f={f} />
       {sg <= 8 && <Hud f={f} t={t} />}
       <Subs t={t} />
       <Blink f={f} />

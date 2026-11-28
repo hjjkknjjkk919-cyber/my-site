@@ -129,49 +129,6 @@ const drawTex = (draw: (g: CanvasRenderingContext2D) => void) => {
   t.anisotropy = 4;
   return t;
 };
-const bodyTex = () =>
-  drawTex((g) => {
-    const rim = "rgba(159,216,255,0.9)";
-    g.lineJoin = "round";
-    g.lineCap = "round";
-    const arms = new Path2D("M410 640 C330 760 300 960 290 1180 C286 1230 270 1290 250 1330 M670 640 C750 760 780 960 790 1180 C794 1230 810 1290 830 1330");
-    g.strokeStyle = rim;
-    g.lineWidth = 56;
-    g.stroke(arms);
-    g.strokeStyle = "#07080b";
-    g.lineWidth = 46;
-    g.stroke(arms);
-    const body = new Path2D("M540 520 C420 540 380 640 390 760 C400 900 430 1040 430 1180 L410 1880 L470 1880 L500 1260 L580 1260 L610 1880 L670 1880 L650 1180 C650 1040 680 900 690 760 C700 640 660 540 540 520 Z");
-    g.fillStyle = "#07080b";
-    g.fill(body);
-    g.strokeStyle = rim;
-    g.lineWidth = 7;
-    g.stroke(body);
-    g.strokeStyle = "#07080b";
-    g.lineWidth = 10;
-    for (const d of [-1, 1]) for (let i = 0; i < 4; i++) g.stroke(new Path2D(`M${540 + d * 270} 1320 q${d * (10 + i * 8)} 60 ${d * (4 + i * 14)} 140`));
-    g.strokeStyle = "#1a1d24";
-    g.lineWidth = 6;
-    for (let i = 0; i < 7; i++) g.stroke(new Path2D(`M${470 + (i % 2) * 6} ${700 + i * 50} q70 22 140 0`));
-  });
-const headTex = () =>
-  drawTex((g) => {
-    const head = new Path2D("M540 180 C430 180 400 300 410 400 C420 480 470 560 540 570 C610 560 660 480 670 400 C680 300 650 180 540 180 Z");
-    g.fillStyle = "#07080b";
-    g.fill(head);
-    g.strokeStyle = "rgba(159,216,255,0.9)";
-    g.lineWidth = 7;
-    g.stroke(head);
-    g.fillStyle = "#f6f6f2";
-    for (const x of [490, 592]) {
-      g.beginPath();
-      g.ellipse(x, 380, 42, 30, 0, 0, Math.PI * 2);
-      g.fill();
-    }
-    g.strokeStyle = "#2a2d34";
-    g.lineWidth = 5;
-    g.stroke(new Path2D("M480 500 Q540 520 600 500"));
-  });
 const portraitTex = () =>
   drawTex((g) => {
     g.fillStyle = "#d9cfb8";
@@ -215,7 +172,7 @@ const beamGeo = () => {
 };
 /** Одеяло со складками в ногах. */
 const blanketGeo = () => {
-  const g = new THREE.PlaneGeometry(1.25, 2.4, 40, 60);
+  const g = new THREE.PlaneGeometry(1.02, 2.4, 40, 60);
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i);
@@ -228,16 +185,33 @@ const blanketGeo = () => {
   return g;
 };
 
+/** Поза камеры у изголовья (fov 60) — общая для 3D-сцены и 2D-слоя монстра. */
+export const camPose = (s: BedState) => {
+  const br = Math.sin(s.t * (s.spot === "out" ? 2.2 : 3.0)) * 0.015;
+  const sh = s.cam.shake ? (Math.sin(s.t * 47) * 0.004 + Math.cos(s.t * 61) * 0.003) * s.cam.shake : 0;
+  return { pos: [0.1 + sh, 1.02 + br + s.cam.y, 1.35] as [number, number, number], rot: [-0.13 + s.cam.pitch + sh, s.cam.yaw, 0] as [number, number, number], fov: 60 };
+};
+const projCam = new THREE.PerspectiveCamera(60, 1080 / 1920, 0.03, 60);
+/** Мировая точка → пиксели кадра 1080×1920 и масштаб «пикселей на метр» на этой глубине. */
+export const project = (s: BedState, p: [number, number, number]) => {
+  const c = camPose(s);
+  projCam.position.set(...c.pos);
+  projCam.rotation.set(c.rot[0], c.rot[1], c.rot[2], "YXZ");
+  projCam.updateMatrixWorld(true);
+  const v = new THREE.Vector3(...p);
+  const depth = v.clone().applyMatrix4(projCam.matrixWorldInverse).z * -1;
+  v.project(projCam);
+  return { x: (v.x * 0.5 + 0.5) * 1080, y: (-v.y * 0.5 + 0.5) * 1920, ppm: 1920 / (2 * Math.tan((c.fov * Math.PI) / 360) * Math.max(0.1, depth)) };
+};
 const Rig = ({ s }: { s: BedState }) => {
   const camera = useThree((st) => st.camera) as THREE.PerspectiveCamera;
-  const br = Math.sin(s.t * (s.spot === "none" ? 3 : s.spot === "out" ? 2.2 : 3.0)) * 0.015;
-  const sh = s.cam.shake ? (Math.sin(s.t * 47) * 0.004 + Math.cos(s.t * 61) * 0.003) * s.cam.shake : 0;
-  camera.fov = 70;
+  const c = camPose(s);
+  camera.fov = c.fov;
   camera.near = 0.03;
   camera.far = 60;
   camera.updateProjectionMatrix();
-  camera.position.set(0.1 + sh, 0.92 + br + s.cam.y, 0.9);
-  camera.rotation.set(-0.08 + s.cam.pitch + sh, s.cam.yaw, 0, "YXZ");
+  camera.position.set(...c.pos);
+  camera.rotation.set(c.rot[0], c.rot[1], c.rot[2], "YXZ");
   camera.updateMatrixWorld(true);
   return null;
 };
@@ -298,10 +272,9 @@ const Room = ({ s }: { s: BedState }) => {
       {B([0, 2.45, -3.25], [1.6, 0.7, 0.1], m.wall)}
       {B([0, 0.35, -3.25], [1.6, 0.7, 0.1], m.wall)}
       {B([-2.05, 1.4, -0.6], [0.1, 2.8, 5.4], m.wall)}
-      {B([2.05, 1.4, -2.85], [0.1, 2.8, 0.8], m.wall)}
-      {B([2.05, 1.4, 0.2], [0.1, 2.8, 3.2], m.wall)}
-      {B([2.05, 2.45, -1.85], [0.1, 0.7, 1.2], m.wall)}
-      {B([2.6, 1.0, -1.85], [1.0, 2.1, 1.2], m.dark, false)}
+      {B([2.05, 1.4, -0.275], [0.1, 2.8, 4.15], m.wall)}
+      {B([2.05, 2.45, -2.75], [0.1, 0.7, 0.8], m.wall)}
+      {B([2.6, 1.0, -2.75], [1.0, 2.1, 0.8], m.dark, false)}
       {/* отошедший край обоев у окна */}
       <mesh position={[0.93, 2.05, -3.17]} rotation={[0.25, -0.35, 0.1]}>
         <planeGeometry args={[0.16, 0.42]} />
@@ -333,7 +306,7 @@ const Room = ({ s }: { s: BedState }) => {
         {B([0.39, 0, 0], [wf * 0.6, 1.32, 0.06], m.frame)}
         <mesh><planeGeometry args={[0.78, 1.32]} /><primitive object={m.glass} attach="material" /></mesh>
       </group>
-      <group position={[0.8, 1.4, -3.18]} rotation={[0, ((28 * Math.PI) / 180) * s.open, 0]}>
+      <group position={[0.8, 1.4, -3.18]} rotation={[0, ((32 * Math.PI) / 180) * s.open, 0]}>
         <group position={[-0.4, 0, 0]}>
           {B([0, 0, 0], [wf * 0.8, 1.32, 0.06], m.frame)}
           {B([0, 0.05, 0], [0.76, wf * 0.8, 0.06], m.frame)}
@@ -367,15 +340,17 @@ const Room = ({ s }: { s: BedState }) => {
         </mesh>
       )}
       {/* тумбочка с часами 03:17 */}
-      {B([-0.66, 0.27, -1.5], [0.42, 0.54, 0.42], m.wood)}
-      {B([-0.62, 0.6, -1.5], [0.24, 0.11, 0.08], m.dark)}
-      <mesh position={[-0.62, 0.6, -1.455]}><planeGeometry args={[0.22, 0.1]} /><primitive object={m.clock} attach="material" /></mesh>
-      <sprite material={m.redGlow} position={[-0.62, 0.6, -1.42]} scale={[0.4, 0.3, 1]} />
-      <pointLight position={[-0.62, 0.65, -1.35]} color="#ff2020" intensity={0.25} distance={1.2} />
+      {B([-0.8, 0.27, -2.1], [0.42, 0.54, 0.42], m.wood)}
+      {B([-0.76, 0.6, -2.1], [0.24, 0.11, 0.08], m.dark)}
+      <mesh position={[-0.76, 0.6, -2.055]}><planeGeometry args={[0.22, 0.1]} /><primitive object={m.clock} attach="material" /></mesh>
+      <sprite material={m.redGlow} position={[-0.76, 0.6, -2.02]} scale={[0.4, 0.3, 1]} />
+      <pointLight position={[-0.76, 0.65, -1.95]} color="#ff2020" intensity={0.25} distance={1.2} />
       {/* кровать: изножье, простыня, одеяло со складками */}
-      {B([0, 0.25, -0.35], [1.35, 0.3, 2.6], m.wood)}
-      {B([0, 0.31, -1.7], [1.4, 0.62, 0.06], m.wood)}
-      {B([0, 0.42, -0.35], [1.28, 0.08, 2.5], m.sheet)}
+      {B([0, 0.25, -0.35], [1.1, 0.3, 2.6], m.wood)}
+      {B([0, 0.31, -1.7], [1.15, 0.62, 0.06], m.wood)}
+      {B([0, 0.42, -0.35], [1.04, 0.08, 2.5], m.sheet)}
+      {B([0, 0.52, 0.72], [0.8, 0.14, 0.42], m.sheet)}
+      {B([0, 0.36, 1.05], [1.15, 0.72, 0.06], m.wood)}
       <mesh geometry={m.blanketGeo} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.47, -0.25]} castShadow receiveShadow>
         <primitive object={m.blanket} attach="material" />
       </mesh>
@@ -386,58 +361,16 @@ const Room = ({ s }: { s: BedState }) => {
   );
 };
 
-/* ── монстр: плоские чёткие слои (тело, голова с наклоном, зрачки), всегда смотрит на камеру ── */
-const SPOTS: Record<Exclude<Spot, "none">, { p: [number, number, number]; h: number }> = {
-  out: { p: [0.18, 0.15, -3.75], h: 2.25 },
-  sill: { p: [0.5, 0, -2.55], h: 2.15 },
-  feet: { p: [0.02, -0.68, -1.5], h: 2.05 },
-  door: { p: [1.72, -0.95, -1.95], h: 2.0 },
-};
-const SharpMonsterPlane = ({ s }: { s: BedState }) => {
-  const { body, head } = useMemo(() => ({ body: bodyTex(), head: headTex() }), []);
-  const camera = useThree((st) => st.camera);
-  const mats = useMemo(() => ({ pupil: new THREE.MeshBasicMaterial({ color: "#000" }) }), []);
-  if (s.spot === "none" || !body || !head) return null;
-  const sp = SPOTS[s.spot];
-  const w = (sp.h * 1080) / 1920;
-  const g = new THREE.Object3D();
-  g.position.set(...sp.p);
-  g.lookAt(camera.position.x, sp.p[1], camera.position.z);
-  // координаты внутри плоскости 1080×1920 → метры
-  const X = (px: number) => ((px - 540) / 1080) * w;
-  const Y = (py: number) => sp.h - (py / 1920) * sp.h;
-  return (
-    <group position={g.position} quaternion={g.quaternion}>
-      <mesh position={[0, sp.h / 2, 0]}>
-        <planeGeometry args={[w, sp.h]} />
-        <meshBasicMaterial map={body} transparent alphaTest={0.5} color="#dfe6ff" />
-      </mesh>
-      <group position={[X(540), Y(560), 0.002]} rotation={[0, 0, (s.tilt * Math.PI) / 180]}>
-        <mesh position={[0, sp.h / 2 - Y(560), 0]}>
-          <planeGeometry args={[w, sp.h]} />
-          <meshBasicMaterial map={head} transparent alphaTest={0.5} />
-        </mesh>
-        {[490, 592].map((ex) => (
-          <mesh key={ex} position={[X(ex + s.pupil * 22) - X(540), Y(382) - Y(560), 0.003]}>
-            <circleGeometry args={[w * 0.011, 16]} />
-            <primitive object={mats.pupil} attach="material" />
-          </mesh>
-        ))}
-      </group>
-    </group>
-  );
-};
-
 export const Bedroom3D = ({ s }: { s: BedState }) => (
-  <ThreeCanvas width={1080} height={1920} shadows dpr={1} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1, preserveDrawingBuffer: true }}>
+  <ThreeCanvas width={1080} height={1920} shadows="soft" dpr={1} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.78, preserveDrawingBuffer: true }}>
     <color attach="background" args={["#05070d"]} />
+    <fogExp2 attach="fog" args={["#0b1214", 0.11]} />
     <Rig s={s} />
-    <ambientLight color="#4a5a85" intensity={1.1} />
-    <hemisphereLight args={["#5a6aa0", "#1a120c", 0.7]} />
-    <pointLight position={[0, 1.9, -2.4]} color="#7f9be0" intensity={6} distance={7} decay={1.6} />
-    <pointLight position={[0.2, 1.6, 0.4]} color="#38466e" intensity={1.5} distance={5} />
-    <directionalLight position={[0.3, 3.6, -7.5]} color="#8fa8e0" intensity={2.2 + s.beam * 0.6} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-left={-3} shadow-camera-right={3} shadow-camera-top={3} shadow-camera-bottom={-3} shadow-camera-near={1} shadow-camera-far={14} shadow-bias={-0.0008} />
+    <ambientLight color="#2c3a4a" intensity={0.55} />
+    <hemisphereLight args={["#3a4a66", "#0e0c08", 0.35]} />
+    <pointLight position={[0, 1.9, -2.3]} color="#6f89c4" intensity={2.6} distance={6} decay={1.8} />
+    <pointLight position={[0.2, 1.7, 0.3]} color="#1e2a40" intensity={0.8} distance={4} />
+    <directionalLight position={[0.3, 3.6, -7.5]} color="#8fa8e0" intensity={1.3 + s.beam * 0.35} castShadow shadow-mapSize={[1024, 1024]} shadow-radius={8} shadow-camera-left={-3} shadow-camera-right={3} shadow-camera-top={3} shadow-camera-bottom={-3} shadow-camera-near={1} shadow-camera-far={14} shadow-bias={-0.0008} />
     <Room s={s} />
-    <SharpMonsterPlane s={s} />
   </ThreeCanvas>
 );
