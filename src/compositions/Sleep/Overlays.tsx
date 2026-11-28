@@ -262,6 +262,34 @@ export const MonsterLayer = ({ s, at, pose, tilt, pupil, grin, hands, clip, bars
   );
 };
 
+/** Склизкие следы длинных пальцев на задней стене у угла с проёмом в коридор (монстр уже у родителей): стекают вниз, мокро блестят. */
+export const Trail = ({ s }: { s: BedState }) => {
+  const W = (y: number, x: number) => project(s, [x, y, -3.19]);
+  const hands: [number, number][] = [[1.05, 1.62], [0.66, 1.76]];
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <svg viewBox="0 0 1080 1920" width={1080} height={1920}>
+        {hands.map(([y0, z0], h) =>
+          [0, 1, 2, 3].map((i) => {
+            const z = z0 + i * 0.04;
+            const pts = [W(y0, z), W(y0 - 0.12, z + 0.008), W(y0 - 0.26, z - 0.005), W(y0 - 0.42 - i * 0.03, z + 0.006)];
+            const d = `M${pts[0].x} ${pts[0].y} C${pts[1].x} ${pts[1].y} ${pts[2].x} ${pts[2].y} ${pts[3].x} ${pts[3].y}`;
+            const w = pts[0].ppm * 0.026;
+            return (
+              <g key={`${h}${i}`}>
+                <path d={d} stroke="#120607" strokeWidth={w} fill="none" strokeLinecap="round" opacity={0.85} />
+                <path d={d} stroke="#6a1217" strokeWidth={w * 0.45} fill="none" strokeLinecap="round" opacity={0.7} />
+                <path d={d} stroke="#a9bddc" strokeWidth={w * 0.12} fill="none" strokeLinecap="round" opacity={0.35} transform={`translate(${-w * 0.2} 0)`} />
+                <ellipse cx={pts[3].x} cy={pts[3].y} rx={w * 0.5} ry={w * 0.8} fill="#120607" opacity={0.85} />
+              </g>
+            );
+          })
+        )}
+      </svg>
+    </AbsoluteFill>
+  );
+};
+
 /** Маленький Дима из «Электрички» (DimaFace из GostOld + тело Sleeper в куртке) — лежит на подушке: дышит грудью и плечами, бегают глаза, сужаются зрачки, стучит сердце; talk — шевелит губами на своих репликах. */
 export const DimaBed = ({ stage, k, t, bpm, flinch = 0, talk = false }: { stage: 1 | 2 | 3; k: number; t: number; bpm: number; flinch?: number; talk?: boolean }) => {
   const LN = "#2b1d16";

@@ -3,7 +3,7 @@ import { AbsoluteFill, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { Audio } from "@remotion/media";
 import { ez, MONT } from "../../pelmeni/kit";
 import { Bedroom3D, type BedState, type Spot } from "./Bedroom3D";
-import { DimaBed, MonsterLayer, Vhs } from "./Overlays";
+import { DimaBed, MonsterLayer, Trail, Vhs } from "./Overlays";
 import VO from "./vo.json";
 
 const D = VO.durs;
@@ -68,7 +68,7 @@ const Blink = ({ f }: { f: number }) => {
   );
 };
 
-const SUBS: string[][] = [["УВИДЕЛ ЭТО В 03:17?", "НЕ МОРГАЙ.", "МОРГНЁШЬ — ОНО ВНУТРИ."], ["ВЕКИ СРЫВАЮТСЯ", "ОКНО ОТКРЫВАЕТСЯ."], ["ТЕЛО КАК СВИНЦОВОЕ", "ПРОСТО ИГРА МОЗГА."], ["НОВОЕ МОРГАНИЕ", "ИЗ-ЗА ИЗНОЖЬЯ."], ["СПОЛЗАЕТ В КОРИДОР", "СКЛИЗКИЙ ЗВУК."], ["ДИКИЙ УЖАС", "ГЛАЗА НАВЫКАТЕ", "ТЕЛО МЁРТВОЕ."], ["ТВАРЬ ПРОПАДАЕТ", "СКЛИЗКИЙ ТОПОТ", "НОГИ ВАТНЫЕ."], ["ХРУСТ КОСТЕЙ", "КРИК МАМЫ", "ОН ОПОЗДАЛ."], []];
+const SUBS: string[][] = [["УВИДЕЛ ЭТО В 03:17?", "НЕ МОРГАЙ.", "МОРГНЁШЬ — ОНО ВНУТРИ."], ["ВЕКИ СРЫВАЮТСЯ", "ОКНО ОТКРЫВАЕТСЯ."], ["ТЕЛО КАК СВИНЦОВОЕ", "ПРОСТО ИГРА МОЗГА."], ["НОВОЕ МОРГАНИЕ", "ИЗ-ЗА ИЗНОЖЬЯ."], ["ЕГО УЖЕ НЕТ", "К СПАЛЬНЕ РОДИТЕЛЕЙ."], ["ДИКИЙ УЖАС", "ГЛАЗА НАВЫКАТЕ", "ТЕЛО МЁРТВОЕ."], ["ТОПОТ У РОДИТЕЛЕЙ", "ПОТОМ ТИШИНА", "НОГИ ВАТНЫЕ."], ["ХРУСТ КОСТЕЙ", "КРИК МАМЫ", "ОН ОПОЗДАЛ."], []];
 const Subs = ({ t }: { t: number }) => {
   const i = V.findIndex((s, k) => t >= s && t < s + D[k] + 0.1);
   if (i < 0 || !SUBS[i].length) return null;
@@ -135,7 +135,7 @@ const Choice = ({ t }: { t: number }) => {
 };
 
 const SFX: [string, number, number?][] = [
-  ["inhale", 0.2], ["neck", 1.5], ["window", S[1] + 0.2], ["sub", S[3] + 0.07], ["slither", S[4] + 0.25], ["teeth", V[5] + D[5] * 0.33], ["steps", S[6] + 0.3], ["gasp", V[6] + D[6] * 0.58],
+  ["inhale", 0.2], ["neck", 1.5], ["window", S[1] + 0.2], ["sub", S[3] + 0.07], ["slither", S[4] + 0.25], ["teeth", V[5] + D[5] * 0.33], ["steps", S[6] + 0.3], ["gasp", V[6] + D[6] * 0.52],
   ["bones", V[7] + D[7] * 0.17], ["scream", V[7] + D[7] * 0.33], ["sob", V[7] + D[7] * 0.64], ["tick", S[8]], ...BLINKS.map((b) => ["lid", b - 0.28] as [string, number]),
 ];
 
@@ -145,7 +145,7 @@ export const Sleep = () => {
   const sg = segAt(t);
   const lt = t - S[sg - 1];
   const spot: Spot = sg === 1 ? "out" : sg === 2 || sg === 4 ? "feet" : sg === 5 ? "door" : "none";
-  const jerkAt = V[6] + D[6] * 0.58;
+  const jerkAt = V[6] + D[6] * 0.52;
   const jerk = sg === 7 ? ez(t, jerkAt, jerkAt + 0.12) * (1 - ez(t, jerkAt + 0.35, jerkAt + 1.0)) : 0;
   const state: BedState = {
     t,
@@ -169,7 +169,8 @@ export const Sleep = () => {
       {sg === 1 && <MonsterLayer s={state} at={[0.15, -0.38, -3.7]} pose="stand" tilt={state.tilt} pupil={state.pupil} grin={0.3} hands="glass" clip={WIN} bars />}
       {sg === 2 && <MonsterLayer s={state} at={[-0.15, -0.98, -1.98]} pose="peek" tilt={90} pupil={-0.4} grin={0.5 + 0.5 * Math.min(1, lt / 2.5)} hands="none" grip clip={FOOT_TOP} />}
       {sg === 4 && <MonsterLayer s={state} at={[-0.15, -0.74, -1.98]} pose="peek" tilt={90} pupil={-0.3} grin={1} hands="none" grip clip={FOOT_TOP} />}
-      {sg === 5 && <MonsterLayer s={state} at={[1.45, 0, -2.75]} pose="crouch" tilt={90} pupil={0.8} grin={0.9} hands="down" />}
+      {/* после 3-го моргания монстра в комнате нет — он уже у мамы; остаётся только мокрый след в коридор */}
+      {(sg === 5 || sg === 7) && <Trail s={state} />}
       {top && <DimaBed stage={sg === 3 ? 1 : sg === 6 ? 2 : 3} k={Math.min(1, lt / (S[sg] - S[sg - 1]))} t={t} bpm={bpm(t)} flinch={sg === 8 && t > V[7] + D[7] * 0.17 && t < V[7] + D[7] * 0.55 ? 1 : 0} talk={dimaTalk} />}
       {sg === 9 && <Choice t={lt} />}
       <Vhs f={f} />
