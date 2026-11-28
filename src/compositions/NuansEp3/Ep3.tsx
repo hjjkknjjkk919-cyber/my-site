@@ -12,8 +12,9 @@ export const EP3_FRAMES = 2250;
 const FLOOR = 1430;
 type V = { id: string; who: string; dur: number; text: string; env: number[] };
 const VOL = VO as V[];
-const START = [0.35, 5.6, 14.0, 19.8, 25.75, 43.4, 51.2, 63.4];
-const T_SLAM = 29.25;
+// реплики заполняют весь хронометраж (индексы как в scripts/ep3_audio.py)
+const START = [0.35, 5.6, 14.85, 20.55, 26.4, 37.0, 51.75, 63.4, 12.3, 30.35, 34.0, 35.1, 40.6, 45.8, 49.0, 56.95, 59.7, 61.1];
+const T_SLAM = 29.9;
 const T_FLICK = 1035 / 30;
 const T_HIT = 1270 / 30;
 const SFX: [string, number][] = [["fridge", 0.1], ["freezer", 12.2], ["frost", 12.6], ["slam", T_SLAM], ["flick", T_FLICK - 0.35], ["chicken", T_HIT - 2.05], ["meter", 48.3], ["hyper", 63.0]];
@@ -40,7 +41,7 @@ export const NuansEp3 = () => {
   });
   const A = (w: string) => amp[w] ?? 0;
   const talking = (tt: number) => VOL.some((l, i) => tt > START[i] - 0.05 && tt < START[i] + l.dur + 0.05);
-  const scene = t < 12 ? 1 : t < 30 ? 2 : t < 48 ? 3 : t < 63 ? 4 : 5;
+  const scene = t < 12 ? 1 : t < 30 ? 2 : t < 48 ? 3 : t < 63.1 ? 4 : 5;
 
   /* ── камера: мягкие наезды/панорамы (easeInOut cubic) + затухающая тряска на ударах ── */
   const camZ = scene === 1 ? ei(t, 0, 12, 1.0, 1.05) : scene === 2 ? ei(t, 12, 13.5, 1.05, 1.1) : scene === 3 ? 1.06 : scene === 4 ? ei(t, 48, 50, 1.06, 1.0) : ei(t, 63, 75, 1.0, 1.05);
@@ -69,7 +70,7 @@ export const NuansEp3 = () => {
   const dimaPose = (() => {
     if (scene === 2) {
       const open = 1 - ei(t, 12.5, 13.2);
-      const nose = ei(t, 20.0, 20.3) * (1 - ei(t, 20.7, 21.1));
+      const nose = ei(t, 20.2, 20.45) * (1 - ei(t, 20.8, 21.2));
       const handle = loc(857, 905, DX, DS);
       const rest: P2 = [74, -300];
       const wR: P2 = nose > 0 ? [rest[0] + (40 - rest[0]) * nose, rest[1] + (-640 - rest[1]) * nose] : [rest[0] + (handle[0] - rest[0]) * open, rest[1] + (handle[1] - rest[1]) * open];
@@ -81,7 +82,7 @@ export const NuansEp3 = () => {
     }
     return { wR: [96, -432] as P2, itemR: <MugP t={t} />, wL: [-74, -300] as P2, look: scene === 4 ? 0.8 : scene === 5 ? 0.15 : 0.6, head: scene === 5 ? 2 : -3 };
   })();
-  const icicle = scene === 2 && t > 13.3 ? (t < 20.4 ? 1 : 0) : 0;
+  const icicle = scene === 2 && t > 13.3 ? (t < 20.5 ? 1 : 0) : 0;
 
   /* ── НЮАНС ── */
   const NS = 0.7;
@@ -146,7 +147,7 @@ export const NuansEp3 = () => {
   /* ── МАМА ── */
   const MS = 0.68;
   const mamaX = 1040 - 200 * ei(t, 48.6, 50.6);
-  const swing = Math.max(ei(t, 51.3, 51.6) * (1 - ei(t, 51.8, 52.3)), ei(t, 53.4, 53.7) * (1 - ei(t, 53.9, 54.4)));
+  const swing = Math.max(ei(t, 51.8, 52.1) * (1 - ei(t, 52.3, 52.8)), ei(t, 53.9, 54.2) * (1 - ei(t, 54.4, 54.9)));
   const mamaW = walk((1040 - mamaX) / 30, t > 48.6 && t < 50.6 ? 1 : 0, 32);
 
   const sub = (() => {
@@ -206,7 +207,7 @@ export const NuansEp3 = () => {
                 {scene === 4 && <Demon kind="mama" x={mamaX} y={FLOOR} s={MS} t={t} flip pose={{ ...mamaW, wR: [110 + 110 * swing, -1150 + 260 * swing], itemR: <RollingPin />, wL: [70, -620], head: -6 }} amp={A("mama")} ph={2.1} />}
                 {/* Дима */}
                 <Human kind="dima" x={DX} y={FLOOR} s={DS} t={t} pose={dimaPose} amp={A("dima")} extra={icicle ? <path d="M-2 -650 l8 34 l8 -34 Z" fill="#dff3ff" stroke="#5dade2" strokeWidth={2} /> : undefined} />
-                {scene === 2 && t > 20.4 && t < 21.4 && <path d={`M${DX + 2} ${1430 - 590 * DS + (t - 20.4) * 900} l7 30 l7 -30 Z`} fill="#dff3ff" stroke="#5dade2" strokeWidth={2} />}
+                {scene === 2 && t > 20.5 && t < 21.5 && <path d={`M${DX + 2} ${1430 - 590 * DS + (t - 20.5) * 900} l7 30 l7 -30 Z`} fill="#dff3ff" stroke="#5dade2" strokeWidth={2} />}
                 {/* курица */}
                 {scene === 3 && t > T_HIT - 2.05 && t < 47 && <g transform={`translate(${chickX + chickFall * 40} ${t > T_HIT ? chickY + chickFall * (FLOOR - 30 - chickY) : chickY})`}><Chicken rot={t * 400 * (1 - chickFall)} /></g>}
               </g>

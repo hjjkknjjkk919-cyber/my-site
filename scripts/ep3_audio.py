@@ -21,6 +21,16 @@ LINES = [
     ("nuance", "[scared, soft] Дим, он нам щас всю хрущёвку в Антарктиду превратит!"),
     ("mama", "[furious, commanding, loud] Вы у меня щас за каждый киловатт кровью харкать будете! Пошли отрабатывать!"),
     ("dima", "[deadpan, to camera] Короче, чтобы оплатить свет за этот холодильник, мама устроила нас в ночную смену в гипермаркет. А через десять минут двери завалило снегом на месяц. Подписывайся — завтра покажу, как мы делили пельмени."),
+    ("nuance", "[muffled, teeth chattering, frozen] Д-д-дима... з-закрой..."),
+    ("nuance", "[shivering, then brave] Бррр... Ладно. Щас я с ним по-хорошему поговорю."),
+    ("otm", "[gruff] Чё надо?!"),
+    ("dima", "[deadpan] Ну. Поговорил по-хорошему."),
+    ("otm", "[gruff, laughing] Следующий! Кто ещё по-хорошему хочет?!"),
+    ("dima", "[deadpan] Курица гриль. Только наоборот."),
+    ("otm", "[terrified, whispering] Ёп... Мама пришла..."),
+    ("otm", "[terrified, fast, polite] Понял, тётенька! Уже отрабатываю!"),
+    ("dima", "[deadpan] Вот и скинулся на свет."),
+    ("nuance", "[embarrassed, sad] Мам, ну не при всех..."),
 ]
 # слой: (имя, промпт ElevenLabs | "sine:Гц:сек", длительность)
 LAYERS = {
@@ -95,7 +105,7 @@ def tts(i):
         return
     raw = OUT / f"v{i}_raw.mp3"
     post(f"{API}/text-to-speech/{VOICE[who]}?output_format=mp3_44100_128", {"text": text, "model_id": "eleven_v3", "voice_settings": {"stability": 0.5}}, raw)
-    clean(raw, fin, 1.08 if who == "nuance" else 1.0)
+    clean(raw, fin, {12: 1.15}.get(i, 1.08 if who == "nuance" else 1.0))
     raw.unlink()
 
 
