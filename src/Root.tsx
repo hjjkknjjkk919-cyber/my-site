@@ -14,6 +14,7 @@ import { CLINIC_FRAMES, ClinicAnime } from "./compositions/ClinicAnime/ClinicAni
 import { SLEEP_FRAMES, Sleep } from "./compositions/Sleep/Sleep";
 import { HYPER_SCENES, Scene00 as Hyper00 } from "./compositions/Hyper/scenes";
 import { HyperThumb } from "./compositions/Hyper/Thumb";
+import { ChannelBanner } from "./compositions/Banner/ChannelBanner";
 import { SCENES as HYPER_TL } from "./compositions/Hyper/engine";
 import { REMAKE_FRAMES, Remake90s } from "./compositions/Remake90s/Remake90s";
 import { NUANS2_FRAMES, NuansEp2 } from "./compositions/NuansEp2/NuansEp2";
@@ -41,6 +42,7 @@ export const Root = () => (
     <Composition id="ClinicAnime" component={ClinicAnime} width={1080} height={1920} fps={30} durationInFrames={CLINIC_FRAMES} />
     <Composition id="Pushistik1" component={Pushistik1} width={1080} height={1920} fps={30} durationInFrames={PUSH_FRAMES} />
     <Composition id="SleepParalysis" component={Sleep} width={1080} height={1920} fps={30} durationInFrames={SLEEP_FRAMES} />
+    <Still id="ChannelBanner" component={ChannelBanner} width={2560} height={1440} />
     <Still id="HyperThumb" component={HyperThumb} width={1280} height={720} />
     <Composition id="Hyper00" component={Hyper00} width={1920} height={1080} fps={30} durationInFrames={HYPER_TL.find((s) => s.n === 0)?.frames ?? 30} />
     {HYPER_SCENES.map((C, i) => <Composition key={i} id={`Hyper${String(i + 1).padStart(2, "0")}`} component={C} width={1920} height={1080} fps={30} durationInFrames={HYPER_TL.find((s) => s.n === i + 1)!.frames} />)}
