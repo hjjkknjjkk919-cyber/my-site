@@ -16,6 +16,7 @@ import { HYPER_SCENES, Scene00 as Hyper00 } from "./compositions/Hyper/scenes";
 import { HyperThumb } from "./compositions/Hyper/Thumb";
 import { ChannelBanner } from "./compositions/Banner/ChannelBanner";
 import { SHORT30_FRAMES, Short30 } from "./compositions/Short30/Short30";
+import { EP3_FRAMES, NuansEp3 } from "./compositions/NuansEp3/Ep3";
 import { SCENES as HYPER_TL } from "./compositions/Hyper/engine";
 import { REMAKE_FRAMES, Remake90s } from "./compositions/Remake90s/Remake90s";
 import { NUANS2_FRAMES, NuansEp2 } from "./compositions/NuansEp2/NuansEp2";
@@ -43,6 +44,7 @@ export const Root = () => (
     <Composition id="ClinicAnime" component={ClinicAnime} width={1080} height={1920} fps={30} durationInFrames={CLINIC_FRAMES} />
     <Composition id="Pushistik1" component={Pushistik1} width={1080} height={1920} fps={30} durationInFrames={PUSH_FRAMES} />
     <Composition id="SleepParalysis" component={Sleep} width={1080} height={1920} fps={30} durationInFrames={SLEEP_FRAMES} />
+    <Composition id="NuansEp3" component={NuansEp3} width={1080} height={1920} fps={30} durationInFrames={EP3_FRAMES} />
     <Composition id="Short30Ep1" component={Short30} width={1080} height={1920} fps={30} durationInFrames={SHORT30_FRAMES} />
     <Still id="ChannelBanner" component={ChannelBanner} width={2560} height={1440} />
     <Still id="HyperThumb" component={HyperThumb} width={1280} height={720} />
