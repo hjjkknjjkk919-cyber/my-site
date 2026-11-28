@@ -28,12 +28,12 @@ LINES = [
     "Ещё один взмах век. Из спальни родителей доносится хруст костей и крик мамы, который резко переходит в хрип. По лицу Димы текут слёзы и сопли — он опоздал.",
     "Пойдёшь в комнату родителей или вызовешь полицию? Пиши в комменты!",
 ]
-# Дима — Омин (eleven_v3, теги эмоций), мат открыто, без цензуры
+# Дима — Омин (eleven_v3, теги эмоций); мата немного (один раз), без цензуры
 DIMA_VOICE = "ZleKRMCJL4E5Uc5viWNH"
 DIMA = [
-    "[whispers] [scared] Бля... это сон. Просто сон, сука...",
-    "[terrified] [through clenched teeth] Нет-нет-нет... блядь, только не туда!",
-    "[crying] Мама... сука... мама...",
+    "[whispers] [scared] Это просто сон... просто сон.",
+    "[terrified] [through clenched teeth] Блядь... только не туда!",
+    "[crying] Мама... мамочка...",
 ]
 SFX = [
     ("inhale", "sharp panicked gasping inhale of a man waking up", 1.2),
@@ -74,7 +74,7 @@ def line(i):
     raw = OUT / f"v{i}_raw.mp3"
     post(f"{API}/text-to-speech/{VOICE}?output_format=mp3_44100_128", {"text": LINES[i], "model_id": "eleven_multilingual_v2", "voice_settings": {"stability": 0.75, "similarity_boost": 0.8, "style": 0.2, "speed": 0.88}}, raw)
     af = ("silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,"
-          f"silenceremove=stop_periods=-1:stop_duration=0.35:stop_threshold=-42dB,{BASS},loudnorm=I=-15:TP=-1.5")
+          f"silenceremove=stop_periods=-1:stop_duration=0.35:stop_threshold=-42dB,{BASS},atempo=1.08,loudnorm=I=-15:TP=-1.5")  # atempo 1.08: итог ровно на 5% медленнее прежней версии
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-af", af, "-ar", "44100", "-b:a", "192k", str(fin)], check=True)
     raw.unlink()
 
