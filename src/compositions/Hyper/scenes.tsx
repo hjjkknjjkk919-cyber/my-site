@@ -1,9 +1,10 @@
 import React from "react";
+import { AbsoluteFill, Sequence, useCurrentFrame } from "remotion";
 import { ez, MONT } from "../../pelmeni/kit";
 import { Mug as AvMug } from "../AvitoWardrobe/props";
 import { dimaReach, nuanceReach, OUT } from "../AvitoWardrobe/rig";
 import { DimaV2, ICE_RIM } from "../NuansEp2/chars";
-import { at, end, mk, type SceneData, Shell } from "./engine";
+import { at, end, mk, MuteCtx, type SceneData, scene, Shell } from "./engine";
 import { Alcohol, Butchery, Camp, Checkout, FLOOR, Home } from "./locations";
 import { Bottle, DOWN, Flashlight, Megaphone, Monster, Mop, Pelmeni, Person, Scanner } from "./people";
 
@@ -392,6 +393,44 @@ export const Scene14 = () => (
     }}
   </Shell>
 );
+
+/* ── 0: холодный хук-тизер — нарезка лучших моментов (их звук заглушён), поверх голос Макса и титул ── */
+export const Scene00 = () => {
+  const f = useCurrentFrame();
+  const t = f / 30;
+  const d = scene(0);
+  const shots: { C: React.FC; n: number; mark: string }[] = [
+    { C: Scene09, n: 9, mark: "carry" },
+    { C: Scene07, n: 7, mark: "jar" },
+    { C: Scene12, n: 12, mark: "drop" },
+    { C: Scene14, n: 14, mark: "home" },
+  ];
+  const starts = [0, ...d.lines.slice(1).map((l) => Math.round((l.at - 0.15) * 30))];
+  const tt = mk(d, "title");
+  const k = ez(t, tt - 0.2, tt + 0.3);
+  return (
+    <AbsoluteFill style={{ background: "#000" }}>
+      <MuteCtx.Provider value={true}>
+        {shots.map((s, i) => {
+          const from = starts[i];
+          const to = i < shots.length - 1 ? starts[i + 1] : d.frames;
+          const off = Math.max(0, Math.round((mk(scene(s.n), s.mark) - 0.4) * 30));
+          return (
+            <Sequence key={i} from={from} durationInFrames={to - from}>
+              <Sequence from={-off}><s.C /></Sequence>
+            </Sequence>
+          );
+        })}
+      </MuteCtx.Provider>
+      <AbsoluteFill style={{ background: `rgba(0,0,0,${0.55 * k})` }} />
+      <div style={{ position: "absolute", left: 0, width: 1920, top: 330, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 132, lineHeight: 1.02, color: "#fff", WebkitTextStroke: "16px #000", paintOrder: "stroke fill", opacity: k, transform: `scale(${0.85 + 0.15 * k})` }}>
+        ЗАПЕРТЫ В ГИПЕРМАРКЕТЕ
+        <div style={{ color: "#ffd166", fontSize: 110 }}>30 ДНЕЙ</div>
+      </div>
+      <Shell n={0} focus={{}} bare>{() => null}</Shell>
+    </AbsoluteFill>
+  );
+};
 
 export const HYPER_SCENES = [Scene01, Scene02, Scene03, Scene04, Scene05, Scene06, Scene07, Scene08, Scene09, Scene10, Scene11, Scene12, Scene13, Scene14];
 export { ICE_RIM };

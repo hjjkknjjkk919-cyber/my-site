@@ -1,44 +1,14 @@
 import React from "react";
 import { MONT } from "../../pelmeni/kit";
-import { Arm, type ArmPose, GripHand, LINE, OUT } from "../AvitoWardrobe/rig";
-import { NuansV2 } from "../NuansEp2/chars";
+import { Arm, type ArmPose, Eye as DEye, GripHand, LINE, OUT } from "../AvitoWardrobe/rig";
+import { LipSyncMouth } from "../AvitoWardrobe/LipSyncMouth";
+import { visemeOf } from "../AvitoWardrobe/useLipSync";
+import { GOLD_RIM, NuansV2, RimDefs } from "../NuansEp2/chars";
 
 export const AmpCtx = React.createContext<Record<string, number>>({});
 
 const SK = "#e9c4a8";
 const SK_SH = "#cf9f84";
-
-/** Рот в 6 фазах по громкости реплики: закрыт → щель → узкий → средний → открытый → «О». */
-const Mouth = ({ a, y = -652 }: { a: number; y?: number }) => {
-  const ph = a < 0.06 ? 0 : a < 0.16 ? 1 : a < 0.3 ? 2 : a < 0.48 ? 3 : a < 0.7 ? 4 : 5;
-  if (ph === 0) return <path d={`M-14 ${y} Q0 ${y + 3} 14 ${y}`} stroke={LINE} strokeWidth={3.5} fill="none" strokeLinecap="round" />;
-  const ry = [0, 2.5, 5, 8, 11, 13][ph];
-  const rx = ph === 5 ? 9 : 14;
-  return (
-    <g>
-      <ellipse cx={0} cy={y + 2} rx={rx} ry={ry} fill="#3b0d11" stroke={LINE} strokeWidth={3} />
-      {ry >= 8 && <rect x={-9} y={y + 2 - ry + 1.5} width={18} height={4} rx={2} fill="#f4f4f5" />}
-    </g>
-  );
-};
-
-/** Глаз, обрезанный по белку: зрачок и веко не выходят за контур. */
-let eyeN = 0;
-const Eye = ({ cx, cy, lid, look = 0, r = 11 }: { cx: number; cy: number; lid: number; look?: number; r?: number }) => {
-  const id = React.useMemo(() => `pe${eyeN++}`, []);
-  return (
-    <g>
-      <defs><clipPath id={id}><ellipse cx={cx} cy={cy} rx={r} ry={r * 0.8} /></clipPath></defs>
-      <ellipse cx={cx} cy={cy} rx={r} ry={r * 0.8} fill="#fbf8f2" />
-      <g clipPath={`url(#${id})`}>
-        <circle cx={cx + look * r * 0.45} cy={cy + 1} r={r * 0.38} fill="#151214" />
-        {lid > 0 && <rect x={cx - r - 2} y={cy - r} width={r * 2 + 4} height={r * 2 * lid} fill={SK} />}
-        {lid > 0 && <line x1={cx - r} y1={cy - r + r * 2 * lid} x2={cx + r} y2={cy - r + r * 2 * lid} stroke={LINE} strokeWidth={2.5} />}
-      </g>
-      <ellipse cx={cx} cy={cy} rx={r} ry={r * 0.8} fill="none" {...OUT} />
-    </g>
-  );
-};
 
 export type Kind = "galya" | "tolyan" | "zina" | "petrovich" | "it" | "it2" | "jock" | "mom" | "oldman" | "oldman2" | "mchs";
 export type Pose = { armL?: ArmPose; armR?: ArmPose; itemL?: React.ReactNode; itemR?: React.ReactNode; head?: number; lean?: number; look?: number; lid?: number; scared?: number; lift?: number };
@@ -76,8 +46,13 @@ export const Person = ({ kind, x, y, s = 1, t, pose = DOWN, talk }: { kind: Kind
     </>
   );
   const scared = pose.scared ?? 0;
+  const male = !["galya", "zina", "mom"].includes(kind);
+  const lid = blink ? 1 : pose.lid ?? (kind === "petrovich" ? 0.6 : kind === "tolyan" ? 0.45 : 0.3);
+  const browC = kind === "zina" || kind === "oldman" || kind === "oldman2" ? "#9a948c" : kind === "galya" ? "#7a3418" : kind === "mom" ? "#5a3414" : "#3a2a22";
   return (
-    <g transform={`translate(${x} ${y - (pose.lift ?? 0)}) scale(${s * L.h} ${s * L.h}) rotate(${pose.lean ?? 0})`}>
+    <g>
+    <RimDefs id="prim" color={GOLD_RIM} />
+    <g filter="url(#prim)" transform={`translate(${x} ${y - (pose.lift ?? 0)}) scale(${s * L.h} ${s * L.h}) rotate(${pose.lean ?? 0})`}>
       <ellipse cx={0} cy={0} rx={w + 20} ry={12} fill="#000" opacity={0.3} />
       {[-1, 1].map((d) => (
         <g key={d}>
@@ -121,44 +96,79 @@ export const Person = ({ kind, x, y, s = 1, t, pose = DOWN, talk }: { kind: Kind
         )}
         {kind === "jock" && <path d="M-40 -560 Q0 -520 40 -560" stroke={SK} strokeWidth={22} fill="none" />}
         {(kind === "it" || kind === "it2") && <path d={`M${-w + 10} -548 C-30 -610 30 -610 ${w - 10} -548`} fill={L.top} {...OUT} />}
-        {/* голова */}
-        <g transform={`rotate(${(pose.head ?? 0) + sway} 0 -566)`}>
-          <rect x={-15} y={-600} width={30} height={40} fill={SK_SH} {...OUT} />
-          <ellipse cx={0} cy={-660} rx={52} ry={60} fill={SK} {...OUT} />
-          {kind === "galya" && <path d="M-60 -660 C-90 -760 -30 -800 0 -790 C40 -810 96 -770 62 -660 C60 -700 40 -720 0 -722 C-40 -722 -58 -700 -60 -660 Z" fill="#b5532a" {...OUT} />}
-          {kind === "zina" && (
-            <g>
-              <path d="M-66 -650 C-80 -740 80 -740 66 -650 C70 -600 60 -580 40 -570 L30 -620 C30 -690 -30 -690 -30 -620 L-40 -570 C-60 -580 -70 -600 -66 -650 Z" fill="#d8d0c4" {...OUT} />
-              {Array.from({ length: 6 }, (_, i) => <circle key={i} cx={-50 + i * 20} cy={-690 + (i % 2) * 14} r={4} fill="#a89f92" />)}
-              {[-20, 20].map((cx) => <circle key={cx} cx={cx} cy={-664} r={15} fill="none" stroke={LINE} strokeWidth={3} />)}
-              <path d="M-35 -664 C-50 -620 -40 -600 -30 -580 M35 -664 C50 -620 40 -600 30 -580" stroke="#c9a24a" strokeWidth={2} fill="none" />
-            </g>
-          )}
+        {/* cel-тень на одежде, как у Димы */}
+        <path d={`M${w - 24} -520 C${w + 6} -450 ${w + 12} -370 ${w} -292 L${w - 18} -292 C${w - 8} -380 ${w - 10} -450 ${w - 24} -520 Z`} fill="#000" opacity={0.2} />
+        <path d="M-30 -572 C-22 -548 22 -548 30 -572" fill="none" {...OUT} />
+        {/* голова в стиле Димы: крупная, уши, cel-тень, глаза «-_-» в clipPath, мешки, ровные брови, щетина, lip-sync */}
+        <g transform={`translate(0 14) rotate(${(pose.head ?? 0) + sway} 0 -578)`}>
+          <rect x={-16} y={-626} width={32} height={56} fill={SK_SH} {...OUT} />
+          {kind === "galya" && <path d="M-88 -650 C-126 -806 -40 -858 0 -848 C52 -866 128 -806 90 -650 Z" fill="#b5532a" {...OUT} />}
+          {kind === "mom" && <path d="M-84 -690 C-102 -804 102 -804 84 -690 L94 -556 L-94 -556 Z" fill="#8d5524" {...OUT} />}
+          {kind === "zina" && <path d="M-82 -664 C-98 -796 98 -796 82 -664 Z" fill="#d8d0c4" {...OUT} />}
+          {(kind === "it" || kind === "it2") && <path d="M-74 -700 C-82 -790 82 -790 74 -700 L70 -680 L-70 -680 Z" fill={kind === "it" ? "#3a2a22" : "#6b4f2a"} {...OUT} />}
+          {[-1, 1].map((d) => <ellipse key={d} cx={d * 70} cy={-684} rx={12} ry={18} fill={SK} {...OUT} />)}
+          <ellipse cx={0} cy={-682} rx={68} ry={78} fill={SK} {...OUT} />
+          <path d="M30 -740 C62 -716 66 -670 52 -628 C62 -660 60 -700 30 -740 Z" fill={SK_SH} opacity={0.7} />
+          {/* причёски и головные уборы */}
+          {kind === "galya" && <path d="M-74 -698 C-78 -786 76 -792 76 -702 C58 -736 24 -748 -6 -740 C-36 -746 -62 -730 -74 -698 Z" fill="#b5532a" {...OUT} />}
+          {kind === "galya" && [-1, 1].map((d) => <circle key={d} cx={d * 72} cy={-660} r={5} fill="#f5c542" {...OUT} />)}
+          {kind === "zina" && Array.from({ length: 7 }, (_, i) => <circle key={i} cx={-60 + i * 20} cy={-748 + (i % 2) * 14} r={12} fill="#d8d0c4" {...OUT} />)}
+          {kind === "mom" && <path d="M-72 -700 C-70 -774 72 -780 74 -704 C40 -742 -10 -730 -30 -712 C-46 -716 -60 -712 -72 -700 Z" fill="#8d5524" {...OUT} />}
+          {(kind === "it" || kind === "it2") && <path d="M-72 -700 C-70 -770 70 -775 74 -704 L58 -716 L50 -694 L34 -722 L20 -700 L4 -726 L-12 -702 L-28 -728 L-42 -704 L-56 -724 Z" fill={kind === "it" ? "#3a2a22" : "#6b4f2a"} {...OUT} />}
+          {kind === "jock" && <path d="M-70 -700 C-70 -770 70 -774 72 -704 C40 -724 -40 -724 -70 -700 Z" fill="#222" {...OUT} />}
           {kind === "tolyan" && (
-            <g transform="rotate(-12 0 -715)">
-              <path d="M-54 -690 C-50 -760 50 -760 54 -690 Z" fill="#c1121f" {...OUT} />
-              <path d="M-54 -690 H54" stroke="#fff" strokeWidth={8} />
-              <circle cx={4} cy={-770} r={16} fill="#fff" {...OUT} />
+            <g transform="rotate(-12 0 -740)">
+              <path d="M-74 -712 C-74 -802 74 -802 74 -712 Z" fill="#c1121f" {...OUT} />
+              <path d="M-76 -712 H76" stroke="#fff" strokeWidth={10} />
+              <circle cx={6} cy={-806} r={18} fill="#fff" {...OUT} />
             </g>
           )}
           {(kind === "petrovich" || kind === "oldman" || kind === "oldman2") && (
-            <path d="M-56 -690 C-52 -748 52 -748 56 -690 L76 -684 L-56 -684 Z" fill={kind === "petrovich" ? "#111" : "#5d4037"} {...OUT} />
+            <g>
+              {kind !== "petrovich" && [-1, 1].map((d) => <path key={d} d={`M${d * 66} -700 q${d * 10} 14 ${d * 2} 30`} stroke="#d8d4cc" strokeWidth={10} fill="none" strokeLinecap="round" />)}
+              <path d="M-72 -712 C-68 -792 68 -792 72 -712 L100 -704 L-72 -704 Z" fill={kind === "petrovich" ? "#111" : kind === "oldman" ? "#5d4037" : "#455a64"} {...OUT} />
+            </g>
           )}
-          {kind === "mchs" && <path d="M-62 -680 C-62 -770 62 -770 62 -680 Z" fill="#fff" {...OUT} />}
-          {(kind === "it" || kind === "it2" || kind === "jock" || kind === "mom") && (
-            <path d="M-54 -680 C-58 -740 58 -744 54 -680 L44 -700 L30 -686 L14 -706 L-2 -688 L-18 -706 L-34 -688 Z" fill={kind === "mom" ? "#8d5524" : kind === "jock" ? "#222" : "#3a2a22"} {...OUT} />
+          {kind === "mchs" && (
+            <g>
+              <path d="M-80 -700 C-80 -812 80 -812 80 -700 Z" fill="#fff" {...OUT} />
+              <path d="M0 -808 V-704" stroke="#d9d9d9" strokeWidth={6} />
+              <path d="M-88 -700 H88" stroke="#eee" strokeWidth={9} strokeLinecap="round" />
+            </g>
           )}
-          {kind === "mom" && <path d="M-54 -680 C-80 -640 -70 -590 -50 -570 M54 -680 C80 -640 70 -590 50 -570" stroke="#8d5524" strokeWidth={14} fill="none" />}
-          <Eye cx={-20} cy={-664} lid={blink ? 1 : pose.lid ?? (kind === "petrovich" ? 0.6 : kind === "tolyan" ? 0.35 : 0.15)} look={pose.look ?? 0} r={scared ? 14 : 11} />
-          <Eye cx={20} cy={-664} lid={blink ? 1 : pose.lid ?? (kind === "petrovich" ? 0.6 : kind === "tolyan" ? 0.35 : 0.15)} look={pose.look ?? 0} r={scared ? 14 : 11} />
-          <path d={`M-32 ${-684 - scared * 8} l22 ${-3 + (kind === "galya" ? 6 : 0)} M10 ${-687 + (kind === "galya" ? 6 : 0) - scared * 8} l22 3`} stroke="#3a2a22" strokeWidth={5} strokeLinecap="round" />
-          <ellipse cx={0} cy={-644} rx={8} ry={kind === "tolyan" ? 10 : 6} fill={kind === "tolyan" ? "#e63946" : SK_SH} {...OUT} />
-          {kind === "tolyan" && Array.from({ length: 20 }, (_, i) => <circle key={i} cx={Math.cos(i * 2.4) * Math.sqrt(i / 20) * 40} cy={-618 + Math.sin(i * 2.4) * 10} r={1.4} fill="#3a2a22" opacity={0.6} />)}
-          <Mouth a={amp} y={-626} />
+          <DEye cx={-26} cy={-684} rx={scared ? 19 : 16} ry={scared ? 14 : 11} lid={lid} look={pose.look ?? 0.1} skin={SK} />
+          <DEye cx={26} cy={-684} rx={scared ? 19 : 16} ry={scared ? 14 : 11} lid={lid} look={pose.look ?? 0.1} skin={SK} />
+          {(kind === "zina" || kind === "it" || kind === "it2" || kind === "oldman2") && (
+            <g fill="none" stroke={LINE} strokeWidth={3.5}>
+              {kind === "it" ? [-26, 26].map((cx) => <rect key={cx} x={cx - 21} y={-700} width={42} height={30} rx={6} />) : [-26, 26].map((cx) => <circle key={cx} cx={cx} cy={-684} r={21} />)}
+              <path d="M-5 -686 H5" />
+              {kind === "zina" && <path d="M-47 -684 C-62 -630 -50 -606 -40 -588 M47 -684 C62 -630 50 -606 40 -588" stroke="#c9a24a" strokeWidth={2} />}
+            </g>
+          )}
+          <path d="M-34 -666 q8 4 16 0 M18 -666 q8 4 16 0" stroke={SK_SH} strokeWidth={3} fill="none" />
+          {kind === "zina" || kind === "oldman" || kind === "oldman2" ? (
+            <path d="M-50 -676 l-8 -4 M50 -676 l8 -4 M-22 -740 H22 M-16 -728 H16" stroke={SK_SH} strokeWidth={3} fill="none" strokeLinecap="round" />
+          ) : null}
+          {kind === "galya" ? (
+            <path d={`M-44 ${-702 - scared * 8} Q-28 -716 -10 ${-704 + 4} M10 ${-704 + 4} Q28 -716 44 ${-702 - scared * 8}`} stroke={browC} strokeWidth={5} fill="none" strokeLinecap="round" />
+          ) : (
+            <path d={`M-42 ${-704 - scared * 9} H-12 M12 ${-704 - scared * 9} H42`} stroke={browC} strokeWidth={6} strokeLinecap="round" />
+          )}
+          {kind === "tolyan" ? <ellipse cx={2} cy={-660} rx={11} ry={13} fill="#e63946" {...OUT} /> : <path d="M0 -676 q-6 18 4 22" {...OUT} fill="none" />}
+          {(kind === "petrovich" || kind === "oldman" || kind === "oldman2") && <path d="M-28 -650 C-12 -662 12 -662 28 -650 C14 -643 -14 -643 -28 -650 Z" fill={kind === "petrovich" ? "#3a2a22" : "#ece8e0"} {...OUT} />}
+          <LipSyncMouth viseme={visemeOf(amp)} variant="dima" x={0} y={-638} />
+          {kind === "galya" && amp < 0.07 && <path d="M-12 -638 Q0 -634 12 -638" stroke="#c1121f" strokeWidth={4} fill="none" strokeLinecap="round" />}
+          {male && kind !== "mchs" && Array.from({ length: kind === "tolyan" ? 60 : 30 }, (_, i) => {
+            const n = kind === "tolyan" ? 60 : 30;
+            const a = i * 2.39996;
+            const r = Math.sqrt((i + 0.5) / n);
+            return <circle key={i} cx={Math.cos(a) * r * 44} cy={-618 + Math.sin(a) * r * 16} r={1.4} fill="#3a2a22" opacity={0.5} />;
+          })}
         </g>
         {arms("out")}
         {arms("fill")}
       </g>
+    </g>
     </g>
   );
 };

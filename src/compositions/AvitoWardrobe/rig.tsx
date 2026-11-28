@@ -87,7 +87,7 @@ export const GripHand = ({ x, y, item, itemRot = 0, point = false, open = false 
 };
 
 /** Глаз, обрезанный по белку: зрачок-точка и прямое веко «-_-» не выходят за контур. */
-const Eye = ({ cx, cy, rx, ry, lid, pupil = 3.2, look = 0, skin = SKIN, glow }: { cx: number; cy: number; rx: number; ry: number; lid: number; pupil?: number; look?: number; skin?: string; glow?: string }) => {
+export const Eye = ({ cx, cy, rx, ry, lid, pupil = 3.2, look = 0, skin = SKIN, glow }: { cx: number; cy: number; rx: number; ry: number; lid: number; pupil?: number; look?: number; skin?: string; glow?: string }) => {
   const id = uid();
   const lidY = cy - ry + ry * 2 * lid;
   return (
@@ -200,7 +200,7 @@ const DimaMouth = ({ yawn = 0 }: { yawn?: number }) => {
   return <LipSyncMouth viseme={visemeOf(e)} variant="dima" x={0} y={-638} />;
 };
 
-/** Коготь-палец: три сужающиеся фаланги и чёрный коготь, всё одним контуром 2.5px. */
+/** Палец монстра: три сужающиеся фаланги и скруглённый кончик (БЕЗ когтя), всё одним контуром 2.5px. */
 const ClawFinger = ({ x, y, ang, len, w, curl = 0 }: { x: number; y: number; ang: number; len: number; w: number; curl?: number }) => {
   const a = (ang * Math.PI) / 180;
   const seg = [len * 0.42, len * 0.33, len * 0.25];
@@ -224,7 +224,8 @@ const ClawFinger = ({ x, y, ang, len, w, curl = 0 }: { x: number; y: number; ang
     <g>
       <path d={`M${left.join(" L")} L${right.join(" L")} Z`} fill={MON_HI} stroke={LINE} strokeWidth={2.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
       {pts.slice(1, 3).map(([X, Y, W], i) => <line key={i} x1={X + (nx * W) / 2.6} y1={Y + (ny * W) / 2.6} x2={X - (nx * W) / 2.6} y2={Y - (ny * W) / 2.6} stroke={MON_SH} strokeWidth={2} />)}
-      <path d={`M${tx + (nx * tw) / 2} ${ty + (ny * tw) / 2} Q${tx + Math.sin(dir) * cl * 0.7 + nx * 4} ${ty + Math.cos(dir) * cl * 0.7 + ny * 4} ${tx + Math.sin(dir + 0.35) * cl} ${ty + Math.cos(dir + 0.35) * cl} L${tx - (nx * tw) / 2} ${ty - (ny * tw) / 2} Z`} fill="#0d0d10" stroke={LINE} strokeWidth={2.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      {/* без когтей (правило пользователя): скруглённая подушечка пальца */}
+      <circle cx={tx} cy={ty} r={tw / 2} fill={MON_HI} stroke={LINE} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
     </g>
   );
 };

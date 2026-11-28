@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Рендер 14 сцен лонга на GitHub Actions пачками по 3 → out/scenes/scene_NN.mp4
+# Рендер тизера и 14 сцен лонга на GitHub Actions пачками по 3 → out/scenes/scene_NN.mp4
 set -u
 cd "$(dirname "$0")/.."
 REPO=hjjkknjjkk919-cyber/my-site
@@ -20,6 +20,6 @@ run_batch() {
     rm -rf "$DL/$name"; gh run download "$r" -R $REPO -n "$name" -D "$DL/$name" && cp "$DL/$name/$name.mp4" "out/scenes/$name.mp4"
   done
 }
-todo=("$@"); [ ${#todo[@]} -eq 0 ] && todo=($(seq 1 14))
+todo=("$@"); [ ${#todo[@]} -eq 0 ] && todo=($(seq 0 14))
 for ((i=0; i<${#todo[@]}; i+=3)); do run_batch "${todo[@]:i:3}"; done
 ls -la out/scenes

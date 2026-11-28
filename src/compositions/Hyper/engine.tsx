@@ -11,6 +11,8 @@ export type Line = { id: string; who: string; at: number; dur: number; text: str
 export type SceneData = { n: number; loc: string; day: number; frames: number; lines: Line[]; marks: Record<string, number>; sfx: { name: string; at: number }[] };
 export const SCENES = TL as unknown as SceneData[];
 export const scene = (n: number) => SCENES.find((s) => s.n === n)!;
+/** Тизер встраивает готовые сцены: их звук и субтитры глушатся. */
+export const MuteCtx = React.createContext(false);
 
 /** Мат в субтитрах — со звёздочкой. */
 const MASK: [RegExp, string][] = [[/бляд/gi, "бл*д"], [/блять/gi, "бл*ть"], [/ебан/gi, "*бан"], [/нахуй/gi, "нах*й"], [/хуй/gi, "х*й"], [/переебу/gi, "пере*бу"], [/заебись/gi, "за*бись"], [/сука/gi, "с*ка"]];
@@ -43,7 +45,8 @@ const COLOR: Record<string, string> = { galya: "#7fb2ff", tolyan: "#ff8a8a", zin
  * Оболочка сцены: камера (резкий кадр на говорящего с медленным наездом, общий план на действиях),
  * плашка «ДЕНЬ N ИЗ 30», субтитры, звук (голоса 0 dB, эмбиент и SFX −20 dB с дакингом под речью), зерно и виньетка.
  */
-export const Shell = ({ n, focus, children }: { n: number; focus: Record<string, [number, number]>; children: (t: number, d: SceneData) => React.ReactNode }) => {
+export const Shell = ({ n, focus, children, bare = false }: { n: number; focus: Record<string, [number, number]>; children: (t: number, d: SceneData) => React.ReactNode; bare?: boolean }) => {
+  const mute = React.useContext(MuteCtx);
   const f = useCurrentFrame();
   const t = f / 30;
   const d = scene(n);
@@ -67,6 +70,18 @@ export const Shell = ({ n, focus, children }: { n: number; focus: Record<string,
   const amb = d.loc === "butchery" ? "amb_storage" : "amb_hall";
   const sub = chunks(d.lines).find((c) => t >= c.from && t < c.to + 0.05);
   const plate = ez(t, 0.1, 0.5);
+  if (bare)
+    return (
+      <AbsoluteFill>
+        {sub && <div style={{ position: "absolute", left: 160, width: 1600, top: 900, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 64, lineHeight: 1.1, textTransform: "uppercase", color: COLOR[sub.who] ?? "#fff", WebkitTextStroke: "12px #000", paintOrder: "stroke fill" }}>{sub.text}</div>}
+        {d.sfx.map((s, i) => (
+          <Sequence key={i} from={Math.round(s.at * 30)} layout="none"><Audio src={staticFile(`audio/hyper/sfx_${s.name}.mp3`)} volume={0.12} /></Sequence>
+        ))}
+        {d.lines.map((l) => (
+          <Sequence key={l.id} from={Math.round(l.at * 30)} layout="none"><Audio src={staticFile(`audio/hyper/${l.id}.mp3`)} volume={1} /></Sequence>
+        ))}
+      </AbsoluteFill>
+    );
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <AmpCtx.Provider value={amp}>
@@ -85,9 +100,10 @@ export const Shell = ({ n, focus, children }: { n: number; focus: Record<string,
       <div style={{ position: "absolute", left: 40, top: 36, transform: `translateX(${(1 - plate) * -40}px)`, opacity: plate, fontFamily: MONT, fontWeight: 900, fontSize: 40, color: "#fff", background: "rgba(10,10,14,.82)", border: "3px solid rgba(255,255,255,.2)", borderRadius: 14, padding: "8px 22px" }}>
         ДЕНЬ <span style={{ color: "#ffd166" }}>{d.day}</span> ИЗ 30
       </div>
-      {sub && (
+      {sub && !mute && (
         <div style={{ position: "absolute", left: 160, width: 1600, top: 900, textAlign: "center", fontFamily: MONT, fontWeight: 900, fontSize: 64, lineHeight: 1.1, textTransform: "uppercase", color: COLOR[sub.who] ?? "#fff", WebkitTextStroke: "12px #000", paintOrder: "stroke fill" }}>{sub.text}</div>
       )}
+      {!mute && <>
       <Audio src={staticFile(`audio/hyper/sfx_${amb}.mp3`)} loop volume={(fr) => (talking(fr / 30) ? 0.05 : 0.1)} />
       {d.loc === "checkout" && <Audio src={staticFile("audio/hyper/sfx_blizzard.mp3")} loop volume={(fr) => (talking(fr / 30) ? 0.03 : 0.06)} />}
       {d.sfx.map((s, i) => (
@@ -100,6 +116,7 @@ export const Shell = ({ n, focus, children }: { n: number; focus: Record<string,
           <Audio src={staticFile(`audio/hyper/${l.id}.mp3`)} volume={1} />
         </Sequence>
       ))}
+      </>}
     </AbsoluteFill>
   );
 };
